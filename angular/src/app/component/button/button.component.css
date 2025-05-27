@@ -1,0 +1,13 @@
+
+.test {
+    width: 90px;
+    height: 40px;
+    background-color: #005bbb;  
+    color: white;                 
+    font-weight: bold;            
+    border: none;                 
+    border-radius: 999px;        
+    /* padding: 10px;            */
+    font-size: 13px;
+
+}

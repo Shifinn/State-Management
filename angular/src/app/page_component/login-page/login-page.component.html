@@ -1,0 +1,23 @@
+<main>
+  <div class="login-box">
+    <div class="login-text">Login</div>
+
+    <div>Username</div>
+    <app-input-box 
+      [inputLabel]="'Username'"
+      #usernameBox>
+    </app-input-box>
+
+    <div>Password</div>
+    <app-input-box 
+      [inputLabel]="'Password'" 
+      [inputType]="'password'"
+      #passwordBox>
+    </app-input-box>
+
+    <button 
+      mat-flat-button class="button" 
+      (click)="checkLogin(usernameBox, passwordBox)" 
+    >Login</button>
+  </div>
+</main>
