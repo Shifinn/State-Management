@@ -1,0 +1,37 @@
+--test for new request
+{
+  "request_title": "Customer data",
+  "user_id": 16,
+  "requester_name": "carol",
+  "analysis_purpose": "Summarize customer salesfor Q1",
+  "requested_finish_date": "2025-06-10 00:00:00",
+  "pic_request": "carol",
+  "urgent": true,
+  "requirement_type": 2,
+  "required_data": "db"
+}
+
+{
+  "request_title": "planning from beginning",
+  "user_id": 14,
+  "requester_name": "alice",
+  "analysis_purpose": "summer plan",
+  "requested_finish_date": "2025-06-10 00:00:00",
+  "pic_request": "alice",
+  "urgent": true,
+  "requirement_type": 2,
+  "required_data": "db"
+}
+
+--test for stateSpecificData
+Localhost:9090/stateSpecificData?range=1&state=1
+
+
+--test for userCurrentRequests
+Localhost:9090/userRequestsData?user_id=17
+
+--test for toDoData
+Localhost:9090/toDoData?user_role=2
+
+--test for completeRequestData
+Localhost:9090/completeRequestData?request_id=1
