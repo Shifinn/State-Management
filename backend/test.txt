@@ -26,7 +26,6 @@
 --test for stateSpecificData
 Localhost:9090/stateSpecificData?range=1&state=1
 
-
 --test for userCurrentRequests
 Localhost:9090/userRequestsData?user_id=17
 
@@ -35,3 +34,16 @@ Localhost:9090/toDoData?user_role=2
 
 --test for completeRequestData
 Localhost:9090/completeRequestData?request_id=1
+
+-- test for stateCountData where range is 1 week
+Localhost:9090/stateCountData?range=1
+
+-- test for fullStateHistoryData
+Localhost:9090/fullStateHistoryData?request_id=1
+
+-- test for degradeState
+Localhost:9090/degradeState
+{
+  "request_id": 1,
+  "comment": "not good"
+}

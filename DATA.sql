@@ -1,27 +1,47 @@
 -- FUNCTION TO CHECK CORRECT CREDENTIALS AND RETURN USER ID
 CREATE OR REPLACE FUNCTION get_user_id_by_credentials(
 	username_input VARCHAR, 
-	password_input VARCHAR)
-RETURNS INT AS $$
-DECLARE 
-    temp_id INT;
+	password_input VARCHAR
+	)
+RETURNS JSON AS $$
+DECLARE
+    result_json JSON;
 BEGIN
-	-- GET THE USER ID OF THE USER WITH THE EXACT NAME AND PASSWORD
-    SELECT user_id INTO temp_id
-    FROM user_data
-    WHERE user_name = username_input
-	AND user_password = password_input;
-
-	-- IF THERE IS NO EXACT MATCH THAT MEANS THAT THE LOGIN IS INVALID
-	IF temp_id IS NULL 
-	THEN RETURN 0;
-	-- IF ID FOUND THEN RETURN THE USER ID 
-	ELSE RETURN temp_id;
-	END IF;
+	SELECT json_agg(row_to_json(t))
+	INTO result_json
+	FROM (
+		SELECT user_id, user_name, email, user_role
+	    FROM user_table
+	    WHERE user_name = username_input
+			AND user_password = password_input
+		LIMIT 1
+	) t;
+	
+    IF result_json IS NULL THEN
+        result_json := json_build_object(
+            'user_id', 0,
+            'user_name', '0',
+            'email', '0',
+            'user_role', 0
+        );
+    END IF;
+    RETURN result_json;
 END;
 $$ LANGUAGE plpgsql;
 
+SELECT get_user_id_by_credentials('alice', '1234')
+    IF result_json IS NULL THEN
+        result_json := json_build_object(
+            'user_id', 0,
+            'user_name', '0',
+            'user_email', '0',
+            'user_role', '0'
+        );
+    END IF;
 
+    RETURN result_json;
+END;
+$$ LANGUAGE plpgsql;
 
 -- PROCEDURE TO STORE A USER INTO THE USER_DATA TABLE
 CREATE OR REPLACE PROCEDURE insert_user(
@@ -40,6 +60,7 @@ $$ LANGUAGE plpgsql;
 -- PROCEDURE TO INCREASE/UPGRADE STATE TO NEXT STAGE
 CREATE OR REPLACE PROCEDURE upgrade_state(
 	request_id_input 	INT,
+    user_id_input       INT,    
 	comment_input 		TEXT DEFAULT NULL
 ) AS $$
 DECLARE 
@@ -54,45 +75,67 @@ BEGIN
 	-- UPDATE THE PREVIOUS STATE'S END DATE
 	UPDATE state_table
 	SET date_end = CURRENT_TIMESTAMP,
-		completed = true
+		completed = true,
+		state_comment = comment_input,
+        ended_by = user_id_input
 	WHERE request_id = request_id_input
 	  AND state_name_id = temp_state_id - 1;
 
 	-- INSERT NEW ENTRY FOR NEW STATE IN STATE_TABLE
-	INSERT INTO state_table(state_name_id, request_id, start_comment)
-    VALUES(temp_state_id, request_id_input, comment_input);
+	INSERT INTO state_table(state_name_id, request_id, started_by)
+    VALUES(temp_state_id, request_id_input, user_id_input);
 END;
 $$ LANGUAGE plpgsql;
 
 
 
 -- PROCEDURE TO DECREASE/DEGRADE STATE WHEN REJECTED
-CREATE OR REPLACE PROCEDURE degrade_state(
+CREATE OR REPLACE PROCEDURE degrade_state( 
     request_id_input    INT,
+    user_id_input       INT,
     comment_input       TEXT DEFAULT NULL	
 )
 AS $$
 DECLARE 
     temp_state_id INT;
 BEGIN
-    -- UPDATE CURRENT STATE IN REQUEST_TABLE TO OLD (DEGRADED) STATE
+    -- Downgrade current_state and store new value
     UPDATE request_table
-	SET current_state = current_state - 1
-	WHERE request_id = request_id_input
-	RETURNING current_state INTO temp_state_id;
-
-    -- RESTART THE OLD STATE
-    UPDATE state_table
-    SET date_end = NULL,
-        completed = false,
-        start_comment = 'REJECTED: ' || comment_input
-	WHERE request_id = request_id_input
-	  AND state_name_id = temp_state_id;
-
-    -- DELETE THE STATE ENTRY OF THE DELETED
-    DELETE FROM state_table
+    SET current_state = current_state - 1
     WHERE request_id = request_id_input
-      AND state_name_id = temp_state_id + 1;
+		AND current_state = ANY(ARRAY[1,4])
+    RETURNING current_state INTO temp_state_id;
+
+    IF temp_state_id = 0 THEN
+        UPDATE state_table
+        SET state_name_id = 0,
+            state_comment = 'REJECTED: ' || comment_input,
+            date_end = CURRENT_TIMESTAMP,
+            ended_by = user_id_input
+        WHERE request_id = request_id_input
+          AND state_name_id = temp_state_id+1;
+		  
+    ELSIF temp_state_id = 3 THEN
+        -- Restart previous state
+        UPDATE state_table
+        SET date_end = NULL,
+            completed = FALSE,
+            state_comment = 'REJECTED: ' || comment_input,
+            ended_by = NULL
+        WHERE request_id = request_id_input
+          AND state_name_id = temp_state_id;
+
+        -- Mark state 4 as rejected
+        UPDATE state_table
+        SET state_name_id = (temp_state_id + 1)*10 + 1,
+            state_comment = 'REJECTED: ' || comment_input,
+			date_end = CURRENT_TIMESTAMP,
+            ended_by = user_id_input
+        WHERE request_id = request_id_input
+          AND state_name_id = temp_state_id + 1;
+	ELSE
+		RAISE EXCEPTION 'Degrade failed: unsupported state_id % for request_id %', temp_state_id, request_id_input;
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -108,7 +151,7 @@ CREATE OR REPLACE PROCEDURE create_new_request(
     pic_submitter_input         VARCHAR,
     urgent_input                BOOLEAN,
     requirement_type_input      INT,
-    required_data_input         VARCHAR			
+	answers_input				VARCHAR[]
 )
 AS $$
 DECLARE 
@@ -143,12 +186,60 @@ BEGIN
     ) RETURNING request_id INTO temp_request_id;
 
     -- INSERT THE FIRST STATE FOR THE REQUEST
-    INSERT INTO state_table(state_name_id, request_id)
-    VALUES (1, temp_request_id);
+    CALL insert_question(temp_request_id,requirement_type_input, answers);
 END;
 $$ LANGUAGE plpgsql;
 
+-- PROCEDURE TO INSERT THE QUESTIONS BASED ON REQUIREMENT
+CREATE OR REPLACE PROCEDURE insert_questions(
+    request_id_input    		INT,
+    requirement_type_id_input   INT,
+    answer						VARCHAR[]	
+)
+AS $$
+DECLARE 
+    question_num INT;
+	i INT;
+BEGIN
+    -- Get the number of questions for the given requirement type
+    SELECT question_amount
+    INTO question_num
+    FROM requirement_type_table 
+    WHERE requirement_type_id = requirement_type_id_input;
 
+    -- Loop through and insert each answer
+    FOR i IN 1..question_num LOOP
+        INSERT INTO requirement_table(request_id, requirement_question_id, answer)
+        VALUES (request_id_input, (requirement_type_id_input * 100 + i), answer[i]);
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+CALL insert_questions( 2, 1, ARRAY['Data Warehouse ABC', 'Q1 2025', 'Metode A + B']);
+
+
+
+CREATE OR REPLACE PROCEDURE recalibrate_requirement_count()
+AS $$
+DECLARE 
+    req_type RECORD;
+    question_num INT;
+BEGIN
+    FOR req_type IN 
+        SELECT requirement_type_id 
+        FROM requirement_type_table
+    LOOP
+        SELECT COUNT(*)
+        INTO question_num
+        FROM requirement_table
+        WHERE requirement_question_id BETWEEN (req_type.requirement_type_id * 100 + 1) AND (req_type.requirement_type_id * 100 + 99);
+
+        UPDATE requirement_type_table
+        SET question_amount = question_num
+        WHERE requirement_type_id = req_type.requirement_type_id;
+    END LOOP;
+END;
+$$ LANGUAGE plpgsql;
 
 
 -- FUCNTION TO GET SIMPLE DATA FOR SPECIFIC STATE
@@ -208,10 +299,36 @@ BEGIN
 		SELECT 
 			r.request_id,
 			r.request_title,
+			r.request_date,
 			n.state_name
 		FROM request_table r
 		JOIN state_name_table n ON r.current_state = n.state_name_id
 		WHERE r.user_id = user_id_input
+		ORDER BY r.request_id
+	) t;
+    RETURN result_json;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION get_full_state_history(
+	request_id_input		INT
+	)
+RETURNS JSON AS $$
+DECLARE
+    result_json JSON;
+BEGIN
+	SELECT json_agg(row_to_json(t))
+	INTO result_json
+	FROM (
+		SELECT 
+			n.state_name,
+			s.date_start,
+			s.date_end
+		FROM state_table s
+		JOIN state_name_table n ON s.state_name_id = n.state_name_id
+		WHERE s.request_id = request_id_input
+		ORDER BY s.state_id
 	) t;
     RETURN result_json;
 END;
@@ -227,7 +344,7 @@ DECLARE
     viewable INT[];
 BEGIN
     IF user_role_input = 2 THEN viewable := ARRAY[2,3,4,5];
-    ELSIF user_role_input = 3 THEN viewable := ARRAY[1,2,4,5];
+    ELSIF user_role_input = 3 THEN viewable := ARRAY[0,1,2,4,5];
     END IF;
 
     SELECT json_agg(row_to_json(t))
@@ -236,12 +353,14 @@ BEGIN
         SELECT 
             r.request_id,
             r.request_title,
-            r.user_id, 
-            s.state_name_id,
-            s.date_start
+            u.user_name, 
+            n.state_name,
+            s.date_start,
+			s.state_comment
         FROM request_table r
         JOIN user_table u ON r.user_id = u.user_id 
         JOIN state_table s ON r.request_id = s.request_id
+		JOIN state_name_table n ON r.current_state = n.state_name_id
         WHERE s.state_name_id = ANY(viewable)
 			AND s.state_name_id = r.current_state
     ) t;
@@ -282,6 +401,39 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION get_state_count(
+	range_input INT
+	
+	)
+RETURNS JSON AS $$
+DECLARE
+    result_json JSON;
+    start_date TIMESTAMP;
+    end_date TIMESTAMP := CURRENT_TIMESTAMP;
+BEGIN
+    start_date := CASE range_input
+        WHEN 1 THEN date_trunc('week', CURRENT_DATE)::TIMESTAMP                 
+        WHEN 2 THEN date_trunc('month', CURRENT_DATE)::TIMESTAMP                 
+        WHEN 3 THEN date_trunc('quarter', CURRENT_DATE)::TIMESTAMP              
+        WHEN 4 THEN date_trunc('year', CURRENT_DATE)::TIMESTAMP                  
+    END;
+	SELECT json_agg(row_to_json(t))
+	INTO result_json
+	FROM (
+		SELECT
+		  current_state AS "state_id",
+		  COUNT(*) AS "todo"
+		FROM request_table
+		WHERE request_date >= start_date
+			AND request_date <= end_date
+		GROUP BY state_id  
+		ORDER BY state_id
+	) t;
+    RETURN result_json;
+END;
+$$ LANGUAGE plpgsql;
+
+
 
 
 -- TEST TO GET USER ID FROM CREDENTIAL CHECK
@@ -295,13 +447,25 @@ TRUNCATE TABLE requirement_table;
 
 -- INSERT MAPPING OF STATE NAME AND ID
 INSERT INTO state_name_table (state_name_id, state_name)
-values
+VALUES
 (0, 'REJECTED'),
 (1, 'SUBMITTED'),
 (2, 'VALIDATED'),
 (3, 'IN PROGRESS'),
 (4, 'WAITING FOR REVIEW'),
 (5, 'DONE');
+
+INSERT INTO requirement_question_table (requirement_question_table, requirement_question)
+VALUES
+(0, 'REJECTED'),
+(1, 'SUBMITTED'),
+(2, 'VALIDATED'),
+(3, 'IN PROGRESS'),
+(4, 'WAITING FOR REVIEW'),
+(5, 'DONE');
+
+INSERT INTO state_name_table (state_name_id, state_name)
+VALUES (41, 'APPROVAL REJECTED')
 
 -- INSERT DUMMY USER
 INSERT INTO user_table (user_name, user_password, user_role, email, nik, position, department) VALUES
@@ -316,27 +480,60 @@ INSERT INTO user_table (user_name, user_password, user_role, email, nik, positio
 ('ivan',    '1234', 3, 'ivan@example.com',    1009, 'Supervisor',   'IT'),
 ('judy',    '1234', 1, 'judy@example.com',    1010, 'Manager',      'Finance');
 
+INSERT INTO user_table (user_name, user_password, user_role, email, nik, position, department) VALUES
+('barta',    '1234', 1, 'barta@example.com',    1011, 'Manager',      'Finance');
+
 -- insert dummy request
 
-CALL create_new_request('Sales Report Q1', 14, 'alice', 'Analyze Q1 sales trends', '2024-01-20 17:00:00', 'alice', false, 1, 'raw');
-CALL create_new_request('Inventory Audit', 15, 'bob', 'Check inventory discrepancies', '2024-02-15 17:00:00', 'bob', true, 2, 'db');
-CALL create_new_request('Customer Feedback', 16, 'carol', 'Summarize customer feedback', '2024-03-10 17:00:00', 'carol', false, 3, 'dashboard');
-CALL create_new_request('IT Upgrade', 17, 'dave', 'Plan for new hardware', '2024-03-25 17:00:00', 'dave', true, 1, 'db');
-CALL create_new_request('HR Survey', 18, 'eve', 'Analyze employee satisfaction', '2024-04-10 17:00:00', 'eve', false, 2, 'db');
-CALL create_new_request('Budget Review', 19, 'frank', 'Review Q2 budget allocations', '2024-04-30 17:00:00', 'frank', false, 3, 'dashboard');
-CALL create_new_request('Marketing Plan', 20, 'grace', 'Draft new marketing strategy', '2024-05-15 17:00:00', 'grace', true, 1, 'raw');
-CALL create_new_request('Security Audit', 21, 'heidi', 'Assess system vulnerabilities', '2024-05-28 17:00:00', 'heidi', false, 2, 'db');
-CALL create_new_request('Supplier Evaluation', 22, 'ivan', 'Evaluate new suppliers', '2024-06-11 17:00:00', 'ivan', true, 3, 'dashboard');
-CALL create_new_request('Website Redesign', 23, 'judy', 'Plan new website layout', '2024-06-25 17:00:00', 'judy', false, 1, 'raw');
+CALL create_new_request('Sales Report Q1', 1, 'alice', 'Analyze Q1 sales trends', '2025-01-20 17:00:00', 'alice', false, 1, 'raw');
+CALL create_new_request('Inventory Audit', 2, 'bob', 'Check inventory discrepancies', '2025-02-15 17:00:00', 'bob', true, 2, 'db');
+CALL create_new_request('Customer Feedback', 3, 'carol', 'Summarize customer feedback', '2025-03-10 17:00:00', 'carol', false, 3, 'dashboard');
+CALL create_new_request('IT Upgrade', 4, 'dave', 'Plan for new hardware', '2025-03-25 17:00:00', 'dave', true, 1, 'db');
+CALL create_new_request('HR Survey', 5, 'eve', 'Analyze employee satisfaction', '2025-04-10 17:00:00', 'eve', false, 2, 'db');
+CALL create_new_request('Budget Review', 6, 'frank', 'Review Q2 budget allocations', '2025-04-30 17:00:00', 'frank', false, 3, 'dashboard');
+CALL create_new_request('Marketing Plan', 7, 'grace', 'Draft new marketing strategy', '2025-05-15 17:00:00', 'grace', true, 1, 'raw');
+CALL create_new_request('Security Audit', 8, 'heidi', 'Assess system vulnerabilities', '2025-05-28 17:00:00', 'heidi', false, 2, 'db');
+CALL create_new_request('Supplier Evaluation', 9, 'ivan', 'Evaluate new suppliers', '2025-06-11 17:00:00', 'ivan', true, 3, 'dashboard');
+CALL create_new_request('Website Redesign', 10, 'judy', 'Plan new website layout', '2025-06-25 17:00:00', 'judy', false, 1, 'raw');
+
+CALL create_new_request('Inventory Audit', 1, 'alice', 'Check inventory discrepancies', '2025-02-15 17:00:00', 'bob', true, 2, 'db');
+
+-- INSERT REQUIREMENT QUESTIONS
+INSERT INTO requirement_question_table(requirement_question_id, requirement_question) 
+VALUES
+-- FRRA Questions
+(101, 'Sumber Data Yang Digunakan ?'),
+(102, 'Periode Data yang Digunakan ?'),
+(103, 'Metode Perhitungan yang digunakan ?'),
+-- Dataset (Penambahan Column) Questions
+(201, 'Sumber Data yang digunakan ?'),
+(202, 'Column yang akan ditambahakan ?'),
+(203, 'Metode perhitungan yang digunakan ?'),
+(204, 'Perlu Init Data periode sebelum nya ?'),
+-- Dataset Baru Questions
+(301, 'Modul apa yang akan dibuat ?'),
+(302, 'Sumber Data Yang Digunakan ?'),
+(303, 'Periode Data yang Digunakan ?'),
+(304, 'Metode Perhitungan yang digunakan ?'),
+(305, 'Siapa Pengguna Dataset ?'),
+(306, 'Contoh report yang akan menggunakan Dataset ?');
+
+INSERT INTO requirement_type_table 
+VALUES
+(1,'FFRA',3),
+(2,'Dataset (Penambahan Column)',4),
+(3, 'Dataset baru',6)
+
+SELECT get_state_count(1)
 
 -- set all name lower case
 UPDATE user_table
 SET user_name = LOWER(user_name);
 
 
-UPDATE request_table
-SET user_id = 3
-WHERE request_id = 13;
+UPDATE state_name_table
+SET state_name = 'REQUEST REJECTED'
+WHERE state_name_id = 0;
 
 SELECT get_user_id('alo', '1234')
 
@@ -349,17 +546,29 @@ CALL upgrade_state(13, 3, 'in progress');
 -- TEST TO GET DATA WHERE RANGE = WEEK AND STATE SUBMITTED
 SELECT get_state_specific_data(1,1)
 
+CALL upgrade_state(1,10);
+CALL upgrade_state(2,10);
+CALL upgrade_state(3,9);
 
 SELECT get_complete_data_of_request(14,1)
+
+SELECT get_user_request_data(11)
 
 SELECT current_state, request_title FROM request_table
 WHERE request_id = 13;
 
 ALTER SEQUENCE user_data_user_id_seq RESTART WITH 0;
+
+-- RESET SERIAL TO 1
+SELECT setval(pg_get_serial_sequence('user_table', 'user_id'), COALESCE(max(user_id) + 1, 1), false)
+FROM   user_table;
+
 SELECT setval(pg_get_serial_sequence('request_table', 'request_id'), COALESCE(max(request_id) + 1, 1), false)
 FROM   request_table;
+
 SELECT setval(pg_get_serial_sequence('requirement_table', 'requirement_id'), COALESCE(max(requirement_id) + 1, 1), false)
 FROM   requirement_table;
+
 SELECT setval(pg_get_serial_sequence('state_table', 'state_id'), COALESCE(max(state_id) + 1, 1), false)
 FROM   state_table;
 
@@ -375,4 +584,10 @@ ORDER BY request_id ASC
 SELECT * FROM public.requirement_table
 ORDER BY requirement_id ASC 
 
-select date_trunc('week', CURRENT_DATE)
+-- VIEW STATE_NAME_TABLE
+SELECT * FROM public.state_name_table
+ORDER BY state_name_id ASC
+
+-- VIEW STATE_TABLE
+SELECT * FROM public.state_table
+ORDER BY state_id ASC

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"encoding/json"
+
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 )
@@ -24,6 +26,12 @@ type User struct {
 	User_password string `json:"user_password"`
 }
 
+type StateCount struct {
+	State_id int `json:"state_id"`
+	Todo     int `json:"todo"`
+	Done     int `json:"done"`
+}
+
 // NewRequest struct for creating a new request
 type NewRequest struct {
 	Request_title         string `json:"request_title"`
@@ -37,28 +45,10 @@ type NewRequest struct {
 	Required_data         string `json:"required_data"`
 }
 
-// DataView struct for displaying request data
-type DataView struct {
-	Request_id    int    `json:"request_id"`
-	Request_title string `json:"request_title"`
-	User_id       int    `json:"user_id"`
-	User_name     string `json:"user_name"`
-	State_name    string `json:"state_name"`
-	Date_start    string `json:"date_start"`
-	Date_end      string `json:"date_end"`
-	Completed     bool   `json:"completed"`
-}
-
 type UpdateState struct {
 	Request_id int    `json:"request_id"`
+	User_id    int    `json:"user_id`
 	Comment    string `json:"comment"`
-}
-
-// Sample user data
-var users = []User{
-	{User_name: "Barry", User_password: "1234"},
-	{User_name: "Kilian", User_password: "1234"},
-	{User_name: "Potter", User_password: "1234"},
 }
 
 // Database connection
@@ -85,11 +75,12 @@ func main() {
 	})
 
 	// Set up routes
-	router.GET("/user", getUser)
 	router.GET("/stateSpecificData", getStateSpecificData)
 	router.GET("/userRequestsData", getUserCurrentRequests)
 	router.GET("/toDoData", getToDoData)
 	router.GET("/completeRequestData", getCompleteRequestData)
+	router.GET("/stateCountData", getStateCount)
+	router.GET("/fullStateHistoryData", getFullStateHistoryData)
 	router.POST("/login", checkUserCredentials)
 	router.POST("/newRequest", postNewRequest)
 	router.PUT("/upgradeState", putUpgradeState)
@@ -129,24 +120,23 @@ func checkEmpty(c *gin.Context, str string) {
 }
 
 // Handles GET requests to the /user endpoint
-func getUser(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, users[0])
-}
+// func getUser(c *gin.Context) {
+// 	c.IndentedJSON(http.StatusOK, users[0])
+// }
 
 // Handles POST requests to the /login endpoint
 // Checks the user credentials against the database and returns the user ID if valid
 func checkUserCredentials(c *gin.Context) {
-	print("ok 0")
 	var newUser User
-	var userID int
+	var data string
 	err1 := c.BindJSON(&newUser)
 	checkErr(c, err1)
 	print(err1)
 	querry := `SELECT get_user_id_by_credentials($1, $2)`
-	err2 := db.QueryRow(querry, newUser.User_name, newUser.User_password).Scan(&userID)
+	err2 := db.QueryRow(querry, newUser.User_name, newUser.User_password).Scan(&data)
 	checkErr(c, err2)
 	print(err2)
-	c.IndentedJSON(http.StatusCreated, userID)
+	c.Data(http.StatusOK, "application/json", []byte(data))
 }
 
 // Handles GET requests to the /stateSpecificData endpoint
@@ -214,16 +204,58 @@ func getCompleteRequestData(c *gin.Context) {
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
 
-// // registerUser handles POST requests to the /user endpoint
-// // It registers a new user in the database
-// func registerUser(c *gin.Context) {
-// 	var newUser User
-// 	err1 := c.BindJSON(&newUser)
-// 	checkErr(c, err1)
-// 	command := fmt.Sprintf(`CALL insert_data('%s', '%s', 1)`, newUser.User_name, newUser.User_password)
-// 	_, e := db.Exec(command)
-// 	checkErr(c, e)
-// }
+func getStateCount(c *gin.Context) {
+	var data string
+	var count []StateCount
+	completeCount := []StateCount{
+		{State_id: 1, Todo: 0, Done: 0},
+		{State_id: 2, Todo: 0, Done: 0},
+		{State_id: 3, Todo: 0, Done: 0},
+		{State_id: 4, Todo: 0, Done: 0},
+		{State_id: 5, Todo: 0, Done: 0},
+	}
+
+	rangeInput := c.Query("range")
+	checkEmpty(c, rangeInput)
+
+	query := `SELECT get_state_count($1)`
+	err := db.QueryRow(query, rangeInput).Scan(&data)
+	checkErr(c, err)
+
+	err = json.Unmarshal([]byte(data), &count)
+	checkErr(c, err)
+
+	for _, item := range count {
+		completeCount[item.State_id-1].Todo = item.Todo
+	}
+
+	// Calculate Done for each state
+	for i := 0; i < 5; i++ {
+		done := 0
+		for j := i + 1; j < 5; j++ {
+			done += completeCount[j].Todo
+		}
+		completeCount[i].Done = done
+	}
+
+	completeCount[4].Done = completeCount[4].Todo
+	completeCount[4].Todo = 0
+
+	c.IndentedJSON(http.StatusOK, completeCount)
+}
+
+func getFullStateHistoryData(c *gin.Context) {
+	var data string
+	requestIdInput := c.Query("request_id")
+
+	checkEmpty(c, requestIdInput)
+
+	query := `SELECT get_full_state_history($1)`
+	err := db.QueryRow(query, requestIdInput).Scan(&data)
+	checkErr(c, err)
+	c.Data(http.StatusOK, "application/json", []byte(data))
+
+}
 
 // handles POST requests to the /newRequest endpoint and creates a new request in the database
 func postNewRequest(c *gin.Context) {
@@ -242,8 +274,8 @@ func putUpgradeState(c *gin.Context) {
 	var us UpdateState
 	err1 := c.BindJSON(&us)
 	checkErr(c, err1)
-	querry := `CALL upgrade_state($1, $2)`
-	_, err2 := db.Exec(querry, us.Request_id, us.Comment)
+	querry := `CALL upgrade_state($1, $2, $3)`
+	_, err2 := db.Exec(querry, us.Request_id, us.User_id, us.Comment)
 	checkErr(c, err2)
 	c.IndentedJSON(http.StatusOK, gin.H{"message": "State updated successfully"})
 }
@@ -255,8 +287,8 @@ func putDegradeState(c *gin.Context) {
 	var us UpdateState
 	err1 := c.BindJSON(&us)
 	checkErr(c, err1)
-	querry := `CALL degrade_state($1, $2)`
-	_, err2 := db.Exec(querry, us.Request_id, us.Comment)
+	querry := `CALL degrade_state($1, $2, $3)`
+	_, err2 := db.Exec(querry, us.Request_id, us.User_id, us.Comment)
 	checkErr(c, err2)
 	c.IndentedJSON(http.StatusOK, gin.H{"message": "State downgraded successfully"})
 }

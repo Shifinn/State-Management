@@ -1,5 +1,5 @@
 <header>
-    <nav routerLink="">Welcome! {{id()}}</nav>
+    <nav (click)="logOut()">Welcome! {{id()}}</nav>
     <ul>
         <li><a [routerLink]="[{ outlets: { home: ['dashboard'] } }]">Dashboard</a></li>
         <li><a [routerLink]="[{ outlets: { home: ['bucket'] } }]">Bucket</a></li>

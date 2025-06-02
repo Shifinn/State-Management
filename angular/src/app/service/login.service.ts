@@ -1,6 +1,8 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { map } from 'rxjs/operators';
+import { Router } from '@angular/router';
+import { User } from '../model/format.type';
+import { DataProcessingService } from './data-processing.service';
 
 
 @Injectable({
@@ -8,8 +10,9 @@ import { map } from 'rxjs/operators';
 })
 export class LoginService {
   http = inject(HttpClient); //enables the use of HTTP client calls for the application
-  private userId: number = 0; // Store user_id here
-  
+  router = inject(Router); // enables navigation using the Router
+  dataService = inject(DataProcessingService)
+
   login(username: string, password: string) {
       console.log('Login called with username:', username, 'and password:', password);
       const url = 'http://localhost:9090/login';  // URL of the backend login endpoint
@@ -19,7 +22,13 @@ export class LoginService {
       };
 
 
-      return this.http.post<number>(url, body);
+      return this.http.post<User[]>(url, body).subscribe(response => {
+        console.log('from service, userId:', response[0].user_id);
+        if (response[0].user_id !=  '0') {
+          this.dataService.storeUserInfo(response[0])
+          this.router.navigate(['/home']);
+        }});
+
       // Expecting the backend to return a plain number (user_id)
       // this.http.post<number>(url, body).subscribe(response => {
       //   if (response) {
@@ -34,23 +43,13 @@ export class LoginService {
       // }
   }
 
-  storeUserId(input: number) {
-    this.userId = input;
-    localStorage.setItem('userId', input.toString());
-  }
 
-  getUserId(): number {
-    const stored = localStorage.getItem('userId');
-    if (stored !== null) {
-      this.userId = Number(stored);
-    } else {
-      this.userId = 0;
-    }
-    return this.userId;
-  }
 
-  clearUserId() {
-    this.userId = 0;
+  logOut() {
     localStorage.setItem('userId', '0');
+    localStorage.setItem('userName', '');
+    localStorage.setItem('userEmail', '');
+    localStorage.setItem('userRole', '');
+    this.router.navigate(['']);
   }
 }

@@ -1,0 +1,76 @@
+.card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px;
+    width: 280px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    background-color: #fff;
+}
+.card:hover {
+    box-shadow: 0 4px 8px rgba(44, 62, 80, 0.18), 0 3px 8px rgba(44, 62, 80, 0.10);
+}
+.card-header {
+    display: flex;
+    height:fit-content;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.request-title {
+    margin: 0.1em;
+}
+
+.request-id {
+    background-color: #eee;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: #333;
+}
+
+.request-date {
+    color: #333;
+    font-size: 0.9em;
+}
+
+.card-status {
+    margin: 16px 0;
+    text-align: center;
+}
+
+.card-status span {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.SUBMITTED {
+    background-color: #fdf0c2;
+    color: #333;
+}
+
+.VALIDATED {
+    background-color: #c2f4fd;
+    color: #333;
+}
+
+.card-footer {
+    text-align: right;
+}
+
+.details-button {
+    background: #1976d2;
+    border: none;
+    border-radius: 8px;  
+    color: white;
+    padding: 0.6em 1.2em;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0,8em;
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.08);
+    transition: background 0.2s, transform 0.1s;
+}
+
+.details-button:hover {
+    background: #1e87ff;
+}

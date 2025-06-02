@@ -1,10 +1,13 @@
-export type user = {
+export type User = {
+    user_id: string;
     user_name: string;
+    email: string;
+    user_role: string;
 }
 
-export type request = {
-    userId: number;
-    requestType: string;
-    requestDate: Date;
-    status: string;
+export type UserRequest = {
+    request_id: number;
+    request_title: string;
+    request_date: Date;
+    state_name: string;
 }

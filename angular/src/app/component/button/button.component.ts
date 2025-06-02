@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, Input, input } from '@angular/core';
 
 import {MatButtonModule} from '@angular/material/button';
 
@@ -11,5 +11,5 @@ import {MatButtonModule} from '@angular/material/button';
   styleUrl: './button.component.css'
 })
 export class ButtonComponent {
-    ButtonLabel = input('Input');
+  @Input() button_label !: string 
 }

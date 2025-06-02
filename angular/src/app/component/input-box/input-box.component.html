@@ -1,5 +1,5 @@
 <form class="input-box-form">
-  <mat-form-field>
+  <mat-form-field appearance="outline">
     <input matInput 
       [placeholder]= "inputLabel"
       [name]="inputLabel"
@@ -7,5 +7,9 @@
       [type]="inputType"
       [required]="true"
       >
+    <!-- <mat-error *ngIf="form.controls[inputLabel].hasError('required')">
+      {{inputLabel}} cannot be empty
+    </mat-error> -->
   </mat-form-field>
 </form>
+

@@ -10,7 +10,7 @@ import {FormsModule} from '@angular/forms';
   styleUrl: './input-box.component.css'
 })
 export class InputBoxComponent {
-  @Input() inputLabel: string = '';
-  @Input() inputType: string = 'text';
+  @Input() inputLabel !: string;
+  @Input() inputType !: string;
   value: string = '';
 }
