@@ -2,13 +2,13 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
-
-	"encoding/json"
+	"time"
 
 	"github.com/gin-gonic/gin"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 )
 
 // Database connection details
@@ -27,27 +27,29 @@ type User struct {
 }
 
 type StateCount struct {
-	State_id int `json:"state_id"`
-	Todo     int `json:"todo"`
-	Done     int `json:"done"`
+	State_id   int    `json:"state_id"`
+	State_name string `json:"state_name"`
+	Todo       int    `json:"todo"`
+	Done       int    `json:"done"`
 }
 
 // NewRequest struct for creating a new request
 type NewRequest struct {
-	Request_title         string `json:"request_title"`
-	User_id               int    `json:"user_id"`
-	Requester_name        string `json:"requester_name"`
-	Analysis_purpose      string `json:"analysis_purpose"`
-	Requested_finish_date string `json:"requested_finish_date"`
-	Pic_request           string `json:"pic_request"`
-	Urgent                bool   `json:"urgent"`
-	Requirement_type      int    `json:"requirement_type"`
-	Required_data         string `json:"required_data"`
+	Request_title         string    `json:"request_title"`
+	User_id               int       `json:"user_id"`
+	Requester_name        string    `json:"requester_name"`
+	Analysis_purpose      string    `json:"analysis_purpose"`
+	Requested_finish_date time.Time `json:"requested_finish_date"`
+	Pic_request           string    `json:"pic_request"`
+	Urgent                bool      `json:"urgent"`
+	Requirement_type      int       `json:"requirement_type"`
+	Answers               []string  `json:"answers"`
+	Remark                string    `json:"remark"`
 }
 
 type UpdateState struct {
 	Request_id int    `json:"request_id"`
-	User_id    int    `json:"user_id`
+	User_id    int    `json:"user_id"`
 	Comment    string `json:"comment"`
 }
 
@@ -77,11 +79,14 @@ func main() {
 	// Set up routes
 	router.GET("/stateSpecificData", getStateSpecificData)
 	router.GET("/userRequestsData", getUserCurrentRequests)
-	router.GET("/toDoData", getToDoData)
+	router.GET("/todoData", getTodoData)
 	router.GET("/completeRequestData", getCompleteRequestData)
 	router.GET("/stateCountData", getStateCount)
 	router.GET("/fullStateHistoryData", getFullStateHistoryData)
-	router.POST("/login", checkUserCredentials)
+	router.GET("/questionData", getQuestionData)
+	router.GET("/login", checkUserCredentials)
+	router.GET("/answerData", getAnswerForRequest)
+	router.GET("/getOldestRequestTime", getOldestRequest)
 	router.POST("/newRequest", postNewRequest)
 	router.PUT("/upgradeState", putUpgradeState)
 	router.PUT("/degradeState", putDegradeState)
@@ -105,7 +110,7 @@ func openDB() *sql.DB {
 // Checks for errors and sends a error response if an error occurs and aborts the request
 func checkErr(c *gin.Context, err error) {
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		c.Abort()
 	}
 }
@@ -129,9 +134,9 @@ func checkEmpty(c *gin.Context, str string) {
 func checkUserCredentials(c *gin.Context) {
 	var newUser User
 	var data string
-	err1 := c.BindJSON(&newUser)
-	checkErr(c, err1)
-	print(err1)
+	newUser.User_name = c.Query("user_name")
+	newUser.User_password = c.Query("password")
+
 	querry := `SELECT get_user_id_by_credentials($1, $2)`
 	err2 := db.QueryRow(querry, newUser.User_name, newUser.User_password).Scan(&data)
 	checkErr(c, err2)
@@ -145,20 +150,19 @@ func checkUserCredentials(c *gin.Context) {
 // The range can be 1(week), 2(month), 3(quarter), or 4(year)
 func getStateSpecificData(c *gin.Context) {
 	var data string
-	rangeInput := c.Query("range")
-	stateNameIDInput := c.Query("state")
 
 	// Validate input
-	if rangeInput == "" || stateNameIDInput == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing query parameters"})
-		return
-	}
+	stateIdInput := c.Query("state_id")
+	checkEmpty(c, stateIdInput)
+	startDateInput := c.Query("start_date")
+	checkEmpty(c, startDateInput)
+	endDateInput := c.Query("end_date")
+	checkEmpty(c, endDateInput)
 
-	query := `SELECT get_state_specific_data($1, $2)`
-
-	err := db.QueryRow(query, rangeInput, stateNameIDInput).Scan(&data)
+	// Query database
+	query := `SELECT get_state_specific_data($1, $2, $3)`
+	err := db.QueryRow(query, stateIdInput, startDateInput, endDateInput).Scan(&data)
 	checkErr(c, err)
-
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
 
@@ -178,9 +182,9 @@ func getUserCurrentRequests(c *gin.Context) {
 
 // Handles GET requests to the /toDoData endpoint
 // Retrieves to-do data based on the provided user role (only shows newest state)
-func getToDoData(c *gin.Context) {
+func getTodoData(c *gin.Context) {
 	var data string
-	userRoleInput := c.Query("user_role")
+	userRoleInput := c.Query("role_id")
 
 	checkEmpty(c, userRoleInput)
 
@@ -207,41 +211,63 @@ func getCompleteRequestData(c *gin.Context) {
 func getStateCount(c *gin.Context) {
 	var data string
 	var count []StateCount
-	completeCount := []StateCount{
-		{State_id: 1, Todo: 0, Done: 0},
-		{State_id: 2, Todo: 0, Done: 0},
-		{State_id: 3, Todo: 0, Done: 0},
-		{State_id: 4, Todo: 0, Done: 0},
-		{State_id: 5, Todo: 0, Done: 0},
+	var sqlNullString sql.NullString
+	// var result []StateCount
+
+	// Predefined state IDs 1 to 5 mapped to index 0 to 4
+	result := []StateCount{
+		{State_id: 1, State_name: "SUBMITTED", Todo: 0, Done: 0},
+		{State_id: 2, State_name: "VERIFIED", Todo: 0, Done: 0},
+		{State_id: 3, State_name: "IN PROGRESS", Todo: 0, Done: 0},
+		{State_id: 4, State_name: "WAITING FOR REVIEW", Todo: 0, Done: 0},
+		{State_id: 5, State_name: "DONE", Todo: 0, Done: 0},
+		{State_name: "TOTAL", Todo: 0, Done: 0},
 	}
 
-	rangeInput := c.Query("range")
-	checkEmpty(c, rangeInput)
+	// Get and validate range input
+	startDateInput := c.Query("start_date")
+	checkEmpty(c, startDateInput)
+	endDateInput := c.Query("end_date")
+	checkEmpty(c, endDateInput)
 
-	query := `SELECT get_state_count($1)`
-	err := db.QueryRow(query, rangeInput).Scan(&data)
+	// Query database
+	query := `SELECT get_state_count($1, $2)`
+	err := db.QueryRow(query, startDateInput, endDateInput).Scan(&sqlNullString)
 	checkErr(c, err)
 
+	// Return empty counts if result is null
+	if !sqlNullString.Valid {
+		c.IndentedJSON(http.StatusOK, result)
+		return
+	}
+
+	data = sqlNullString.String
+
+	// Parse JSON from query result
 	err = json.Unmarshal([]byte(data), &count)
 	checkErr(c, err)
 
+	// Fill the todo values by matching state_id to index (state_id - 1)
 	for _, item := range count {
-		completeCount[item.State_id-1].Todo = item.Todo
-	}
-
-	// Calculate Done for each state
-	for i := 0; i < 5; i++ {
-		done := 0
-		for j := i + 1; j < 5; j++ {
-			done += completeCount[j].Todo
+		if idx := item.State_id - 1; idx >= 0 && idx < len(result) {
+			result[idx].Todo = item.Todo
 		}
-		completeCount[i].Done = done
 	}
 
-	completeCount[4].Done = completeCount[4].Todo
-	completeCount[4].Todo = 0
+	// Calculate DONEs in reverse
+	for i := 0; i < len(result)-2; i++ {
+		for j := i + 1; j < len(result)-1; j++ {
+			result[i].Done += result[j].Todo
+		}
+		result[5].Todo += result[i].Todo
+	}
 
-	c.IndentedJSON(http.StatusOK, completeCount)
+	// Final adjustment for last state
+	result[4].Done = result[4].Todo
+	result[5].Done = result[4].Todo
+	result[4].Todo = 0
+
+	c.IndentedJSON(http.StatusOK, result)
 }
 
 func getFullStateHistoryData(c *gin.Context) {
@@ -254,7 +280,40 @@ func getFullStateHistoryData(c *gin.Context) {
 	err := db.QueryRow(query, requestIdInput).Scan(&data)
 	checkErr(c, err)
 	c.Data(http.StatusOK, "application/json", []byte(data))
+}
 
+func getQuestionData(c *gin.Context) {
+	var data string
+	requirementTypeInput := c.Query("requirement_type")
+
+	checkEmpty(c, requirementTypeInput)
+
+	query := `SELECT get_questions($1)`
+	err := db.QueryRow(query, requirementTypeInput).Scan(&data)
+	checkErr(c, err)
+	c.Data(http.StatusOK, "application/json", []byte(data))
+}
+
+func getAnswerForRequest(c *gin.Context) {
+	var data string
+	requestIdInput := c.Query("request_id")
+
+	checkEmpty(c, requestIdInput)
+
+	query := `SELECT get_request_requirement_answer($1)`
+	err := db.QueryRow(query, requestIdInput).Scan(&data)
+	checkErr(c, err)
+	c.Data(http.StatusOK, "application/json", []byte(data))
+}
+
+func getOldestRequest(c *gin.Context) {
+	var data time.Time
+
+	query := `SELECT get_oldest_request()`
+	err := db.QueryRow(query).Scan(&data)
+	checkErr(c, err)
+
+	c.JSON(200, data)
 }
 
 // handles POST requests to the /newRequest endpoint and creates a new request in the database
@@ -262,8 +321,8 @@ func postNewRequest(c *gin.Context) {
 	var nr NewRequest
 	err1 := c.BindJSON(&nr)
 	checkErr(c, err1)
-	querry := `CALL create_new_request($1, $2, $3, $4, $5, $6, $7, $8, $9)`
-	_, err2 := db.Exec(querry, nr.Request_title, nr.User_id, nr.Requester_name, nr.Analysis_purpose, nr.Requested_finish_date, nr.Pic_request, nr.Urgent, nr.Requirement_type, nr.Required_data)
+	querry := `CALL create_new_request($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
+	_, err2 := db.Exec(querry, nr.Request_title, nr.User_id, nr.Requester_name, nr.Analysis_purpose, nr.Requested_finish_date, nr.Pic_request, nr.Urgent, nr.Requirement_type, pq.Array(nr.Answers), nr.Remark)
 	checkErr(c, err2)
 }
 
@@ -274,9 +333,17 @@ func putUpgradeState(c *gin.Context) {
 	var us UpdateState
 	err1 := c.BindJSON(&us)
 	checkErr(c, err1)
-	querry := `CALL upgrade_state($1, $2, $3)`
-	_, err2 := db.Exec(querry, us.Request_id, us.User_id, us.Comment)
-	checkErr(c, err2)
+	println("req_id = " + fmt.Sprint(us.Request_id) + " user_id: " + fmt.Sprint(us.User_id))
+	if us.Comment == "" {
+		querry := `CALL upgrade_state($1, $2)`
+		_, err2 := db.Exec(querry, us.Request_id, us.User_id)
+		checkErr(c, err2)
+	} else {
+		querry := `CALL upgrade_state($1, $2, $3)`
+		_, err2 := db.Exec(querry, us.Request_id, us.User_id, us.Comment)
+		checkErr(c, err2)
+	}
+
 	c.IndentedJSON(http.StatusOK, gin.H{"message": "State updated successfully"})
 }
 

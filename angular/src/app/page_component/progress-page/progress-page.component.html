@@ -1,1 +1,22 @@
-<p>progress-page works!</p>
+<body>
+
+    <div class="page-title">
+        <h1 (click)="clickShrink()">Progress</h1>
+    </div>
+    <div class="period-type-container">
+        @for (item of period_type; track $index) {
+        <div class="period-type-picker" [class.active]="item == current_period.period_type"
+            (click)="clickPeriodType(item)">
+            <span>{{ item }}</span>
+            <span class="arrow">▼</span>
+        </div>
+        }
+    </div>
+
+    <div class="requests" [class.shrink]="isShrunk">
+        @for (type of progress_info(); track type.state_id) {
+        <app-progress-card [progress_info]="type" [isShrunk]="isShrunk"
+            (buttonClick)="showDataOfState($event)"></app-progress-card>
+        }
+    </div>
+</body>

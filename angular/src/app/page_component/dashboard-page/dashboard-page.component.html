@@ -1,12 +1,13 @@
 <body>
-    <div class="dashboard-header">
+    <div class="page-title">
         <h1>My requests</h1>
-        <app-button [button_label]="'New Request'"></app-button>
+        <app-button [button_label]="'New Request'" (buttonClick)="makeNewRequest()"></app-button>
     </div>
+
     <div class="requests">
     @for (request of requests(); track request.request_id) {
-        <app-node [request]="request"/>
+        <app-request-card [request]="request"/>
     }
-</div>
+    </div>
 </body>
 

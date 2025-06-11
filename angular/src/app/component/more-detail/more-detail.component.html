@@ -1,0 +1,125 @@
+@if (data.request_id) {
+<div class="dialog-container">
+  <h2>DETAIL REQUEST #{{ data.request_id }}</h2>
+
+  <div class="row">
+    @if (data.request_title) {
+    <div class="requirement-item">
+      <label class="question-text">Judul</label>
+      <div class="readonly-field">{{ data.request_title }}</div>
+    </div>
+    } @if (data.state_name) {
+    <div class="requirement-item">
+      <label class="question-text">Status</label>
+      <div class="readonly-field">{{ data.state_name }}</div>
+    </div>
+    }
+  </div>
+
+  <div class="row">
+    @if (data.requester_name) {
+    <div class="requirement-item">
+      <label class="question-text">Requester Name</label>
+      <div class="readonly-field">{{ data.requester_name }}</div>
+    </div>
+    } @if (data.pic_submitter) {
+    <div class="requirement-item">
+      <label class="question-text">PIC Submitter</label>
+      <div class="readonly-field">{{ data.pic_submitter }}</div>
+    </div>
+    }
+  </div>
+
+  <div class="row">
+    @if (data.data_type_name) {
+    <div class="requirement-item">
+      <label class="question-text">Tipe Data</label>
+      <div class="readonly-field">{{ data.data_type_name }}</div>
+    </div>
+    } @if (data.urgent !== null) {
+    <div class="requirement-item">
+      <label class="question-text">Urgency</label>
+      <div class="readonly-field">
+        {{ data.urgent ? "URGENT" : "NOT URGENT" }}
+      </div>
+    </div>
+    }
+  </div>
+
+  <div class="row">
+    @if (data.request_date) {
+    <div class="requirement-item">
+      <label class="question-text">Tanggal Request</label>
+      <div class="readonly-field">
+        {{ data.request_date | date : "longDate" }}
+      </div>
+    </div>
+    } @if (data.requested_completed_date) {
+    <div class="requirement-item">
+      <label class="question-text">Harapan selesai</label>
+      <div class="readonly-field">
+        {{ data.requested_completed_date | date : "longDate" }}
+      </div>
+    </div>
+    }
+  </div>
+
+  <div class="row">
+    @if (data.analysis_purpose) {
+    <div class="requirement-item wide">
+      <label class="question-text">Analysis Purpose</label>
+      <div class="readonly-field">{{ data.analysis_purpose }}</div>
+    </div>
+    }
+  </div>
+
+  <div class="row">
+    @if (data.remark) {
+    <div class="requirement-item wide">
+      <label class="question-text">Remark</label>
+      <div class="readonly-field">{{ data.remark }}</div>
+    </div>
+    }
+  </div>
+
+  <div class="row">
+    @if (data.state_comment && data.state_name == 'REQUEST REJECTED') {
+    <div class="requirement-item wide">
+      <label class="question-text">Reason for rejection</label>
+      <div class="readonly-field">{{ data.state_comment }}</div>
+    </div>
+    }
+  </div>
+
+  <div class="request-container">
+    <h3 class="request-title">Pertanyaan Request</h3>
+    @for (question of answers(); track question.requirement_question_id) {
+    <div class="row">
+      <div class="question-text">
+        {{ question.requirement_question_id % 100 }}.
+      </div>
+      <div class="requirement-item wide">
+        <label class="question-text">{{ question.requirement_question }}</label>
+        <div class="readonly-field">{{ question.answer }}</div>
+      </div>
+    </div>
+    }
+  </div>
+
+  <div class="row justify-end">
+    @if (isVisible("cancel")) {
+    <button mat-button mat-dialog-close color="warn">Cancel</button>
+    } @if (isVisible("reject")) {
+    <button mat-stroked-button color="warn" (click)="changeState('degrade')">
+      Reject
+    </button>
+    } @if (isVisible("continue")) {
+    <button mat-stroked-button color="primary" (click)="changeState('upgrade')">
+      Approve to continue
+    </button>
+    } @if (isVisible("ok")) {
+    <button mat-stroked-button mat-dialog-close color="primary">OK</button>
+    }
+  </div>
+</div>
+}

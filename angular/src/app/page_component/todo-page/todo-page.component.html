@@ -1,0 +1,33 @@
+<body>
+  <div class="page-title">
+    <h1>Todo</h1>
+  </div>
+  <div class="requests">
+    @for (request of todo(); track request.request_id) {
+    <app-request-card [request]="request" (refresh)="getTodo()"/>
+    }
+  </div>
+  
+  @if (in_progress().length > 0) {
+  <div class="page-title">
+    <h1>In Progress</h1>
+  </div>
+  
+  <div class="requests">
+    @for (request of in_progress(); track request.request_id) {
+    <app-request-card [request]="request" (refresh)="getTodo()"/>
+    }
+  </div>
+  }
+  @if (done().length > 0) {
+  <div class="page-title">
+    <h1>Done</h1>
+  </div>
+  
+  <div class="requests">
+    @for (request of done(); track request.request_id) {
+    <app-request-card [request]="request" (refresh)="getTodo()"/>
+    }
+  </div>
+}
+</body>

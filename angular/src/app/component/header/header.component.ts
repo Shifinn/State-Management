@@ -9,10 +9,11 @@ import { DataProcessingService } from '../../service/data-processing.service';
   templateUrl: './header.component.html',
   styleUrl: './header.component.css'
 })
+
 export class HeaderComponent {
   loginService = inject(LoginService);
   dataService = inject(DataProcessingService); 
-  id = signal(this.dataService.getUserName()); // Signal to track the ID
+  id = signal(Number(this.dataService.getUserId())); // Signal to track the ID
 
   logOut() {
     this.loginService.logOut(); // Call the logout method from the servic

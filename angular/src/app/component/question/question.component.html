@@ -1,0 +1,26 @@
+<div class="period-type-picker" *ngFor="let item of period_type">
+  <div class="picker-label" (click)="clickPeriodType(item)">
+    {{ item }}
+  </div>
+  <div class="arrow" (click)="toggleDropdown(item)">
+    ∨
+  </div>
+
+  <!-- Dropdown -->
+  <div *ngIf="activeDropdown === item" class="dropdown">
+    <div class="dropdown-nav">
+      <button (click)="prevPage(item)">←</button>
+      <span>Page {{ getCurrentPage(item) + 1 }} / {{ getTotalPages(item) }}</span>
+      <button (click)="nextPage(item)">→</button>
+    </div>
+
+    <div class="dropdown-options">
+      <div
+        class="option"
+        *ngFor="let label of getPageItems(item)"
+        (click)="selectLabel(item, label)">
+        {{ label.label }}
+      </div>
+    </div>
+  </div>
+</div>

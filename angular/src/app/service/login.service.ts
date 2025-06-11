@@ -11,37 +11,20 @@ import { DataProcessingService } from './data-processing.service';
 export class LoginService {
   http = inject(HttpClient); //enables the use of HTTP client calls for the application
   router = inject(Router); // enables navigation using the Router
-  dataService = inject(DataProcessingService)
+  data_service = inject(DataProcessingService)
 
-  login(username: string, password: string) {
-      console.log('Login called with username:', username, 'and password:', password);
-      const url = 'http://localhost:9090/login';  // URL of the backend login endpoint
-      const body = {                              // Request body
-        "user_name": username,
-        "user_password": password
-      };
+login(username: string, password: string): void {
+  const url = `http://localhost:9090/login?user_name=${username}&password=${password}`;  // Ensure http, not just Localhost
 
+  this.http.get<User>(url).subscribe((response: User) => {
+    console.log('from service, userId:', response.user_id, "", response.role_id);
 
-      return this.http.post<User[]>(url, body).subscribe(response => {
-        console.log('from service, userId:', response[0].user_id);
-        if (response[0].user_id !=  '0') {
-          this.dataService.storeUserInfo(response[0])
-          this.router.navigate(['/home']);
-        }});
-
-      // Expecting the backend to return a plain number (user_id)
-      // this.http.post<number>(url, body).subscribe(response => {
-      //   if (response) {
-      //     this.storeUserId(response);
-      //     console.log('from service, userId:', response);
-      //   }
-      // });
-      // if (this.userId !== 0) {
-      //   return 1;
-      // } else {
-      //   return 0;
-      // }
-  }
+    if (response.user_id !== '0') { 
+      this.data_service.storeUserInfo(response);
+      this.router.navigate(['/home']);
+    }
+  });
+}
 
 
 

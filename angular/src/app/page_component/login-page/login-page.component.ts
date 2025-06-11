@@ -4,10 +4,11 @@ import { InputBoxComponent } from '../../component/input-box/input-box.component
 import { Router, RouterLink } from '@angular/router';
 import { LoginService } from '../../service/login.service';
 import { DataProcessingService } from '../../service/data-processing.service';
+import { MatFormFieldModule } from '@angular/material/form-field';
 
 @Component({
   selector: 'app-login-page',
-  imports: [MatButtonModule, InputBoxComponent],
+  imports: [MatButtonModule, InputBoxComponent, MatFormFieldModule],
   templateUrl: './login-page.component.html',
   styleUrl: './login-page.component.css'
 })
@@ -15,13 +16,13 @@ import { DataProcessingService } from '../../service/data-processing.service';
 
 export class LoginPageComponent {
   // Injecting the LoginService to handle login logic
-  loginService = inject(LoginService); 
-  dataService = inject(DataProcessingService);
+  login_service = inject(LoginService); 
+  data_service = inject(DataProcessingService);
   // Injecting the Router to handle navigation
   router = inject(Router);
 
   ngOnInit(): void {
-    if (this.dataService.getUserId() != '0') {
+    if (this.data_service.getUserId() != '0') {
       this.router.navigate(['/home']);
     }
   }
@@ -36,7 +37,7 @@ export class LoginPageComponent {
   checkLogin(usernameBox: InputBoxComponent, passwordBox: InputBoxComponent) {
     const username = usernameBox.value;
     const password = passwordBox.value;
-    this.loginService.login(username.toLowerCase(), password)
+    this.login_service.login(username.toLowerCase(), password)
   }  
 
 }

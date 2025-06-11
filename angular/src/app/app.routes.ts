@@ -4,6 +4,8 @@ import { HomeComponent } from './page_component/home/home.component';
 import { DashboardPageComponent } from './page_component/dashboard-page/dashboard-page.component';
 import { ProgressPageComponent } from './page_component/progress-page/progress-page.component';
 import { ProfilePageComponent } from './page_component/profile-page/profile-page.component';
+import { ProgressCardComponent } from './component/progress-card/progress-card.component';
+import { TodoPageComponent } from './page_component/todo-page/todo-page.component';
 
 export const routes: Routes = [
     {
@@ -27,13 +29,13 @@ export const routes: Routes = [
                 outlet: 'home',
             },
             {
-                path: 'bucket',
-                component: ProgressPageComponent,       // Progress page
+                path: 'todo',
+                component: TodoPageComponent,       // Progress page
                 outlet: 'home',
             },
             {
-                path: 'profile',
-                component: ProfilePageComponent,        // Profile page
+                path: 'progress',
+                component: ProgressPageComponent,        // Profile page
                 outlet: 'home',
             }
         ]

@@ -1,0 +1,80 @@
+
+
+.request-title {
+    margin: 0.1em;
+}
+
+.request-id {
+    background-color: #eee;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: #333;
+}
+
+.request-date {
+    color: #333;
+    font-size: 0.9em;
+}
+
+.card-status {
+    margin: 1.1em 0;
+    text-align: center;
+}
+
+.card-status span {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 1.1em;
+}
+
+.s0 {
+    background-color: #ffcccb; /* pastel yellow */
+    color: #8b2e2e;
+}
+
+.s1 {
+    background-color: #fff3b0; /* pastel yellow */
+    color: #4a430f;
+}
+
+.s2 {
+    background-color: #aad7f0; /* soft blue */
+    color: #18324b;
+}
+
+.s3 {
+    background-color: #ffd59e; /* pastel orange */
+    color: #5a3a00;
+}
+
+.s4 {
+    background-color: #d3b5ff; /* soft lavender */
+    color: #3b2d4a;
+}
+
+.s5 {
+    background-color: #bae6ab; /* mint green */
+    color: #1c3e2a;
+}
+
+.card-footer {
+    text-align: right;
+}
+
+.details-button {
+    background: #1976d2;
+    border: none;
+    border-radius: 8px;  
+    color: white;
+    padding: 0.6em 1.2em;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0,8em;
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.08);
+    transition: background 0.2s, transform 0.1s;
+}
+
+.details-button:hover {
+    background: #1e87ff;
+}

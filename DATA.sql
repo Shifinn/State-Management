@@ -1,22 +1,27 @@
 -- FUNCTION TO CHECK CORRECT CREDENTIALS AND RETURN USER ID
 CREATE OR REPLACE FUNCTION get_user_id_by_credentials(
-	username_input VARCHAR, 
-	password_input VARCHAR
-	)
+    username_input VARCHAR, 
+    password_input VARCHAR
+)
 RETURNS JSON AS $$
 DECLARE
     result_json JSON;
 BEGIN
-	SELECT json_agg(row_to_json(t))
-	INTO result_json
-	FROM (
-		SELECT user_id, user_name, email, user_role
-	    FROM user_table
-	    WHERE user_name = username_input
-			AND user_password = password_input
-		LIMIT 1
-	) t;
-	
+    SELECT row_to_json(t)
+    INTO result_json
+    FROM (
+        SELECT 
+            u.user_id, 
+            u.user_name, 
+            u.email, 
+            ur.role_id
+        FROM user_table u
+        JOIN user_role_table ur ON u.user_id = ur.user_id
+        WHERE u.user_name = username_input
+          AND u.user_password = password_input
+        LIMIT 1
+    ) t;
+
     IF result_json IS NULL THEN
         result_json := json_build_object(
             'user_id', 0,
@@ -25,35 +30,27 @@ BEGIN
             'user_role', 0
         );
     END IF;
-    RETURN result_json;
-END;
-$$ LANGUAGE plpgsql;
-
-SELECT get_user_id_by_credentials('alice', '1234')
-    IF result_json IS NULL THEN
-        result_json := json_build_object(
-            'user_id', 0,
-            'user_name', '0',
-            'user_email', '0',
-            'user_role', '0'
-        );
-    END IF;
 
     RETURN result_json;
 END;
 $$ LANGUAGE plpgsql;
+
+	
+
+SELECT get_user_id_by_credentials('alice', '1234');
+
 
 -- PROCEDURE TO STORE A USER INTO THE USER_DATA TABLE
-CREATE OR REPLACE PROCEDURE insert_user(
-	username_input 	VARCHAR, 
-	password_input 	VARCHAR,
-	role_input 		INTEGER
-	) AS $$
-BEGIN
-    INSERT INTO user_data(username, user_password, user_role)
-    VALUES(username_input, password_input, role_input);
-END;
-$$ LANGUAGE plpgsql;
+-- CREATE OR REPLACE PROCEDURE insert_user(
+-- 	username_input 	VARCHAR, 
+-- 	password_input 	VARCHAR,
+-- 	role_input 		INTEGER
+-- 	) AS $$
+-- BEGIN
+--     INSERT INTO user_data(username, user_password, user_role)
+--     VALUES(username_input, password_input, role_input);
+-- END;
+-- $$ LANGUAGE plpgsql;
 
 
 
@@ -151,7 +148,8 @@ CREATE OR REPLACE PROCEDURE create_new_request(
     pic_submitter_input         VARCHAR,
     urgent_input                BOOLEAN,
     requirement_type_input      INT,
-	answers_input				VARCHAR[]
+	answers_input				VARCHAR[],
+	remark_input				TEXT DEFAULT NULL
 )
 AS $$
 DECLARE 
@@ -159,9 +157,9 @@ DECLARE
 	temp_requirement_id INT;
 BEGIN
     -- INSERT REQUIREMENT INTO TABLE AND RETURN ID TO CONNECT WITH REQUEST 
-    INSERT INTO requirement_table(requirement_type, required_data)
-    VALUES (requirement_type_input, required_data_input)
-	RETURNING requirement_id INTO temp_requirement_id;
+ --    INSERT INTO requirement_table(requirement_type, required_data)
+ --    VALUES (requirement_type_input, required_data_input)
+	-- RETURNING requirement_id INTO temp_requirement_id;
 	 
     -- INSERT NEW REQUEST
     INSERT INTO request_table(
@@ -172,7 +170,8 @@ BEGIN
         requested_completed_date,
         pic_submitter,
         urgent,
-		requirement_id
+		requirement_type_id,
+		remark
     )
     VALUES (
         request_title_input,
@@ -182,16 +181,20 @@ BEGIN
         requested_finish_date_input,
         pic_submitter_input,
         urgent_input,
-		temp_requirement_id
+		requirement_type_input,
+		remark_input
     ) RETURNING request_id INTO temp_request_id;
 
     -- INSERT THE FIRST STATE FOR THE REQUEST
-    CALL insert_question(temp_request_id,requirement_type_input, answers);
+	INSERT INTO state_table(state_name_id, request_id, started_by)
+    VALUES(1, temp_request_id, user_id_input);
+	
+    CALL insert_answers(temp_request_id,requirement_type_input, answers_input);
 END;
 $$ LANGUAGE plpgsql;
 
 -- PROCEDURE TO INSERT THE QUESTIONS BASED ON REQUIREMENT
-CREATE OR REPLACE PROCEDURE insert_questions(
+CREATE OR REPLACE PROCEDURE insert_answers(
     request_id_input    		INT,
     requirement_type_id_input   INT,
     answer						VARCHAR[]	
@@ -202,10 +205,10 @@ DECLARE
 	i INT;
 BEGIN
     -- Get the number of questions for the given requirement type
-    SELECT question_amount
-    INTO question_num
-    FROM requirement_type_table 
-    WHERE requirement_type_id = requirement_type_id_input;
+	SELECT COUNT(*)
+	INTO question_num
+	FROM requirement_question_table
+	WHERE requirement_type_id = requirement_type_id_input;
 
     -- Loop through and insert each answer
     FOR i IN 1..question_num LOOP
@@ -217,7 +220,56 @@ $$ LANGUAGE plpgsql;
 
 CALL insert_questions( 2, 1, ARRAY['Data Warehouse ABC', 'Q1 2025', 'Metode A + B']);
 
+-- FUNCTION TO GET ANSWERS AND QUESTION
+CREATE OR REPLACE FUNCTION get_request_requirement_answer(
+	request_id_input INT
+	)
+RETURNS JSON AS $$
+DECLARE
+    result_json JSON;
+BEGIN
+	SELECT json_agg(row_to_json(t))
+	INTO result_json
+	FROM (
+		SELECT 
+			re.requirement_question_id,
+			q.requirement_question,
+			re.answer
+		FROM requirement_table re
+		JOIN requirement_question_table q ON re.requirement_question_id = q.requirement_question_id
+		WHERE request_id = request_id_input
+		ORDER BY requirement_question_id
+	) t;
+    RETURN result_json;
+END;
+$$ LANGUAGE plpgsql;
 
+SELECT get_request_requirement_answer(10)
+
+-- FUNCTION TO GET QUESTIONS OF A SPECIFIC STATE TYPE
+CREATE OR REPLACE FUNCTION get_questions(
+	requirement_type_id_input INT
+	)
+RETURNS JSON AS $$
+DECLARE
+    result_json JSON;
+BEGIN
+	SELECT json_agg(row_to_json(t))
+	INTO result_json
+	FROM (
+		SELECT 
+			requirement_question_id,
+			requirement_question
+		FROM requirement_question_table
+		WHERE requirement_question_id BETWEEN (requirement_type_id_input * 100 + 1) AND (requirement_type_id_input * 100 + 99)
+		ORDER BY requirement_question_id
+	) t;
+    RETURN result_json;
+END;
+$$ LANGUAGE plpgsql;
+
+-- TEST TO GET QUESTIONS
+SELECT get_questions(1)
 
 CREATE OR REPLACE PROCEDURE recalibrate_requirement_count()
 AS $$
@@ -245,37 +297,34 @@ $$ LANGUAGE plpgsql;
 -- FUCNTION TO GET SIMPLE DATA FOR SPECIFIC STATE
 -- USED FOR PROGRESS PAGE WHEN PICKING SPECIFIC STATE TO VIEW
 CREATE OR REPLACE FUNCTION get_state_specific_data(
-	range_input INT, 
-	state_name_id_input INT
+	state_name_id_input INT,
+    start_date TIMESTAMP,
+    end_date TIMESTAMP
 	)
 RETURNS JSON AS $$
 DECLARE
     result_json JSON;
-    start_date TIMESTAMP;
-    end_date TIMESTAMP := CURRENT_TIMESTAMP;
 BEGIN
-    start_date := CASE range_input
-        WHEN 1 THEN date_trunc('week', CURRENT_DATE)::TIMESTAMP                 
-        WHEN 2 THEN date_trunc('month', CURRENT_DATE)::TIMESTAMP                 
-        WHEN 3 THEN date_trunc('quarter', CURRENT_DATE)::TIMESTAMP              
-        WHEN 4 THEN date_trunc('year', CURRENT_DATE)::TIMESTAMP                  
-    END;
 	SELECT json_agg(row_to_json(t))
 	INTO result_json
 	FROM (
 		SELECT 
 			r.request_id,
 			r.request_title,
-			r.user_id,
 			u.user_name, 
 			n.state_name,
+			n.state_name_id,
 			s.date_start,
 			s.date_end,
+			u2.user_name AS started_by,
+			-- u3.user_name AS ended_by,
 			s.completed
 		FROM request_table r
 		JOIN state_table s ON r.request_id = s.request_id
 		JOIN user_table u ON r.user_id = u.user_id
-		JOIN state_name_table n ON s.state_name_id = n.state_name_id
+		JOIN user_table u2 ON s.started_by = u.user_id
+		LEFT JOIN user_table u3 ON s.ended_by = u.user_id
+ 		JOIN state_name_table n ON s.state_name_id = n.state_name_id
 		WHERE r.request_date >= start_date
 			AND r.request_date  <= end_date
 			AND s.state_name_id = state_name_id_input 
@@ -283,6 +332,12 @@ BEGIN
     RETURN result_json;
 END;
 $$ LANGUAGE plpgsql;
+
+SELECT get_state_specific_data(
+	1,
+    '2025-1-1 00:00:00'::TIMESTAMP,
+    '2025-12-31 23:59:59'::TIMESTAMP
+);
 
 -- FUCTION TO GET SIMPLE DATA OF THE USER'S REQUESTS
 -- USED FOR USER PROGRESS VIEW
@@ -299,8 +354,9 @@ BEGIN
 		SELECT 
 			r.request_id,
 			r.request_title,
-			r.request_date,
+			r.request_date AS "date_start",
 			n.state_name
+			n.state_name_id
 		FROM request_table r
 		JOIN state_name_table n ON r.current_state = n.state_name_id
 		WHERE r.user_id = user_id_input
@@ -354,6 +410,7 @@ BEGIN
             r.request_id,
             r.request_title,
             u.user_name, 
+			n.state_name_id,
             n.state_name,
             s.date_start,
 			s.state_comment
@@ -363,6 +420,7 @@ BEGIN
 		JOIN state_name_table n ON r.current_state = n.state_name_id
         WHERE s.state_name_id = ANY(viewable)
 			AND s.state_name_id = r.current_state
+		ORDER BY s.state_name_id ASC, r.request_id
     ) t;
     RETURN result_json;
 END;
@@ -378,8 +436,8 @@ RETURNS JSON AS $$
 DECLARE
     result_json JSON;
 BEGIN
-	SELECT json_agg(row_to_json(t))
-	INTO result_json
+    SELECT row_to_json(t)
+    INTO result_json
 	FROM (
 		SELECT 
 			r.request_id,
@@ -390,50 +448,93 @@ BEGIN
 			r.pic_submitter,
 			r.urgent,
 			r.request_date,
-			u.user_name, 
-			n.state_name
+			r.remark,
+			s.state_comment,
+			n.state_name,
+			t.data_type_name
 		FROM request_table r
-		JOIN user_table u ON r.user_id = u.user_id
+		JOIN state_table s ON  r.current_state = s.state_name_id
 		JOIN state_name_table n ON r.current_state = n.state_name_id
+		JOIN requirement_type_table t ON r.requirement_type_id = t.requirement_type_id
 		WHERE r.request_id = request_id_input
 	) t;
     RETURN result_json;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION get_state_count(
-	range_input INT
-	
+SELECT get_complete_data_of_request(23);
+
+CREATE OR REPLACE FUNCTION get_questions(	
+	request_id_input	INT
 	)
 RETURNS JSON AS $$
 DECLARE
     result_json JSON;
-    start_date TIMESTAMP;
-    end_date TIMESTAMP := CURRENT_TIMESTAMP;
 BEGIN
-    start_date := CASE range_input
-        WHEN 1 THEN date_trunc('week', CURRENT_DATE)::TIMESTAMP                 
-        WHEN 2 THEN date_trunc('month', CURRENT_DATE)::TIMESTAMP                 
-        WHEN 3 THEN date_trunc('quarter', CURRENT_DATE)::TIMESTAMP              
-        WHEN 4 THEN date_trunc('year', CURRENT_DATE)::TIMESTAMP                  
-    END;
 	SELECT json_agg(row_to_json(t))
 	INTO result_json
 	FROM (
-		SELECT
-		  current_state AS "state_id",
-		  COUNT(*) AS "todo"
-		FROM request_table
-		WHERE request_date >= start_date
-			AND request_date <= end_date
-		GROUP BY state_id  
-		ORDER BY state_id
+		SELECT 
+			q.requirement_question,
+			re.answer
+		FROM requirement_table re
+		JOIN requirement_question_table q ON re.requirement_question_id = q.requirement_question_id
+		WHERE re.request_id = request_id_input
 	) t;
     RETURN result_json;
 END;
 $$ LANGUAGE plpgsql;
 
 
+SELECT get_complete_data_of_request(1);
+
+CREATE OR REPLACE FUNCTION get_state_count(
+    start_date TIMESTAMP,
+    end_date TIMESTAMP
+	)
+RETURNS JSON AS $$
+DECLARE
+    result_json JSON;
+BEGIN
+	SELECT json_agg(row_to_json(t))
+	INTO result_json
+	FROM (
+		SELECT
+		  r.current_state AS "state_id",
+		  n.state_name,
+		  COUNT(*) AS "todo"
+		FROM request_table r
+		JOIN state_name_table n ON r.current_state = n.state_name_id
+		WHERE n.state_name_id = ANY(ARRAY[1,2,3,4,5])
+			AND r.request_date >= start_date
+			AND r.request_date <= end_date
+		GROUP BY (state_id, n.state_name)  
+		ORDER BY state_id
+	) t;
+    RETURN result_json;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT get_state_count(
+    '2025-1-1 00:00:00'::TIMESTAMP,
+    '2025-12-31 23:59:59'::TIMESTAMP
+);
+
+CREATE OR REPLACE FUNCTION get_oldest_request()
+RETURNS TIMESTAMP AS $$
+DECLARE
+	oldest_time TIMESTAMP;
+BEGIN
+	SELECT request_date
+	INTO oldest_time
+	FROM request_table 
+	ORDER BY request_date ASC
+	LIMIT 1;
+    RETURN oldest_time;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT get_oldest_request();
 
 
 -- TEST TO GET USER ID FROM CREDENTIAL CHECK
@@ -444,6 +545,8 @@ TRUNCATE TABLE user_table;
 TRUNCATE TABLE request_table;
 TRUNCATE TABLE state_table;
 TRUNCATE TABLE requirement_table;
+TRUNCATE TABLE requirement_type_table;
+TRUNCATE TABLE requirement_question_table;
 
 -- INSERT MAPPING OF STATE NAME AND ID
 INSERT INTO state_name_table (state_name_id, state_name)
@@ -453,19 +556,29 @@ VALUES
 (2, 'VALIDATED'),
 (3, 'IN PROGRESS'),
 (4, 'WAITING FOR REVIEW'),
-(5, 'DONE');
+(5, 'DONE'),
+(41, 'APPROVAL REJECTED');
 
-INSERT INTO requirement_question_table (requirement_question_table, requirement_question)
-VALUES
-(0, 'REJECTED'),
-(1, 'SUBMITTED'),
-(2, 'VALIDATED'),
-(3, 'IN PROGRESS'),
-(4, 'WAITING FOR REVIEW'),
-(5, 'DONE');
+-- INSERT ROLE DATA
+INSERT INTO role_table (role_id, role_name)
+VALUES 
+(1, 'user'),
+(2, 'worker'),
+(3, 'validator')
 
-INSERT INTO state_name_table (state_name_id, state_name)
-VALUES (41, 'APPROVAL REJECTED')
+-- INSERT DUMMY USER ROLE
+INSERT INTO user_role_table (user_id, role_id) VALUES
+(1, 1),
+(2, 1),
+(3, 1),
+(4, 1),
+(5, 1),
+(6, 1),
+(7, 2),
+(8, 2),
+(9, 3),
+(10, 3),
+(11, 3);
 
 -- INSERT DUMMY USER
 INSERT INTO user_table (user_name, user_password, user_role, email, nik, position, department) VALUES
@@ -485,38 +598,64 @@ INSERT INTO user_table (user_name, user_password, user_role, email, nik, positio
 
 -- insert dummy request
 
-CALL create_new_request('Sales Report Q1', 1, 'alice', 'Analyze Q1 sales trends', '2025-01-20 17:00:00', 'alice', false, 1, 'raw');
-CALL create_new_request('Inventory Audit', 2, 'bob', 'Check inventory discrepancies', '2025-02-15 17:00:00', 'bob', true, 2, 'db');
-CALL create_new_request('Customer Feedback', 3, 'carol', 'Summarize customer feedback', '2025-03-10 17:00:00', 'carol', false, 3, 'dashboard');
-CALL create_new_request('IT Upgrade', 4, 'dave', 'Plan for new hardware', '2025-03-25 17:00:00', 'dave', true, 1, 'db');
-CALL create_new_request('HR Survey', 5, 'eve', 'Analyze employee satisfaction', '2025-04-10 17:00:00', 'eve', false, 2, 'db');
-CALL create_new_request('Budget Review', 6, 'frank', 'Review Q2 budget allocations', '2025-04-30 17:00:00', 'frank', false, 3, 'dashboard');
-CALL create_new_request('Marketing Plan', 7, 'grace', 'Draft new marketing strategy', '2025-05-15 17:00:00', 'grace', true, 1, 'raw');
-CALL create_new_request('Security Audit', 8, 'heidi', 'Assess system vulnerabilities', '2025-05-28 17:00:00', 'heidi', false, 2, 'db');
-CALL create_new_request('Supplier Evaluation', 9, 'ivan', 'Evaluate new suppliers', '2025-06-11 17:00:00', 'ivan', true, 3, 'dashboard');
-CALL create_new_request('Website Redesign', 10, 'judy', 'Plan new website layout', '2025-06-25 17:00:00', 'judy', false, 1, 'raw');
+CALL create_new_request('Sales Report Q1', 1, 'alice', 'Analyze Q1 sales trends, focusing on regional performance.', '2025-01-20 17:00:00', 'alice', false, 1,
+ARRAY['CRM System A', 'Last Quarter', 'Revenue per Region'], 'Initial sales overview request');
+CALL create_new_request('Inventory Audit', 2, 'bob', 'Check inventory discrepancies across warehouses, needing specific new columns.', '2025-02-15 17:00:00', 'bob', true, 2,
+ARRAY['Warehouse Logs', 'Item_Quantity, Bin_Location', 'LIFO Method', 'false'], 'Urgent audit, data needed by end of week');
+CALL create_new_request('Customer Feedback', 3, 'carol', 'Summarize customer feedback from surveys and support tickets.', '2025-03-10 17:00:00', 'carol', false, 3,
+ARRAY['User Behavior Module', 'Website Analytics DB', 'Last 30 Days', 'Clickstream Analysis', 'Product Team', 'Heatmap Report'], 'Needs to be presented at quarterly review');
+CALL create_new_request('IT Upgrade', 4, 'dave', 'Plan for new hardware rollout in Q3.', '2025-03-25 17:00:00', 'dave', true, 1,
+ARRAY['Network Logs', 'Current Year', 'Bandwidth Usage'], 'High priority, budget allocation pending');
+CALL create_new_request('HR Survey', 5, 'eve', 'Analyze employee satisfaction scores from recent survey.', '2025-04-10 17:00:00', 'eve', false, 2,
+ARRAY['Employee Records DB', 'Job_Satisfaction_Index, Turnover_Rate', 'Standard Deviation', 'true'], 'Annual survey results analysis');
+CALL create_new_request('Budget Review', 6, 'frank', 'Review Q2 budget allocations and spending patterns.', '2025-04-30 17:00:00', 'frank', false, 3,
+ARRAY['Expense Tracking System', 'Financial GL', 'Q2 Current', 'Cost Center Allocation', 'Accounting Department', 'Expense Summary Report'], 'Prepare for monthly finance meeting');
+CALL create_new_request('Marketing Plan', 7, 'grace', 'Draft new marketing strategy for product launch.', '2025-05-15 17:00:00', 'grace', true, 1,
+ARRAY['Competitor Analysis', 'Next Quarter', 'Market Penetration'], 'Launch critical, needs quick turnaround');
+CALL create_new_request('Security Audit', 8, 'heidi', 'Assess system vulnerabilities and compliance.', '2025-05-28 17:00:00', 'heidi', false, 2,
+ARRAY['Vulnerability Scanner', 'Scan_Result_ID, Critical_Vulnerability_Count', 'CVSS Score', 'false'], 'Annual security review');
+CALL create_new_request('Supplier Evaluation', 9, 'ivan', 'Evaluate new suppliers for cost efficiency and quality.', '2025-06-11 17:00:00', 'ivan', true, 3,
+ARRAY['Vendor Portal', 'Contract Database', 'All Time', 'Quality Metrics', 'Purchasing Team', 'Supplier Risk Matrix'], 'Urgent to onboard new vendors');
+CALL create_new_request('Website Redesign', 10, 'judy', 'Plan new website layout and user experience improvements.', '2025-06-25 17:00:00', 'judy', false, 1,
+ARRAY['A/B Test Results', 'Current Version', 'Conversion Rate'], 'Enhance user engagement');
+CALL create_new_request('Inventory Audit (Q2)', 1, 'alice', 'Check inventory discrepancies for Q2 report.', '2025-02-15 17:00:00', 'alice', true, 2,
+ARRAY['Physical Count Sheet', 'Damaged_Items, Expired_Goods', 'Weighted Average', 'true'], 'Follow-up audit, Q2 data');
 
-CALL create_new_request('Inventory Audit', 1, 'alice', 'Check inventory discrepancies', '2025-02-15 17:00:00', 'bob', true, 2, 'db');
+-- SET RANDOM MONTH
+-- UPDATE request_table
+-- SET
+--     request_date = (
+--         -- Take the year from the original date
+--         EXTRACT(YEAR FROM request_date) || '-' ||
+--         -- Generate a random month (1-6) and format it with leading zero if needed
+--         LPAD(((FLOOR(RANDOM() * 6) + 1)::TEXT), 2, '0') || '-' ||
+--         -- Take the day from the original date and format it with leading zero if needed
+--         LPAD(EXTRACT(DAY FROM request_date)::TEXT, 2, '0') ||
+--         -- Append the time component from the original date
+--         TO_CHAR(request_date, ' HH24:MI:SS.MS')
+--     )::TIMESTAMP
+-- WHERE
+--     request_id BETWEEN 2 AND 10;
 
 -- INSERT REQUIREMENT QUESTIONS
-INSERT INTO requirement_question_table(requirement_question_id, requirement_question) 
+INSERT INTO requirement_question_table(requirement_question_id, requirement_question, requirement_type_id)
 VALUES
--- FRRA Questions
-(101, 'Sumber Data Yang Digunakan ?'),
-(102, 'Periode Data yang Digunakan ?'),
-(103, 'Metode Perhitungan yang digunakan ?'),
--- Dataset (Penambahan Column) Questions
-(201, 'Sumber Data yang digunakan ?'),
-(202, 'Column yang akan ditambahakan ?'),
-(203, 'Metode perhitungan yang digunakan ?'),
-(204, 'Perlu Init Data periode sebelum nya ?'),
--- Dataset Baru Questions
-(301, 'Modul apa yang akan dibuat ?'),
-(302, 'Sumber Data Yang Digunakan ?'),
-(303, 'Periode Data yang Digunakan ?'),
-(304, 'Metode Perhitungan yang digunakan ?'),
-(305, 'Siapa Pengguna Dataset ?'),
-(306, 'Contoh report yang akan menggunakan Dataset ?');
+-- FRRA Questions (Type 1)
+(101, 'Sumber Data Yang Digunakan ?', 1),
+(102, 'Periode Data yang Digunakan ?', 1),
+(103, 'Metode Perhitungan yang digunakan ?', 1),
+-- Dataset (Penambahan Column) Questions (Type 2)
+(201, 'Sumber Data yang digunakan ?', 2),
+(202, 'Column yang akan ditambahakan ?', 2),
+(203, 'Metode perhitungan yang digunakan ?', 2),
+(204, 'Perlu Init Data periode sebelum nya ?', 2),
+-- Dataset Baru Questions (Type 3)
+(301, 'Modul apa yang akan dibuat ?', 3),
+(302, 'Sumber Data Yang Digunakan ?', 3),
+(303, 'Periode Data yang Digunakan ?', 3),
+(304, 'Metode Perhitungan yang digunakan ?', 3),
+(305, 'Siapa Pengguna Dataset ?', 3),
+(306, 'Contoh report yang akan menggunakan Dataset ?', 3);
 
 INSERT INTO requirement_type_table 
 VALUES
@@ -524,7 +663,6 @@ VALUES
 (2,'Dataset (Penambahan Column)',4),
 (3, 'Dataset baru',6)
 
-SELECT get_state_count(1)
 
 -- set all name lower case
 UPDATE user_table
@@ -541,14 +679,14 @@ INSERT INTO state_table(state_type, state_name, request_id)
 VALUES(1, 'SUBMITTED', 1);
 
 
-CALL upgrade_state(13, 3, 'in progress');
+CALL upgrade_state(33, 3);
 
 -- TEST TO GET DATA WHERE RANGE = WEEK AND STATE SUBMITTED
 SELECT get_state_specific_data(1,1)
 
-CALL upgrade_state(1,10);
-CALL upgrade_state(2,10);
-CALL upgrade_state(3,9);
+CALL upgrade_state(4,10);
+CALL upgrade_state(4,10);
+CALL upgrade_state(4,9);
 
 SELECT get_complete_data_of_request(14,1)
 
