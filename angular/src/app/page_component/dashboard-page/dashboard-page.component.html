@@ -1,12 +1,12 @@
 <body>
     <div class="page-title">
         <h1>My requests</h1>
-        <app-button [button_label]="'New Request'" (buttonClick)="makeNewRequest()"></app-button>
+        <app-custom-square-button [button_label]="'New Request'" (buttonClick)="makeNewRequest()"></app-custom-square-button>
     </div>
 
     <div class="requests">
     @for (request of requests(); track request.request_id) {
-        <app-request-card [request]="request"/>
+        <app-card-request [request]="request"/>
     }
     </div>
 </body>

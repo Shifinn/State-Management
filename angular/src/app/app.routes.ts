@@ -4,7 +4,7 @@ import { HomeComponent } from './page_component/home/home.component';
 import { DashboardPageComponent } from './page_component/dashboard-page/dashboard-page.component';
 import { ProgressPageComponent } from './page_component/progress-page/progress-page.component';
 import { ProfilePageComponent } from './page_component/profile-page/profile-page.component';
-import { ProgressCardComponent } from './component/progress-card/progress-card.component';
+import { CardProgressCountComponent } from './component/card-progress-count/card-progress-count.component';
 import { TodoPageComponent } from './page_component/todo-page/todo-page.component';
 
 export const routes: Routes = [

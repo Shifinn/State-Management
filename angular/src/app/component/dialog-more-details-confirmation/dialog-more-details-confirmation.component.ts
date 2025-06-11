@@ -8,12 +8,12 @@ import { DIALOG_DATA } from '@angular/cdk/dialog';
 
 
 @Component({
-  selector: 'app-change-status-confirmation',
+  selector: 'app-dialog-more-details-confirmation',
   imports: [MatDialogClose, MatButtonModule,MatFormFieldModule,FormsModule, MatInputModule],
-  templateUrl: './change-status-confirmation.component.html',
-  styleUrl: './change-status-confirmation.component.css'
+  templateUrl: './dialog-more-details-confirmation.component.html',
+  styleUrl: './dialog-more-details-confirmation.component.css'
 })
-export class ChangeStatusConfirmationComponent {
+export class DialogMoreDetailsConfirmationComponent {
   data_input = inject(DIALOG_DATA);
   comment: string = "";
   require: boolean = false;

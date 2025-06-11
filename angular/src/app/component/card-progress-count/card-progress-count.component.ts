@@ -2,12 +2,12 @@ import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ProgressCardOutput, SimpleData, StateInfoData, StatusInfo} from '../../model/format.type';
 @Component({
-  selector: 'app-progress-card',
+  selector: 'app-card-progress-count',
   imports: [CommonModule],
-  templateUrl: './progress-card.component.html',
-  styleUrl: './progress-card.component.css'
+  templateUrl: './card-progress-count.component.html',
+  styleUrl: './card-progress-count.component.css'
 })
-export class ProgressCardComponent {
+export class CardProgressCountComponent {
   @Input() progress_info !: StatusInfo;
   @Input() isShrunk = false;
   @Output() buttonClick = new EventEmitter<ProgressCardOutput>();

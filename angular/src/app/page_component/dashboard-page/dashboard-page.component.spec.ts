@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { DashboardPageComponent } from './dashboard-page.component';
-import { ButtonComponent } from '../../component/button/button.component';
+import { CustomSquareButtonComponent } from '../../component/custom-square-button/custom-square-button.component';
 
 describe('DashboardPageComponent', () => {
   let component: DashboardPageComponent;
@@ -9,7 +9,7 @@ describe('DashboardPageComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [DashboardPageComponent, ButtonComponent]
+      imports: [DashboardPageComponent, CustomSquareButtonComponent]
     })
     .compileComponents();
 

@@ -15,8 +15,8 @@
 
     <div class="requests" [class.shrink]="isShrunk">
         @for (type of progress_info(); track type.state_id) {
-        <app-progress-card [progress_info]="type" [isShrunk]="isShrunk"
-            (buttonClick)="showDataOfState($event)"></app-progress-card>
+        <app-card-progress-count [progress_info]="type" [isShrunk]="isShrunk"
+            (buttonClick)="showDataOfState($event)"></app-card-progress-count>
         }
     </div>
 </body>

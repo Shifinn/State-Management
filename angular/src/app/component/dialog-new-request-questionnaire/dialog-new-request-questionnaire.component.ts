@@ -14,7 +14,7 @@ import { NgIf } from '@angular/common';
 
 
 @Component({
-  selector: 'app-questionnaire',
+  selector: 'app-dialog-new-request-questionnaire',
   imports: [
     MatInputModule,
     MatDatepickerModule,
@@ -27,14 +27,14 @@ import { NgIf } from '@angular/common';
     MatError,
     NgIf
   ],
-  templateUrl: './questionnaire.component.html',
-  styleUrl: './questionnaire.component.css',
+  templateUrl: './dialog-new-request-questionnaire.component.html',
+  styleUrl: './dialog-new-request-questionnaire.component.css',
   providers: [ {provide: DateAdapter, useClass: NativeDateAdapter}, {provide: MAT_DATE_FORMATS, useValue: MAT_NATIVE_DATE_FORMATS}, ]
 })
-export class QuestionnaireComponent {
+export class DialogNewRequestQuestionnaireComponent {
   data_service = inject(DataProcessingService);
   questions = signal<Array<Question>>([]);
-  dialogRef = inject(MatDialogRef<QuestionnaireComponent>);
+  dialogRef = inject(MatDialogRef<DialogNewRequestQuestionnaireComponent>);
 
   @ViewChild('requestForm') requestForm!: NgForm; // Get reference to the form
 

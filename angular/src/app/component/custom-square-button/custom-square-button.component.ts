@@ -5,12 +5,12 @@ import {MatButtonModule} from '@angular/material/button';
 
 
 @Component({
-  selector: 'app-button',
+  selector: 'app-custom-square-button',
   imports: [MatButtonModule],
-  templateUrl: './button.component.html',
-  styleUrl: './button.component.css'
+  templateUrl: './custom-square-button.component.html',
+  styleUrl: './custom-square-button.component.css'
 })
-export class ButtonComponent {
+export class CustomSquareButtonComponent {
   @Input() button_label !: string 
   @Output() buttonClick = new EventEmitter<void>();
 

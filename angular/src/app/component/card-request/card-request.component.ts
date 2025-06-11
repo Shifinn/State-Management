@@ -1,18 +1,18 @@
 import { Component, EventEmitter, inject, Input, Output, resource } from '@angular/core';
 import { SimpleData } from '../../model/format.type';
 import { CommonModule } from '@angular/common';
-import { ButtonComponent } from '../button/button.component';
+import { CustomSquareButtonComponent } from '../custom-square-button/custom-square-button.component';
 import { DataProcessingService } from '../../service/data-processing.service';
 import { MatDialog } from '@angular/material/dialog';
-import { MoreDetailComponent } from '../more-detail/more-detail.component';
+import { DialogMoreDetailComponent } from '../dialog-more-detail/dialog-more-detail.component';
 
 @Component({
-  selector: 'app-request-card',
-  imports: [CommonModule, ButtonComponent],
-  templateUrl: './request-card.component.html',
-  styleUrl: './request-card.component.css'
+  selector: 'app-card-request',
+  imports: [CommonModule, CustomSquareButtonComponent],
+  templateUrl: './card-request.component.html',
+  styleUrl: './card-request.component.css'
 })
-export class RequestCardComponent {
+export class CardRequestComponent {
   @Input() request !: SimpleData;
   @Output() refresh = new EventEmitter<void>();
   data_service = inject(DataProcessingService)
@@ -20,7 +20,7 @@ export class RequestCardComponent {
 
 
   moreDetails() {
-    const dialogref = this.dialog.open(MoreDetailComponent, {
+    const dialogref = this.dialog.open(DialogMoreDetailComponent, {
       autoFocus: false,
       width: '90vw',
       height: '90vh',

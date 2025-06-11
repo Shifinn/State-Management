@@ -49,7 +49,7 @@ export class DataProcessingService {
 		if (input === null || input === undefined) {
 			return "";
 		}
-			return input;
+		return input;
 	}
 
 	getUserRequest(user_id_input: string): Observable<SimpleData[]> {
@@ -63,42 +63,46 @@ export class DataProcessingService {
 			const url = `http://localhost:9090/todoData?role_id=${role_id}`;
 			return this.http.get<SimpleData[]>(url);
 		}
-    return of([]);
+		return of([]);
 	}
 
 	separateTodo(input: SimpleData[]): SimpleData[] {
 		if (this.getUserRole() === "3") {
-			return input.filter((x) => x.state_name_id === 1 || x.state_name_id === 4);
+			return input.filter(
+				(x) => x.state_name_id === 1 || x.state_name_id === 4,
+			);
 		}
-    
-    if (this.getUserRole() === "2") {
+
+		if (this.getUserRole() === "2") {
 			return input.filter((x) => x.state_name_id === 2);
 		}
-    
-    return [];
+
+		return [];
 	}
 
 	separateInProgress(input: SimpleData[]): SimpleData[] {
 		if (this.getUserRole() === "2") {
 			return input.filter((x) => x.state_name_id === 3);
 		}
-    
-    return [];
+
+		return [];
 	}
 
 	separateDone(input: SimpleData[]): SimpleData[] {
 		if (this.getUserRole() === "3") {
 			return input.filter(
 				(x) =>
-					x.state_name_id === 0 || x.state_name_id === 2 || x.state_name_id === 5,
+					x.state_name_id === 0 ||
+					x.state_name_id === 2 ||
+					x.state_name_id === 5,
 			);
-		} 
-    
-    if (this.getUserRole() === "2") {
+		}
+
+		if (this.getUserRole() === "2") {
 			return input.filter((x) => x.state_name_id === 5);
-		} 
-    
-    return [];
+		}
+
+		return [];
 	}
 
 	getStateSpecificData(

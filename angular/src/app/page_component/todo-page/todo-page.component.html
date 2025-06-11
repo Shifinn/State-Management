@@ -4,7 +4,7 @@
   </div>
   <div class="requests">
     @for (request of todo(); track request.request_id) {
-    <app-request-card [request]="request" (refresh)="getTodo()"/>
+    <app-card-request [request]="request" (refresh)="getTodo()"/>
     }
   </div>
   
@@ -15,7 +15,7 @@
   
   <div class="requests">
     @for (request of in_progress(); track request.request_id) {
-    <app-request-card [request]="request" (refresh)="getTodo()"/>
+    <app-card-request [request]="request" (refresh)="getTodo()"/>
     }
   </div>
   }
@@ -26,7 +26,7 @@
   
   <div class="requests">
     @for (request of done(); track request.request_id) {
-    <app-request-card [request]="request" (refresh)="getTodo()"/>
+    <app-card-request [request]="request" (refresh)="getTodo()"/>
     }
   </div>
 }

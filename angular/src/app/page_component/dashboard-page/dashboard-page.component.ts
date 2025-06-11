@@ -1,14 +1,14 @@
 import { Component, inject, signal } from '@angular/core';
 import { DataProcessingService } from '../../service/data-processing.service';
 import { SimpleData} from '../../model/format.type';
-import { RequestCardComponent } from '../../component/request-card/request-card.component';
-import { ButtonComponent } from "../../component/button/button.component";
+import { CardRequestComponent } from '../../component/card-request/card-request.component';
+import { CustomSquareButtonComponent } from "../../component/custom-square-button/custom-square-button.component";
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog';
-import { QuestionnaireComponent } from '../../component/questionnaire/questionnaire.component';
+import { DialogNewRequestQuestionnaireComponent } from '../../component/dialog-new-request-questionnaire/dialog-new-request-questionnaire.component';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [RequestCardComponent, ButtonComponent],
+  imports: [CardRequestComponent, CustomSquareButtonComponent],
   templateUrl: './dashboard-page.component.html',
   styleUrl: './dashboard-page.component.css'
 })
@@ -23,7 +23,7 @@ export class DashboardPageComponent {
   }
 
   makeNewRequest() {
-    const dialog_ref = this.dialog.open(QuestionnaireComponent, {
+    const dialog_ref = this.dialog.open(DialogNewRequestQuestionnaireComponent, {
       autoFocus: false,
       width: '90vw',
       height: '90vh',
