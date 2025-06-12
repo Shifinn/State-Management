@@ -62,13 +62,29 @@ CREATE OR REPLACE PROCEDURE upgrade_state(
 ) AS $$
 DECLARE 
     temp_state_id INT;
+	complete BOOLEAN;
 BEGIN
-	-- UPDATE CURRENT STATE IN REQUEST_TABLE TO NEW
-    UPDATE request_table
-	SET current_state = current_state + 1
-	WHERE request_id = request_id_input
-	RETURNING current_state INTO temp_state_id;
+	complete = false;
+	
+	SELECT current_state
+    INTO temp_state_id
+    FROM request_table
+    WHERE request_id = request_id_input;
+	
+    IF temp_state_id > 5 THEN
+		RAISE EXCEPTION 'Upgrade failed: the limit has been reached';
+	ELSE
+        UPDATE request_table
+        SET current_state = current_state + 1
+        WHERE request_id = request_id_input
+        RETURNING current_state INTO temp_state_id;
 
+        IF temp_state_id = 5 THEN
+            complete := true;
+        END IF;
+    END IF;
+	
+		
 	-- UPDATE THE PREVIOUS STATE'S END DATE
 	UPDATE state_table
 	SET date_end = CURRENT_TIMESTAMP,
@@ -79,8 +95,8 @@ BEGIN
 	  AND state_name_id = temp_state_id - 1;
 
 	-- INSERT NEW ENTRY FOR NEW STATE IN STATE_TABLE
-	INSERT INTO state_table(state_name_id, request_id, started_by)
-    VALUES(temp_state_id, request_id_input, user_id_input);
+	INSERT INTO state_table(state_name_id, request_id, started_by, completed)
+    VALUES(temp_state_id, request_id_input, user_id_input, complete);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -304,12 +320,11 @@ CREATE OR REPLACE FUNCTION get_state_specific_data(
 RETURNS JSON AS $$
 DECLARE
     result_json JSON;
-    param INT[];
 BEGIN
     IF state_name_id_input < 0 THEN
-        param := ARRAY[1, 2, 3, 4, 5];
-    ELSE
-        param := ARRAY[state_name_id_input];
+		SELECT get_state_data_for_total(start_date, end_date)
+		INTO result_json;
+		RETURN result_json;
     END IF;
 
     SELECT json_agg(row_to_json(t))
@@ -318,6 +333,8 @@ BEGIN
         SELECT 
             r.request_id,
             r.request_title,
+			r.current_state,
+			n2.state_name AS current_state_name,
             u.user_name, 
             n.state_name,
             n.state_name_id,
@@ -331,10 +348,10 @@ BEGIN
         JOIN user_table u ON r.user_id = u.user_id
         LEFT JOIN user_table u2 ON s.started_by = u2.user_id
         LEFT JOIN user_table u3 ON s.ended_by = u3.user_id
-        JOIN state_name_table n ON s.state_name_id = n.state_name_id
-        WHERE r.request_date >= start_date
-          AND r.request_date <= end_date
-          AND s.state_name_id = ANY(param)
+        LEFT JOIN state_name_table n ON s.state_name_id = n.state_name_id
+		LEFT JOIN state_name_table n2 ON r.current_state = n2.state_name_id
+        WHERE r.request_date BETWEEN start_date AND end_date
+          AND s.state_name_id = state_name_id_input
         ORDER BY r.request_id
     ) t;
 
@@ -342,7 +359,47 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION get_state_data_for_total(
+    start_date TIMESTAMP,
+    end_date TIMESTAMP
+)
+RETURNS JSON AS $$
+DECLARE
+    result_json JSON;
+BEGIN
+    SELECT json_agg(row_to_json(t))
+    INTO result_json
+    FROM (
+        SELECT 
+        	r.request_id,
+            r.request_title,
+			r.current_state,
+			n2.state_name AS current_state_name,
+            u.user_name, 
+            n.state_name,
+            n.state_name_id,
+            s.date_start,
+            s.date_end,
+            u2.user_name AS started_by,
+            u3.user_name AS ended_by,
+            s.completed
+        FROM request_table r
+        JOIN state_table s ON r.request_id = s.request_id
+        JOIN user_table u ON r.user_id = u.user_id
+        LEFT JOIN user_table u2 ON s.started_by = u2.user_id
+        LEFT JOIN user_table u3 ON s.ended_by = u3.user_id
+        LEFT JOIN state_name_table n ON s.state_name_id = n.state_name_id
+		LEFT JOIN state_name_table n2 ON r.current_state = n2.state_name_id
+        WHERE r.request_date BETWEEN start_date AND end_date
+			AND s.state_name_id = r.current_State 
+        	AND s.state_name_id = ANY(ARRAY[1, 2, 3, 4, 5])
+        ORDER BY r.request_id
+    ) t;
+    RETURN result_json;
+END;
+$$ LANGUAGE plpgsql;
 
+SELECT get_state_data_for_total('2025-06-08T17:00:00.000Z','2025-06-14T17:00:00.000Z')
 
 SELECT get_state_specific_data(
 	1,
@@ -556,8 +613,8 @@ TRUNCATE TABLE user_table;
 TRUNCATE TABLE request_table;
 TRUNCATE TABLE state_table;
 TRUNCATE TABLE requirement_table;
-TRUNCATE TABLE requirement_type_table;
-TRUNCATE TABLE requirement_question_table;
+-- TRUNCATE TABLE requirement_type_table;
+-- TRUNCATE TABLE requirement_question_table;
 
 -- INSERT MAPPING OF STATE NAME AND ID
 INSERT INTO state_name_table (state_name_id, state_name)
@@ -695,9 +752,9 @@ CALL upgrade_state(33, 3);
 -- TEST TO GET DATA WHERE RANGE = WEEK AND STATE SUBMITTED
 SELECT get_state_specific_data(1,1)
 
-CALL upgrade_state(4,10);
-CALL upgrade_state(4,10);
-CALL upgrade_state(4,9);
+CALL upgrade_state(1,10);
+CALL upgrade_state(2,10);
+CALL upgrade_state(3,9);
 
 SELECT get_complete_data_of_request(14,1)
 
@@ -715,8 +772,6 @@ FROM   user_table;
 SELECT setval(pg_get_serial_sequence('request_table', 'request_id'), COALESCE(max(request_id) + 1, 1), false)
 FROM   request_table;
 
-SELECT setval(pg_get_serial_sequence('requirement_table', 'requirement_id'), COALESCE(max(requirement_id) + 1, 1), false)
-FROM   requirement_table;
 
 SELECT setval(pg_get_serial_sequence('state_table', 'state_id'), COALESCE(max(state_id) + 1, 1), false)
 FROM   state_table;

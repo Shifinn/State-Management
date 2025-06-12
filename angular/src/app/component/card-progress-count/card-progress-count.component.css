@@ -57,6 +57,10 @@
 	cursor: pointer;
 }
 
+.progress-square.no-hover:hover {
+	box-shadow: none !important;
+}
+
 /* Label text */
 .progress-square.label {
 	font-size: 2em; /* relative to card font-size */

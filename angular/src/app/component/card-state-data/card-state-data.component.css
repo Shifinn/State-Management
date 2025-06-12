@@ -1,0 +1,87 @@
+.request-title {
+	margin: 0.1em;
+}
+
+.card {
+	width: 17em;
+	font-size: 0.93em;
+	display: flex;
+	flex-direction: column;
+	gap: 0.65em;
+}
+
+.state-info {
+	display: flex;
+	flex-direction: column;
+}
+
+.state-current {
+	display: flex;
+	flex-direction: column;
+	align-self: center;
+	text-align: center;
+}
+
+.card-status {
+	margin-top: 0.3em;
+	align-self: center;
+}
+
+.card-status span {
+	padding: 0.3em 0.6em;
+	border-radius: 4px;
+	font-size: 1em;
+}
+
+.state-label {
+	font-weight: 500;
+	color: #333;
+	margin-bottom: 0.25em;
+}
+
+.state-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	font-size: 0.95em;
+	color: #555;
+}
+
+.date {
+	color: #222;
+}
+
+.by-user {
+	font-style: italic;
+	color: #666;
+}
+
+.card-footer {
+	margin-top: 0.3em;
+	text-align: right;
+}
+
+.s1 {
+	background-color: #fff3b0; /* pastel yellow */
+	color: #4a430f;
+}
+
+.s2 {
+	background-color: #aad7f0; /* soft blue */
+	color: #18324b;
+}
+
+.s3 {
+	background-color: #ffd59e; /* pastel orange */
+	color: #5a3a00;
+}
+
+.s4 {
+	background-color: #d3b5ff; /* soft lavender */
+	color: #3b2d4a;
+}
+
+.s5 {
+	background-color: #bae6ab; /* mint green */
+	color: #1c3e2a;
+}

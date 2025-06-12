@@ -21,6 +21,8 @@ export type SimpleData = {
 export type StateInfoData = {
 	request_id: number;
 	request_title: string;
+	current_state: number;
+	current_state_name: string;
 	state_name_id: number;
 	state_name: string;
 	date_start: Date;

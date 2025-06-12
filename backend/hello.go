@@ -217,7 +217,7 @@ func getStateCount(c *gin.Context) {
 	// Predefined state IDs 1 to 5 mapped to index 0 to 4
 	result := []StateCount{
 		{State_id: 1, State_name: "SUBMITTED", Todo: 0, Done: 0},
-		{State_id: 2, State_name: "VERIFIED", Todo: 0, Done: 0},
+		{State_id: 2, State_name: "VALIDATED", Todo: 0, Done: 0},
 		{State_id: 3, State_name: "IN PROGRESS", Todo: 0, Done: 0},
 		{State_id: 4, State_name: "WAITING FOR REVIEW", Todo: 0, Done: 0},
 		{State_id: 5, State_name: "DONE", Todo: 0, Done: 0},

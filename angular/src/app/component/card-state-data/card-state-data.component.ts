@@ -1,4 +1,4 @@
-import { Component, inject, Input } from "@angular/core";
+import { Component, inject, Input, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { CustomSquareButtonComponent } from "../custom-square-button/custom-square-button.component";
 import type { StateInfoData } from "../../model/format.type";
@@ -14,6 +14,13 @@ import { DialogMoreDetailComponent } from "../dialog-more-detail/dialog-more-det
 export class CardStateDataComponent {
 	@Input() state_info!: StateInfoData;
 	dialog = inject(MatDialog);
+	box_text_variant = signal<string>("Start Date:");
+
+	ngOnInit() {
+		if (this.state_info.current_state === 5) {
+			this.box_text_variant.set("completed date:");
+		}
+	}
 
 	moreDetails() {
 		const dialogref = this.dialog.open(DialogMoreDetailComponent, {
