@@ -1,0 +1,30 @@
+<div class="card">
+  <div class="card-header">
+    <h3 class="request-title">{{ state_info.request_title }}</h3>
+    <span class="request-id">#{{ state_info.request_id }}</span>
+  </div>
+
+  <div>
+    <span class="request-date">
+      start date: {{ state_info.date_start | date : "short" }} by
+      {{ state_info.started_by }}</span
+    >
+  </div>
+  
+  @if (state_info.completed) {
+    <div>
+      <span class="request-date">
+        end date: {{ state_info.date_end | date : "short" }}
+      </span>
+    </div>
+  }
+
+  
+
+  <div class="card-footer">
+    <app-custom-square-button
+      [button_label]="'More Details'"
+      (buttonClick)="moreDetails()"
+    />
+  </div>
+</div>

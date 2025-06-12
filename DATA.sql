@@ -297,41 +297,52 @@ $$ LANGUAGE plpgsql;
 -- FUCNTION TO GET SIMPLE DATA FOR SPECIFIC STATE
 -- USED FOR PROGRESS PAGE WHEN PICKING SPECIFIC STATE TO VIEW
 CREATE OR REPLACE FUNCTION get_state_specific_data(
-	state_name_id_input INT,
+    state_name_id_input INT,
     start_date TIMESTAMP,
     end_date TIMESTAMP
-	)
+)
 RETURNS JSON AS $$
 DECLARE
     result_json JSON;
+    param INT[];
 BEGIN
-	SELECT json_agg(row_to_json(t))
-	INTO result_json
-	FROM (
-		SELECT 
-			r.request_id,
-			r.request_title,
-			u.user_name, 
-			n.state_name,
-			n.state_name_id,
-			s.date_start,
-			s.date_end,
-			u2.user_name AS started_by,
-			-- u3.user_name AS ended_by,
-			s.completed
-		FROM request_table r
-		JOIN state_table s ON r.request_id = s.request_id
-		JOIN user_table u ON r.user_id = u.user_id
-		JOIN user_table u2 ON s.started_by = u.user_id
-		LEFT JOIN user_table u3 ON s.ended_by = u.user_id
- 		JOIN state_name_table n ON s.state_name_id = n.state_name_id
-		WHERE r.request_date >= start_date
-			AND r.request_date  <= end_date
-			AND s.state_name_id = state_name_id_input 
-	) t;
+    IF state_name_id_input < 0 THEN
+        param := ARRAY[1, 2, 3, 4, 5];
+    ELSE
+        param := ARRAY[state_name_id_input];
+    END IF;
+
+    SELECT json_agg(row_to_json(t))
+    INTO result_json
+    FROM (
+        SELECT 
+            r.request_id,
+            r.request_title,
+            u.user_name, 
+            n.state_name,
+            n.state_name_id,
+            s.date_start,
+            s.date_end,
+            u2.user_name AS started_by,
+            u3.user_name AS ended_by,
+            s.completed
+        FROM request_table r
+        JOIN state_table s ON r.request_id = s.request_id
+        JOIN user_table u ON r.user_id = u.user_id
+        LEFT JOIN user_table u2 ON s.started_by = u2.user_id
+        LEFT JOIN user_table u3 ON s.ended_by = u3.user_id
+        JOIN state_name_table n ON s.state_name_id = n.state_name_id
+        WHERE r.request_date >= start_date
+          AND r.request_date <= end_date
+          AND s.state_name_id = ANY(param)
+        ORDER BY r.request_id
+    ) t;
+
     RETURN result_json;
 END;
 $$ LANGUAGE plpgsql;
+
+
 
 SELECT get_state_specific_data(
 	1,

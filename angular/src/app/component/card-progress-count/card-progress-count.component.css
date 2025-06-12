@@ -1,57 +1,141 @@
 /* Base card style */
 .card {
-  width: 20em;
-  font-size: 1rem;
-  padding: 1em;
-  transition: all 0.8s ease;
+	width: 20em;
+	font-size: 1rem;
+	padding: 1em;
+	transition: all 0.8s ease;
+	/* box-shadow: inset 0 0 0 1px #999; */
+	/* border: 1px #999; */
+}
+
+.card.active-card {
+	box-shadow: 2px 2px 2px 2px rgba(44, 62, 80, 0.18), 0 3px 8px
+		rgba(44, 62, 80, 0.1);
+	border: 2px solid #999;
 }
 
 /* Shrink style: reduce font-size and width */
 .card.shrink {
-  width: 18em;
-  font-size: 0.64rem; /* controls all size below */
-  padding: 0.9em;
-  
+	width: 18em;
+	font-size: 0.64rem; /* controls all size below */
+	padding: 0.9em;
 }
 
-
 .request-title {
-  font-size: 1em;
+	font-size: 1em;
 }
 
 /* Header inside card */
 .card-header {
-  justify-content: center;
-  margin-bottom: 0.6em;
-  font-size: 1.4em; /* will scale with .card font-size */
+	justify-content: center;
+	margin-bottom: 0.6em;
+	font-size: 1.4em; /* will scale with .card font-size */
 }
 
 /* Inner square area */
 .progress-square {
-  flex: 1;
-  padding: 0.8em 0em 0.8em 0em;
-  background-color: #f5f7fa;
-  border-radius: 12px;
-  text-align: center;
-  box-shadow: inset 0 0 0 1px #dcdcdc;
-  transition: box-shadow 0.2s ease;
+	flex: 1;
+	padding: 0.8em 0em 0.8em 0em;
+	/* background-color: #f5f7fa; */
+	border-radius: 12px;
+	text-align: center;
+	box-shadow: 0 0 0 1px #999;
+	/* border: 1px solid #999; */
+	transition: all 0.3s ease;
+}
+
+.progress-square.active {
+	box-shadow: 2px 2px 2px 2px rgba(44, 62, 80, 0.18), 0 3px 8px
+		rgba(44, 62, 80, 0.1);
+	border: 2px solid #999;
+	/* background-color: #2e6edc; */
 }
 
 .progress-square:hover {
-  box-shadow: 1px 1px 1px 1px rgba(44, 62, 80, 0.18),
-              0 3px 8px rgba(44, 62, 80, 0.10);
-  cursor: pointer;
+	box-shadow: 1px 1px 1px 1px rgba(44, 62, 80, 0.18), 0 3px 8px
+		rgba(44, 62, 80, 0.1);
+	cursor: pointer;
 }
 
 /* Label text */
 .progress-square.label {
-  font-size: 2em; /* relative to card font-size */
-  color: #666;
+	font-size: 2em; /* relative to card font-size */
+	color: #666;
 }
 
 /* Value number */
 .progress-square .value {
-  font-size: 2em;
-  font-weight: 600;
-  color: #2e6edc;
+	font-size: 2em;
+	font-weight: 600;
+	color: #2e6edc;
+}
+
+/* Submitted - Pastel Yellow */
+.card.s1 {
+	background-color: #fff3b0;
+	color: #4a430f;
+}
+.current.s1 {
+	background-color: #ffe97a;
+	color: #4a430f;
+}
+.done.s1 {
+	background-color: #e6daa0;
+	color: #4a430f;
+}
+
+/* Verified - Soft Blue */
+.card.s2 {
+	background-color: #aad7f0;
+	color: #18324b;
+}
+.current.s2 {
+	background-color: #91c9ea;
+	color: #18324b;
+}
+.done.s2 {
+	background-color: #90bdd2;
+	color: #18324b;
+}
+
+/* In Progress - Pastel Orange */
+.card.s3 {
+	background-color: #ffd59e;
+	color: #5a3a00;
+}
+.current.s3 {
+	background-color: #ffc370;
+	color: #5a3a00;
+}
+.done.s3 {
+	background-color: #e8bc8f;
+	color: #5a3a00;
+}
+
+/* Waiting for Review - Soft Lavender */
+.card.s4 {
+	background-color: #d3b5ff;
+	color: #3b2d4a;
+}
+.current.s4 {
+	background-color: #c79eff;
+	color: #3b2d4a;
+}
+.done.s4 {
+	background-color: #bda3e4;
+	color: #3b2d4a;
+}
+
+/* Done - Mint Green */
+.card.s5 {
+	background-color: #bae6ab;
+	color: #1c3e2a;
+}
+.current.s5 {
+	background-color: #a4db93;
+	color: #1c3e2a;
+}
+.done.s5 {
+	background-color: #99c890;
+	color: #1c3e2a;
 }

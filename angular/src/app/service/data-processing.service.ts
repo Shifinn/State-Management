@@ -11,6 +11,7 @@ import type {
 	StatusInfo,
 	TimePeriod,
 	StateInfoData,
+	StateStatus,
 } from "../model/format.type";
 import { map, type Observable, of } from "rxjs";
 import { Time } from "@angular/common";
@@ -111,15 +112,17 @@ export class DataProcessingService {
 		end_date: string,
 	) {
 		const url = `http://localhost:9090/stateSpecificData?state_id=${state_id_input}&start_date=${start_date}&end_date=${end_date}`;
-		return this.http.get<StateInfoData>(url);
+		return this.http.get<StateInfoData[]>(url);
 	}
 
-	separateNotCompleted(input: StateInfoData[]): StateInfoData[] {
-		return input.filter((x) => x.completed === false);
-	}
+	separateBasedOnCompletion(
+		completion_type: StateStatus,
+		origin_state_data: StateInfoData[],
+	): StateInfoData[] {
+		let complete = false;
+		if (completion_type === "DONE") complete = true;
 
-	separateCompleted(input: StateInfoData[]): StateInfoData[] {
-		return input.filter((x) => x.completed === true);
+		return origin_state_data.filter((x) => x.completed === complete);
 	}
 
 	getCompleteData(request_id_input: number): Observable<CompleteData> {

@@ -7,75 +7,104 @@ import type {
 	StateInfoData,
 	StatusInfo,
 	TimePeriod,
+	StateStatus,
 } from "../../model/format.type";
+import { CardStateDataComponent } from "../../component/card-state-data/card-state-data.component";
 
 @Component({
 	selector: "app-progress-page",
-	imports: [CardProgressCountComponent],
+	imports: [CardProgressCountComponent, CardStateDataComponent],
 	templateUrl: "./progress-page.component.html",
 	styleUrl: "./progress-page.component.css",
 })
 export class ProgressPageComponent {
 	data_service = inject(DataProcessingService);
 	progress_info = signal<Array<StatusInfo>>([]);
-	state_data = signal<Array<StateInfoData>>([]);
-	available_period = signal<Map<PeriodGranularity, Array<TimePeriod>>>(
-		new Map<PeriodGranularity, Array<TimePeriod>>([
-			["YEAR", []],
-			["QUARTER", []],
-			["MONTH", []],
-			["WEEK", []],
-		]),
-	);
-	// available_period_year = signal<Array<TimePeriod>>([]);
-	// available_period_quarter = signal<Array<TimePeriod>>([]);
-	// available_period_month = signal<Array<TimePeriod>>([]);
-	// available_period_week = signal<Array<TimePeriod>>([]);
+	state_data: Map<StateStatus, Array<StateInfoData>> = new Map<
+		StateStatus,
+		Array<StateInfoData>
+	>([
+		["TOTAL", []],
+		["TODO", []],
+		["DONE", []],
+	]);
+	visible_state_data = signal<Array<StateInfoData>>([]);
+	current_view_status = signal<ProgressCardOutput>({
+		type: "NAN",
+		state_id: -2,
+	});
+	available_period: Map<PeriodGranularity, Array<TimePeriod>> = new Map<
+		PeriodGranularity,
+		Array<TimePeriod>
+	>([
+		["YEAR", []],
+		["QUARTER", []],
+		["MONTH", []],
+		["WEEK", []],
+	]);
 	current_period!: TimePeriod;
 	isShrunk = false;
 	period_type: Array<PeriodGranularity> = ["YEAR", "QUARTER", "MONTH", "WEEK"];
 
-	clickShrink() {
-		this.isShrunk = !this.isShrunk;
+	toggleShrink(input: number) {
+		if (input === 2) {
+			this.isShrunk = !this.isShrunk;
+			return;
+		}
+
+		this.isShrunk = Boolean(input);
 	}
 
 	ngOnInit() {
 		this.getNewPeriodDataList("WEEK");
 	}
 
-	clickPeriodType(type: PeriodGranularity) {
-		const current = this.available_period().get(type);
-		if (current?.length === 0) {
-			this.getNewPeriodDataList(type);
-		} else if (current && current.length > 0) {
-			const temp_period = current[current.length - 1];
-			if (
-				this.current_period.start_date === temp_period.start_date &&
-				this.current_period.end_date === temp_period.end_date
-			) {
+	clickPeriodType(period_type: PeriodGranularity) {
+		const temp_period_array = this.available_period.get(period_type);
+		if (temp_period_array?.length) {
+			const temp_period = temp_period_array[temp_period_array.length - 1];
+			if (period_type === this.current_period.period_type) {
 				console.log("same");
 				return;
 			}
-			this.current_period = current[current.length - 1];
+			this.updateCurrentPeriod(temp_period_array[temp_period_array.length - 1]);
 			this.getNewStateCount(
 				this.current_period.start_date,
 				this.current_period.end_date,
 			);
+		} else {
+			this.getNewPeriodDataList(period_type);
+		}
+
+		if (this.isShrunk === true) {
+			this.current_view_status.set({ state_id: -2, type: "NAN" });
+			this.showStateData({ type: "TOTAL", state_id: -1 });
 		}
 	}
 
-	getNewPeriodDataList(type: PeriodGranularity) {
-		this.data_service.getAvailablePeriods(type).subscribe((periods) => {
-			if (periods.length !== 0) {
-				this.available_period().set(type, periods);
-
-				this.current_period = periods[periods.length - 1];
+	getNewPeriodDataList(period_type: PeriodGranularity) {
+		this.data_service.getAvailablePeriods(period_type).subscribe((result) => {
+			if (result.length) {
+				this.available_period.set(period_type, result);
+				this.updateCurrentPeriod(result[result.length - 1]);
 				this.getNewStateCount(
 					this.current_period.start_date,
 					this.current_period.end_date,
 				);
 			}
 		});
+	}
+
+	updateCurrentPeriod(new_period: TimePeriod) {
+		this.current_period = new_period;
+		this.clearStateData();
+	}
+
+	clearStateData() {
+		this.state_data.set("TOTAL", []);
+		this.state_data.set("TODO", []);
+		this.state_data.set("DONE", []);
+		this.visible_state_data.set([]);
 	}
 
 	getNewStateCount(start_date: Date, end_date: Date) {
@@ -87,7 +116,75 @@ export class ProgressPageComponent {
 			});
 	}
 
-	showDataOfState(input: ProgressCardOutput) {
-		input.state_id;
+	showStateData(input: ProgressCardOutput) {
+		console.log(`The type from card is: ${input.type}`);
+		if (!this.checkIfPressed(input)) return;
+
+		this.current_view_status.set(input);
+
+		const currentStateId = this.visible_state_data()[0]?.state_name_id;
+		const cachedTotalData = this.state_data.get("TOTAL");
+		// If the visible data doesn't match the selected state, reset
+		if (currentStateId !== input.state_id) {
+			this.clearStateData();
+		} else if (cachedTotalData?.length) {
+			this.setVisibleStateDataSignal(input.type);
+			return;
+		}
+
+		// Otherwise, fetch from server
+		this.data_service
+			.getStateSpecificData(
+				input.state_id,
+				this.current_period.start_date.toISOString(),
+				this.current_period.end_date.toISOString(),
+			)
+			.subscribe((result) => {
+				this.state_data.set("TOTAL", result);
+				this.setVisibleStateDataSignal(input.type);
+			});
+	}
+
+	setVisibleStateDataSignal(completion_type: StateStatus) {
+		const temp_state_array = this.state_data.get(completion_type);
+		const temp_state_array_total = this.state_data.get("TOTAL");
+		// console.log(
+		// 	`enterset visible with type:${completion_type}, length = ${temp_state_array?.length}, current state of: ${this.current_view_status().type}`,
+		// );
+
+		this.toggleShrink(1);
+		// this.current_view_status().state_id = current_state_id;
+		// this.current_view_status().type = completion_type;
+		if (temp_state_array?.length) {
+			this.visible_state_data.set(temp_state_array);
+		} else if (temp_state_array_total?.length) {
+			const temp_new_period = this.data_service.separateBasedOnCompletion(
+				completion_type,
+				temp_state_array_total,
+			);
+			this.state_data.set(completion_type, temp_new_period);
+			this.visible_state_data.set(temp_new_period);
+			this.current_view_status().type = completion_type;
+		}
+
+		for (const a of this.visible_state_data()) {
+			console.log(a);
+		}
+	}
+
+	checkIfPressed(check: ProgressCardOutput): boolean {
+		if (
+			this.current_view_status().state_id === check.state_id &&
+			this.current_view_status().type === check.type
+		) {
+			console.log("enter shrink");
+			this.toggleShrink(0);
+			this.visible_state_data.set([]);
+			this.current_view_status.set({ state_id: -2, type: "NAN" });
+			console.log(`shrink is ${this.isShrunk}`);
+			return false;
+		}
+
+		return true;
 	}
 }

@@ -1,0 +1,11 @@
+<!-- year-selector.component.html -->
+<div class="dropdown">
+  <div *ngFor="let period of paginatedPeriods" (click)="selectPeriod(period)" class="dropdown-item">
+    {{ period.label }}
+  </div>
+  <div class="pagination">
+    <button (click)="prevPage()">←</button>
+    <span>{{ currentPage + 1 }}</span>
+    <button (click)="nextPage()">→</button>
+  </div>
+</div>

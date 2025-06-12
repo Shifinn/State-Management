@@ -221,7 +221,7 @@ func getStateCount(c *gin.Context) {
 		{State_id: 3, State_name: "IN PROGRESS", Todo: 0, Done: 0},
 		{State_id: 4, State_name: "WAITING FOR REVIEW", Todo: 0, Done: 0},
 		{State_id: 5, State_name: "DONE", Todo: 0, Done: 0},
-		{State_name: "TOTAL", Todo: 0, Done: 0},
+		{State_id: -1, State_name: "TOTAL", Todo: 0, Done: 0},
 	}
 
 	// Get and validate range input
