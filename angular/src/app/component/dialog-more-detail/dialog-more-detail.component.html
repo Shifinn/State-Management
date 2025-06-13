@@ -110,7 +110,7 @@
     @if (isVisible("cancel")) {
     <button mat-button mat-dialog-close color="warn">Cancel</button>
     } @if (isVisible("reject")) {
-    <button mat-stroked-button color="warn" (click)="changeState('degrade')">
+    <button mat-stroked-button color="bad" (click)="changeState('degrade')">
       Reject
     </button>
     } @if (isVisible("continue")) {

@@ -1,11 +1,46 @@
-<!-- year-selector.component.html -->
-<div class="dropdown">
-  <div *ngFor="let period of paginatedPeriods" (click)="selectPeriod(period)" class="dropdown-item">
-    {{ period.label }}
-  </div>
-  <div class="pagination">
-    <button (click)="prevPage()">←</button>
-    <span>{{ currentPage + 1 }}</span>
-    <button (click)="nextPage()">→</button>
-  </div>
+<div class="custom-dialog-grid">
+  <!-- Centered top buttons inside the dropdown -->
+  @if (!(period_type === "NAN" || period_type === "YEAR")) {
+    <div class="top-bar">
+      <button class="custom-button" (click)="changeYear()">
+        {{ current_menu.year }}
+      </button>
+      @if (period_type === "WEEK") {
+        <button  class="custom-button" (click)="changeMonth()">
+          {{ monthNames[current_menu.month] }}
+        </button>
+      }
+    </div>
+  }
+
+  <!-- Grid content section -->
+  @if (current_menu.type === "PERIOD") {
+    <div class="grid-content">
+      @for (item of visible_period(); track item.start_date) {
+        <button class="custom-button" (click)="selectOption(item)">
+          {{ item.label }}
+        </button>
+      }
+    </div>
+  }
+
+  @if (current_menu.type === "YEAR") {
+    <div class="grid-content">
+      @for (item of year_list(); track item) {
+        <button  class="custom-button" (click)="selectYear(item)">
+          {{ item }}
+        </button>
+      }
+    </div>
+  }
+
+  @if (current_menu.type === "MONTH") {
+    <div class="grid-content">
+      @for (item of month_list(); track $index) {
+        <button class="custom-button" (click)="selectMonth(item)">
+          {{ item }}
+        </button>
+      }
+    </div>
+  }
 </div>

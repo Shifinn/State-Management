@@ -3,20 +3,23 @@
     <h3 class="card-request-title">{{ state_info.request_title }}</h3>
     <span class="card-request-id">#{{ state_info.request_id }}</span>
   </div>
+  <div>
+    <span class="request-date">{{state_info.request_date| date:'short'}}</span>
+  </div>
 
     <div class="state-info">
       <div class="state-label">{{ box_text_variant() }}</div>
-      <div class="state-meta">
-        <span class="date">{{ state_info.date_start | date : "short" }}</span>
+      <div class="state-data">
+        <span class="date">{{ state_info.date_start | date : "medium" }}</span>
         <span class="by-user">by {{ state_info.started_by }}</span>
       </div>
     </div>
 
     @if (state_info.completed && state_info.state_name_id < 5) {
     <div class="state-info">
-      <div class="state-label">End Date</div>
-      <div class="state-meta">
-        <span class="date">{{ state_info.date_end | date : "short" }}</span>
+      <div class="state-label">State End Date</div>
+      <div class="state-data">
+        <span class="date">{{ state_info.date_end | date : "medium" }}</span>
         <span class="by-user">by {{ state_info.ended_by }}</span>
       </div>
     </div>

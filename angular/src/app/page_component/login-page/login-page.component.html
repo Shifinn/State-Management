@@ -1,22 +1,47 @@
-<main>
-  <div class="login-box">
-    <h2>Login</h2>
+<form #loginForm="ngForm">
+  <main>
+    <div class="login-box">
+      <h2 class="login-text">Login</h2>
 
-    <div>Username</div>
-    <app-input-box 
-      [inputLabel]="'Username'"
-      #usernameBox>
-    </app-input-box>
+      <!-- Username -->
+      <div class="text-label">Username</div>
+      <mat-form-field appearance="outline" class="field">
+        <input
+          matInput
+          name="username"
+          [(ngModel)]="loginData.username"
+          #usernameBox="ngModel"
+          required
+        />
+        <mat-error *ngIf="loginForm.submitted && !loginData.username">
+          Tolong isi username
+        </mat-error>
+      </mat-form-field>
 
-    <div>Password</div>
-    <app-input-box 
-      [inputLabel]="'Password'" 
-      [inputType]="'password'"
-      #passwordBox>
-    </app-input-box>
-    <button 
-      mat-flat-button class="button" 
-      (click)="checkLogin(usernameBox, passwordBox)" 
-    >Login</button>
-  </div>
-</main>
+      <!-- Password -->
+      <div class="text-label">Password</div>
+      <mat-form-field appearance="outline" class="field">
+        <input
+          matInput
+          type="password"
+          name="password"
+          [(ngModel)]="loginData.password"
+          #passwordBox="ngModel"
+          required
+        />
+        <mat-error *ngIf="loginForm.submitted && !loginData.password">
+          Tolong isi password
+        </mat-error>
+      </mat-form-field>
+      <!-- Login Button -->
+      <button
+        mat-flat-button
+        class="button"
+        color="primary"
+        (click)="checkLogin(loginForm)"
+      >
+        Login
+      </button>
+    </div>
+  </main>
+</form>

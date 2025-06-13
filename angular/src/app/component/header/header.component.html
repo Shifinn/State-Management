@@ -1,8 +1,19 @@
-<header>
-    <nav (click)="logOut()">State Manager {{id()}}</nav>
-    <ul>
-        <li><a [routerLink]="[{ outlets: { home: ['dashboard'] } }]">Dashboard</a></li>
-        <li><a [routerLink]="[{ outlets: { home: ['todo'] } }]">Todo</a></li>
-        <li><a [routerLink]="[{ outlets: { home: ['progress'] } }]">Progress</a></li>
-    </ul>
-</header>
+
+  <div class="nav-bar">
+    <div class="app-title" role="button" (click)="logOut()">
+      State Manager {{ id() }}
+    </div>
+
+    <nav class="navigation">
+      <ul>
+        @if (dataService.getUserRole() === '1') {
+          <li><a [routerLink]="[{ outlets: { home: ['dashboard'] } }]">Dashboard</a></li>
+        }
+        @if (dataService.getUserRole() !== '1') {
+          <li><a [routerLink]="[{ outlets: { home: ['todo'] } }]">Todo</a></li>
+          <li><a [routerLink]="[{ outlets: { home: ['progress'] } }]">Progress</a></li>
+        }
+      </ul>
+    </nav>
+  </div>
+

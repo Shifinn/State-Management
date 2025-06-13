@@ -1,4 +1,4 @@
-import { Component, inject, signal } from "@angular/core";
+import { Component, inject, signal, type OnInit } from "@angular/core";
 import { CardProgressCountComponent } from "../../component/card-progress-count/card-progress-count.component";
 import { DataProcessingService } from "../../service/data-processing.service";
 import type {
@@ -8,18 +8,25 @@ import type {
 	StatusInfo,
 	TimePeriod,
 	StateStatus,
+	CachedPeriodPickerMemory,
 } from "../../model/format.type";
 import { CardStateDataComponent } from "../../component/card-state-data/card-state-data.component";
+import { PeriodPickerComponent } from "../../component/period-picker/period-picker.component";
 
 @Component({
 	selector: "app-progress-page",
-	imports: [CardProgressCountComponent, CardStateDataComponent],
+	imports: [
+		CardProgressCountComponent,
+		CardStateDataComponent,
+		PeriodPickerComponent,
+	],
 	templateUrl: "./progress-page.component.html",
 	styleUrl: "./progress-page.component.css",
 })
 export class ProgressPageComponent {
 	data_service = inject(DataProcessingService);
 	progress_info = signal<Array<StatusInfo>>([]);
+	period_type: Array<PeriodGranularity> = ["YEAR", "QUARTER", "MONTH", "WEEK"];
 	state_data: Map<StateStatus, Array<StateInfoData>> = new Map<
 		StateStatus,
 		Array<StateInfoData>
@@ -28,39 +35,48 @@ export class ProgressPageComponent {
 		["TODO", []],
 		["DONE", []],
 	]);
+	available_period = signal<Map<PeriodGranularity, Array<TimePeriod>>>(
+		new Map<PeriodGranularity, Array<TimePeriod>>([
+			["YEAR", []],
+			["QUARTER", []],
+			["MONTH", []],
+			["WEEK", []],
+		]),
+	);
 	visible_state_data = signal<Array<StateInfoData>>([]);
 	current_view_status = signal<ProgressCardOutput>({
 		type: "NAN",
 		state_id: -2,
 	});
-	available_period: Map<PeriodGranularity, Array<TimePeriod>> = new Map<
-		PeriodGranularity,
-		Array<TimePeriod>
-	>([
-		["YEAR", []],
-		["QUARTER", []],
-		["MONTH", []],
-		["WEEK", []],
-	]);
 	current_period!: TimePeriod;
-	isShrunk = false;
-	period_type: Array<PeriodGranularity> = ["YEAR", "QUARTER", "MONTH", "WEEK"];
+	is_shrunk = signal<boolean>(false);
+	is_left_aligned = signal<boolean>(true);
+	period_picker_visible = signal<PeriodGranularity>("NAN");
+	current_period_menu = signal<CachedPeriodPickerMemory | undefined>(undefined);
 
 	toggleShrink(input: number) {
 		if (input === 2) {
-			this.isShrunk = !this.isShrunk;
+			this.is_shrunk.set(this.is_shrunk());
 			return;
 		}
 
-		this.isShrunk = Boolean(input);
+		this.is_shrunk.set(Boolean(input));
+	}
+
+	togglePeriodPickerVisibility(input: PeriodGranularity) {
+		this.period_picker_visible.set(input);
+	}
+
+	setCachedPeriod(input: CachedPeriodPickerMemory) {
+		this.current_period_menu.set(input);
 	}
 
 	ngOnInit() {
-		this.getNewPeriodDataList("WEEK");
+		this.initPeriodDataFrom("WEEK");
 	}
 
 	clickPeriodType(period_type: PeriodGranularity) {
-		const temp_period_array = this.available_period.get(period_type);
+		const temp_period_array = this.available_period().get(period_type);
 		if (temp_period_array?.length) {
 			const temp_period = temp_period_array[temp_period_array.length - 1];
 			if (period_type === this.current_period.period_type) {
@@ -68,36 +84,39 @@ export class ProgressPageComponent {
 				return;
 			}
 			this.updateCurrentPeriod(temp_period_array[temp_period_array.length - 1]);
-			this.getNewStateCount(
-				this.current_period.start_date,
-				this.current_period.end_date,
-			);
-		} else {
-			this.getNewPeriodDataList(period_type);
 		}
-
-		if (this.isShrunk === true) {
+		if (this.is_shrunk() === true) {
 			this.current_view_status.set({ state_id: -2, type: "NAN" });
 			this.showStateData({ type: "TOTAL", state_id: -1 });
 		}
 	}
 
-	getNewPeriodDataList(period_type: PeriodGranularity) {
+	initPeriodDataFrom(period_type: PeriodGranularity) {
 		this.data_service.getAvailablePeriods(period_type).subscribe((result) => {
 			if (result.length) {
-				this.available_period.set(period_type, result);
+				this.available_period().set(period_type, result);
 				this.updateCurrentPeriod(result[result.length - 1]);
-				this.getNewStateCount(
-					this.current_period.start_date,
-					this.current_period.end_date,
-				);
 			}
 		});
+		const filteredPeriodTypes = this.period_type.filter(
+			(a) => a !== "WEEK" && a !== period_type,
+		);
+		for (const a of filteredPeriodTypes) {
+			this.data_service.getAvailablePeriods(a).subscribe((result) => {
+				if (result.length) {
+					this.available_period().set(a, result);
+				}
+			});
+		}
 	}
 
 	updateCurrentPeriod(new_period: TimePeriod) {
 		this.current_period = new_period;
 		this.clearStateData();
+		this.getNewStateCount(
+			this.current_period.start_date,
+			this.current_period.end_date,
+		);
 	}
 
 	clearStateData() {
@@ -181,7 +200,7 @@ export class ProgressPageComponent {
 			this.toggleShrink(0);
 			this.visible_state_data.set([]);
 			this.current_view_status.set({ state_id: -2, type: "NAN" });
-			console.log(`shrink is ${this.isShrunk}`);
+			console.log(`shrink is ${this.is_shrunk}`);
 			return false;
 		}
 

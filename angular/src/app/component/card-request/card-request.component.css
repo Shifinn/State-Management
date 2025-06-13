@@ -18,6 +18,12 @@
 	font-size: 1.1em;
 }
 
+.reminder {
+	color: red;
+	margin-right: 0.3em;
+	font-weight: bolder;
+}
+
 .s0 {
 	background-color: #ffcccb; /* pastel yellow */
 	color: #8b2e2e;

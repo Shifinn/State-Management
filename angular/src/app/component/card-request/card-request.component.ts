@@ -5,6 +5,7 @@ import {
 	Input,
 	Output,
 	resource,
+	signal,
 } from "@angular/core";
 import type { SimpleData } from "../../model/format.type";
 import { CommonModule } from "@angular/common";
@@ -12,15 +13,18 @@ import { CustomSquareButtonComponent } from "../custom-square-button/custom-squa
 import { DataProcessingService } from "../../service/data-processing.service";
 import { MatDialog } from "@angular/material/dialog";
 import { DialogMoreDetailComponent } from "../dialog-more-detail/dialog-more-detail.component";
+import { DateAdapter } from "@angular/material/core";
+import { MatTooltipModule } from "@angular/material/tooltip";
 
 @Component({
 	selector: "app-card-request",
-	imports: [CommonModule, CustomSquareButtonComponent],
+	imports: [CommonModule, CustomSquareButtonComponent, MatTooltipModule],
 	templateUrl: "./card-request.component.html",
 	styleUrl: "./card-request.component.css",
 })
 export class CardRequestComponent {
 	@Input() request!: SimpleData;
+	@Input() reminder_tooltip!: number | undefined;
 	@Output() refresh = new EventEmitter<void>();
 	data_service = inject(DataProcessingService);
 	dialog = inject(MatDialog);

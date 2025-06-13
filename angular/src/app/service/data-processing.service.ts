@@ -12,6 +12,7 @@ import type {
 	TimePeriod,
 	StateInfoData,
 	StateStatus,
+	PeriodGranularity,
 } from "../model/format.type";
 import { map, type Observable, of } from "rxjs";
 import { Time } from "@angular/common";
@@ -83,19 +84,13 @@ export class DataProcessingService {
 
 	separateInProgress(input: SimpleData[]): SimpleData[] {
 		if (this.getUserRole() === "2") {
-			return input.filter((x) => x.state_name_id === 3);
+			return input.filter(
+				(x) => x.state_name_id === 3 || x.state_name_id === 4,
+			);
 		}
-
-		return [];
-	}
-
-	separateDone(input: SimpleData[]): SimpleData[] {
 		if (this.getUserRole() === "3") {
 			return input.filter(
-				(x) =>
-					x.state_name_id === 0 ||
-					x.state_name_id === 2 ||
-					x.state_name_id === 5,
+				(x) => x.state_name_id === 2 || x.state_name_id === 3,
 			);
 		}
 
@@ -104,6 +99,10 @@ export class DataProcessingService {
 		}
 
 		return [];
+	}
+
+	separateDone(input: SimpleData[]): SimpleData[] {
+		return input.filter((x) => x.state_name_id === 5);
 	}
 
 	getStateSpecificData(
@@ -165,8 +164,12 @@ export class DataProcessingService {
 		return this.http.put(url, state_update_data);
 	}
 
+	getTimeDifferenceInHour(date_ref: Date): number {
+		return Math.abs(Date.now() - new Date(date_ref).getTime()) / 36e5;
+	}
+
 	getAvailablePeriods(
-		period_type: "YEAR" | "QUARTER" | "MONTH" | "WEEK",
+		period_type: PeriodGranularity,
 	): Observable<Array<TimePeriod>> {
 		return this.getOldestRequestTime().pipe(
 			map((result) => {
@@ -183,6 +186,7 @@ export class DataProcessingService {
 						case "YEAR":
 							options.push({
 								label: `${year}`,
+								full_label: `${year}`,
 								year,
 								start_date: start_of_year,
 								end_date: end_of_year,
@@ -198,7 +202,8 @@ export class DataProcessingService {
 								}
 								const end_date = new Date(year, q * 3, 0);
 								options.push({
-									label: `Q${q} ${year}`,
+									label: `Q${q}`,
+									full_label: `Q${q} ${year}`,
 									year,
 									start_date,
 									end_date,
@@ -217,7 +222,8 @@ export class DataProcessingService {
 								if (start_date > today) break;
 								const end_date = new Date(year, m + 1, 0);
 								options.push({
-									label: `${monthName} ${year}`,
+									label: `${monthName}`,
+									full_label: `${monthName} ${year}`,
 									year,
 									start_date,
 									end_date,
@@ -248,7 +254,8 @@ export class DataProcessingService {
 									end_date.setDate(end_date.getDate() + 6);
 
 									options.push({
-										label: `Week ${week} ${monthName} ${year}`,
+										label: `Week ${week}`,
+										full_label: `Week ${week} ${monthName} ${year}`,
 										year,
 										start_date: new Date(start_date),
 										end_date,

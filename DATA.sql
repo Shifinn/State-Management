@@ -334,6 +334,7 @@ BEGIN
             r.request_id,
             r.request_title,
 			r.current_state,
+			r.request_date,
 			n2.state_name AS current_state_name,
             u.user_name, 
             n.state_name,
@@ -352,7 +353,7 @@ BEGIN
 		LEFT JOIN state_name_table n2 ON r.current_state = n2.state_name_id
         WHERE r.request_date BETWEEN start_date AND end_date
           AND s.state_name_id = state_name_id_input
-        ORDER BY r.request_id
+        ORDER BY r.current_state, r.request_id
     ) t;
 
     RETURN result_json;
@@ -374,6 +375,7 @@ BEGIN
         	r.request_id,
             r.request_title,
 			r.current_state,
+			r.request_date,
 			n2.state_name AS current_state_name,
             u.user_name, 
             n.state_name,
@@ -393,7 +395,7 @@ BEGIN
         WHERE r.request_date BETWEEN start_date AND end_date
 			AND s.state_name_id = r.current_State 
         	AND s.state_name_id = ANY(ARRAY[1, 2, 3, 4, 5])
-        ORDER BY r.request_id
+        ORDER BY r.current_state, r.request_id
     ) t;
     RETURN result_json;
 END;
@@ -422,8 +424,8 @@ BEGIN
 		SELECT 
 			r.request_id,
 			r.request_title,
-			r.request_date AS "date_start",
-			n.state_name
+			r.request_date,
+			n.state_name,
 			n.state_name_id
 		FROM request_table r
 		JOIN state_name_table n ON r.current_state = n.state_name_id
@@ -433,7 +435,7 @@ BEGIN
     RETURN result_json;
 END;
 $$ LANGUAGE plpgsql;
-
+select get_user_request_data(1)
 
 CREATE OR REPLACE FUNCTION get_full_state_history(
 	request_id_input		INT
@@ -468,7 +470,7 @@ DECLARE
     viewable INT[];
 BEGIN
     IF user_role_input = 2 THEN viewable := ARRAY[2,3,4,5];
-    ELSIF user_role_input = 3 THEN viewable := ARRAY[0,1,2,4,5];
+    ELSIF user_role_input = 3 THEN viewable := ARRAY[1,2,3,4,5];
     END IF;
 
     SELECT json_agg(row_to_json(t))
@@ -477,6 +479,7 @@ BEGIN
         SELECT 
             r.request_id,
             r.request_title,
+			r.request_date,
             u.user_name, 
 			n.state_name_id,
             n.state_name,
@@ -704,6 +707,12 @@ ARRAY['Physical Count Sheet', 'Damaged_Items, Expired_Goods', 'Weighted Average'
 --     )::TIMESTAMP
 -- WHERE
 --     request_id BETWEEN 2 AND 10;
+
+UPDATE state_table
+SET date_start = request_table.request_date
+FROM request_table
+WHERE state_table.request_id = request_table.request_id
+  AND state_table.state_name_id = 1;
 
 -- INSERT REQUIREMENT QUESTIONS
 INSERT INTO requirement_question_table(requirement_question_id, requirement_question, requirement_type_id)

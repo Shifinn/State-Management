@@ -27,7 +27,6 @@
 	gap: 12px;
 }
 
-.mat-ok {
-	color: yellow;
-	background-color: yellow;
+.mat-bad {
+	color: rgb(255, 19, 19) !important;
 }

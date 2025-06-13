@@ -1,28 +1,31 @@
 main {
-    display: flex;
-    justify-content: center;  /* Center horizontally */
-    align-items: center;      /* Center vertically */
-    height: 100vh;            /* Full viewport height */
-    width: 100%;
-    background-color: #527BAA; 
+	display: flex;
+	justify-content: center; /* Center horizontally */
+	align-items: center; /* Center vertically */
+	height: 100vh; /* Full viewport height */
+	width: 100%;
+	background-color: #527baa;
 }
 
 .login-text {
-    font-size: 24px;        /* Font size */
-    font-weight: bold;      /* Bold text */
-    margin-bottom: 20px;    /* Space below the text */
-    align-items: center;
-    justify-content: center; /* Center text */
+	font-size: 1.9em; /* Font size */
+	font-weight: bold; /* Bold text */
+	margin-bottom: 0.3em; /* Space below the text */
+	text-align: center;
+}
+.text-label {
+	font-size: 1.01em;
+	margin-bottom: 0.3em;
 }
 
 .login-box {
-    background-color: white;
-    border: 1px solid grey;  /* Visible border */
-    border-radius: 20px;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;                /* Spacing between children */
-    width: 300px;             /* Adjust width as needed */
-    box-sizing: border-box;   /* Ensures padding doesn't expand width */
-    }
+	background-color: white;
+	border: 1px solid grey; /* Visible border */
+	border-radius: 20px;
+	padding: 1.1em;
+	display: flex;
+	flex-direction: column;
+	gap: 0em;
+	width: 18em; /* Adjust width as needed */
+	box-sizing: border-box; /* Ensures padding doesn't expand width */
+}

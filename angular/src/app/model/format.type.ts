@@ -1,4 +1,4 @@
-export type PeriodGranularity = "YEAR" | "QUARTER" | "MONTH" | "WEEK";
+export type PeriodGranularity = "YEAR" | "QUARTER" | "MONTH" | "WEEK" | "NAN";
 export type StateStatus = "TOTAL" | "DONE" | "TODO" | "NAN";
 
 export type User = {
@@ -14,6 +14,7 @@ export type SimpleData = {
 	state_name_id: number;
 	state_name: string;
 	user_name: string;
+	request_date: Date;
 	date_start: Date;
 	state_comment: string;
 };
@@ -21,6 +22,7 @@ export type SimpleData = {
 export type StateInfoData = {
 	request_id: number;
 	request_title: string;
+	request_date: Date;
 	current_state: number;
 	current_state_name: string;
 	state_name_id: number;
@@ -82,13 +84,20 @@ export type StatusInfo = {
 
 export type TimePeriod = {
 	label: string;
+	full_label: string;
 	year: number;
 	start_date: Date;
 	end_date: Date;
-	period_type: "YEAR" | "QUARTER" | "MONTH" | "WEEK";
+	period_type: PeriodGranularity;
 };
 
 export type ProgressCardOutput = {
 	type: StateStatus;
 	state_id: number;
+};
+
+export type CachedPeriodPickerMemory = {
+	type: string;
+	year: number;
+	month: number;
 };

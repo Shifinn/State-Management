@@ -1,21 +1,20 @@
-import { Component, input, signal, Injectable, inject } from '@angular/core';
-import { RouterLink } from '@angular/router';
-import { LoginService } from '../../service/login.service';
-import { DataProcessingService } from '../../service/data-processing.service';
+import { Component, input, signal, Injectable, inject } from "@angular/core";
+import { RouterLink } from "@angular/router";
+import { LoginService } from "../../service/login.service";
+import { DataProcessingService } from "../../service/data-processing.service";
 
 @Component({
-  selector: 'app-header',
-  imports: [RouterLink],
-  templateUrl: './header.component.html',
-  styleUrl: './header.component.css'
+	selector: "app-header",
+	imports: [RouterLink],
+	templateUrl: "./header.component.html",
+	styleUrl: "./header.component.css",
 })
-
 export class HeaderComponent {
-  loginService = inject(LoginService);
-  dataService = inject(DataProcessingService); 
-  id = signal(Number(this.dataService.getUserId())); // Signal to track the ID
+	loginService = inject(LoginService);
+	dataService = inject(DataProcessingService);
+	id = signal(Number(this.dataService.getUserId())); // Signal to track the ID
 
-  logOut() {
-    this.loginService.logOut(); // Call the logout method from the servic
-  }
+	logOut() {
+		this.loginService.logOut(); // Call the logout method from the servic
+	}
 }

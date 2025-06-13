@@ -13,9 +13,13 @@ import { DialogNewRequestQuestionnaireComponent } from "../../component/dialog-n
 	styleUrl: "./dashboard-page.component.css",
 })
 export class DashboardPageComponent {
+	// Injecting DataProcessingService to handle API calls
 	data_service = inject(DataProcessingService);
-	requests = signal<Array<SimpleData>>([]);
+	// Injecting
 	dialog = inject(MatDialog);
+	//init signal for the data of the user's request
+	requests = signal<Array<SimpleData>>([]);
+
 	// dialog_config = inject(MatDialogConfig)
 
 	ngOnInit(): void {

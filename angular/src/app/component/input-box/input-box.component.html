@@ -1,12 +1,13 @@
 <form class="input-box-form">
   <mat-form-field appearance="outline">
-    <input matInput 
-      [placeholder]= "inputLabel"
+    <input
+      matInput
+      [placeholder]="inputLabel"
       [name]="inputLabel"
-      [(ngModel)] = "value"
+      [(ngModel)]="value"
       [type]="inputType"
       [required]="true"
-      >
+    />
     <!-- <mat-error *ngIf="form.controls[inputLabel].hasError('required')">
       {{inputLabel}} cannot be empty
     </mat-error> -->

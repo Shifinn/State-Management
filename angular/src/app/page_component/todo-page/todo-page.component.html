@@ -1,33 +1,53 @@
 <body>
-  <div class="page-title">
-    <h1>Todo</h1>
+<div class="menu-selector">
+  <div 
+    class="menu-item" 
+    [class.active]="current_menu === 'TODO'" 
+    (click)="setMenu('TODO')">
+    Todo
   </div>
+  <div 
+    class="menu-item" 
+    [class.active]="current_menu === 'IN PROGRESS'" 
+    (click)="setMenu('IN PROGRESS')">
+    In Progress
+  </div>
+  <div 
+    class="menu-item" 
+    [class.active]="current_menu === 'DONE'" 
+    (click)="setMenu('DONE')">
+    Done
+  </div>
+</div>
+  @if (todo().length > 0 && current_menu === 'TODO') {
   <div class="requests">
     @for (request of todo(); track request.request_id) {
-    <app-card-request [request]="request" (refresh)="getTodo()"/>
+    <app-card-request
+      [reminder_tooltip]="setTodoWarningIfAboveTreshold(request.date_start, 8)"
+      [request]="request"
+      (refresh)="getTodo()"
+    />
     }
   </div>
-  
-  @if (in_progress().length > 0) {
-  <div class="page-title">
+  } @if (in_progress().length > 0 && current_menu === 'IN PROGRESS') {
+  <!-- <div class="page-title">
     <h1>In Progress</h1>
-  </div>
-  
+  </div> -->
+
   <div class="requests">
     @for (request of in_progress(); track request.request_id) {
-    <app-card-request [request]="request" (refresh)="getTodo()"/>
+    <app-card-request [request]="request" (refresh)="getTodo()" />
+    }
+  </div>
+  } @if (done().length > 0 && current_menu === 'DONE') {
+  <!-- <div class="page-title">
+    <h1>Done</h1>
+  </div> -->
+
+  <div class="requests">
+    @for (request of done(); track request.request_id) {
+    <app-card-request [request]="request" (refresh)="getTodo()" />
     }
   </div>
   }
-  @if (done().length > 0) {
-  <div class="page-title">
-    <h1>Done</h1>
-  </div>
-  
-  <div class="requests">
-    @for (request of done(); track request.request_id) {
-    <app-card-request [request]="request" (refresh)="getTodo()"/>
-    }
-  </div>
-}
 </body>

@@ -1,18 +1,38 @@
 <div class="card">
   <div class="card-header">
-    <h3 class = "request-title">{{ request.request_title }}</h3>
-    <span class="card-request-id">#{{ request.request_id }}</span>
+    <h3 class="request-title">{{ request.request_title }}</h3>
+    <span>
+      @if (reminder_tooltip){
+      <span class="reminder" matTooltip="Has been {{reminder_tooltip}} hours since {{request.state_name}} started" >!</span>
+      }
+      <span class="card-request-id">#{{ request.request_id }}</span>
+    </span>
   </div>
 
   <div>
-    <span class="request-date">{{request.date_start| date:'short'}}</span>
+    <span class="request-date">{{ request.request_date | date : "short" }}</span>
   </div>
- 
+
+  <!-- @if (request.date_start){
+        <div class="state-info">
+      <div class="state-label">State Start Date:</div>
+      <div class="state-data">
+        <span class="date">{{ request.date_start | date : "medium" }}</span>
+
+      </div>
+    </div>
+  } -->
+
   <div class="card-status">
-    <span class="{{'s' + request.state_name_id}}">{{ request.state_name }}</span>
+    <span class="{{ 's' + request.state_name_id }}">{{
+      request.state_name
+    }}</span>
   </div>
 
   <div class="card-footer">
-    <app-custom-square-button [button_label]="'More Details'" (buttonClick)="moreDetails()"/>
+    <app-custom-square-button
+      [button_label]="'More Details'"
+      (buttonClick)="moreDetails()"
+    />
   </div>
 </div>

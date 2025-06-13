@@ -25,7 +25,11 @@ export class LoginService {
 
 			if (response.user_id !== "0") {
 				this.data_service.storeUserInfo(response);
-				this.router.navigate(["/home"]);
+				if (Number(response.role_id) > 1) {
+					this.router.navigate(["/home", { outlets: { home: "todo" } }]);
+				} else {
+					this.router.navigate(["/home"]);
+				}
 			}
 		});
 	}

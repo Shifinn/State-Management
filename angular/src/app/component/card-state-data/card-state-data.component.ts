@@ -14,11 +14,11 @@ import { DialogMoreDetailComponent } from "../dialog-more-detail/dialog-more-det
 export class CardStateDataComponent {
 	@Input() state_info!: StateInfoData;
 	dialog = inject(MatDialog);
-	box_text_variant = signal<string>("Start Date:");
+	box_text_variant = signal<string>("State Start Date:");
 
 	ngOnInit() {
 		if (this.state_info.current_state === 5) {
-			this.box_text_variant.set("completed date:");
+			this.box_text_variant.set("Completed Date:");
 		}
 	}
 

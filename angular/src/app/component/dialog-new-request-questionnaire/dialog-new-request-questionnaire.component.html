@@ -50,8 +50,8 @@
       <mat-form-field appearance="outline" class="field">
         <mat-label>URGENCY</mat-label>
         <mat-select name="urgency" [(ngModel)]="data.urgent" required>
+          <mat-option [value]="false">REGULAR</mat-option>
           <mat-option [value]="true">URGENT</mat-option>
-          <mat-option [value]="false">NOT URGENT</mat-option>
         </mat-select>
         <mat-error *ngIf="requestForm.submitted && data.urgent == null">
           Tolong isi urgency
