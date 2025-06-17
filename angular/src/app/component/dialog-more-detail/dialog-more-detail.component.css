@@ -6,13 +6,36 @@
 }
 
 .readonly-field {
-	padding: 10px;
+	display: flex;
+	align-items: center;
+	padding: 0.7em;
 	font-weight: 400;
 	border: 1px solid #ccc;
 	border-radius: 8px;
 	background-color: #f7f7f7;
 	color: #333;
 }
+
+.file-field {
+	padding: 0.5em 0.7em !important;
+	justify-content: space-between;
+}
+.download-icon-button {
+	padding: 0.1em;
+	width: 1.2em;
+	height: 1.2em;
+	justify-content: center;
+}
+
+.download-icon {
+	font-size: 0.9em;
+
+	height: fit-content;
+	width: fit-content;
+}
+/* .download-icon:hover {
+	background-color: #dddada;
+} */
 
 /* .request-title {
   font-weight: 1000;

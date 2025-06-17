@@ -1,19 +1,44 @@
+<div class="nav-bar">
+  <div class="app-title">State Manager</div>
 
-  <div class="nav-bar">
-    <div class="app-title" role="button" (click)="logOut()">
-      State Manager {{ id() }}
-    </div>
+  <nav class="navigation">
+    <ul>
+      @if (user_role() === '1') {
+      <li
+        [routerLink]="[{ outlets: { home: ['dashboard'] } }]"
+        routerLinkActive="active"
+        tabindex="0"
+      >
+        Dashboard
+      </li>
+      } @if (user_role() !== '1') {
+      <li
+        [routerLink]="[{ outlets: { home: ['todo'] } }]"
+        routerLinkActive="active"
+        tabindex="0"
+      >
+        Todo
+      </li>
+      <li
+        [routerLink]="[{ outlets: { home: ['progress'] } }]"
+        routerLinkActive="active"
+        tabindex="0"
+      >
+        Progress
+      </li>
+      }
 
-    <nav class="navigation">
-      <ul>
-        @if (dataService.getUserRole() === '1') {
-          <li><a [routerLink]="[{ outlets: { home: ['dashboard'] } }]">Dashboard</a></li>
+      <li>
+        <mat-icon (click)="toggleUserInfoVisibility(true)" class="profile-icon">
+          account_circle
+        </mat-icon>
+
+        @if (is_user_info_visible()) {
+        <app-pop-up-user-info
+          (user_data_visible)="is_user_info_visible.set($event)"
+        ></app-pop-up-user-info>
         }
-        @if (dataService.getUserRole() !== '1') {
-          <li><a [routerLink]="[{ outlets: { home: ['todo'] } }]">Todo</a></li>
-          <li><a [routerLink]="[{ outlets: { home: ['progress'] } }]">Progress</a></li>
-        }
-      </ul>
-    </nav>
-  </div>
-
+      </li>
+    </ul>
+  </nav>
+</div>

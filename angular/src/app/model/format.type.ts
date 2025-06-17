@@ -61,12 +61,21 @@ export type NewRequest = {
 	requirement_type: number | null;
 	answers: string[] | null;
 	remark: string | null;
+	docx_attachment: File | null;
+	docx_filename: string | null;
+	excel_attachment: File | null;
+	excel_filename: string | null;
 };
 
 export type Question = {
 	requirement_question_id: number;
 	requirement_question: string;
 	answer: string;
+};
+
+export type AttachmentFilename = {
+	attachment_type_id: number;
+	attachment_name: string;
 };
 
 export type UpdateState = {
@@ -91,7 +100,7 @@ export type TimePeriod = {
 	period_type: PeriodGranularity;
 };
 
-export type ProgressCardOutput = {
+export type CachedProgrestCardMemory = {
 	type: StateStatus;
 	state_id: number;
 };

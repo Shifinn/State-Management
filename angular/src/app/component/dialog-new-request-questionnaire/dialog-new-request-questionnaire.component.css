@@ -1,12 +1,52 @@
 .justify-end {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
+	display: flex;
+	justify-content: flex-end;
+	gap: 12px;
 }
 
+.file-name {
+	margin-left: 1rem; /* or whatever margin you require */
+}
 
+.file-field {
+	display: flex;
+	/* flex-direction: row; */
+	flex: 1;
+	width: 100%;
+	/* display: inline-flex;
+	align-items: center;
+	box-sizing: border-box;
 
+	height: 3.5em;
+	width: 180px;
+	justify-content: flex-start;
+	border: 1px solid #777;
+	border-radius: 4px;
+	width: 100%; */
+}
+.file-container {
+	flex: 1;
+}
+.no-disabled-style[disabled] {
+	color: inherit !important;
+	-webkit-text-fill-color: inherit !important;
+	opacity: 1 !important;
+	background-color: inherit !important;
+}
 
+.row-flex {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+}
 
+.flex-input {
+	flex: 1;
+}
 
-
+.inline-button {
+	height: 56px; /* same as mat-form-field default height */
+	min-width: 56px;
+	padding: 0;
+}

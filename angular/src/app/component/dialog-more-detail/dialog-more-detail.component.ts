@@ -1,5 +1,6 @@
 import { Component, inject, signal } from "@angular/core";
 import type {
+	AttachmentFilename,
 	CompleteData,
 	Question,
 	UpdateState,
@@ -16,11 +17,18 @@ import { CommonModule } from "@angular/common";
 import { MatButtonModule } from "@angular/material/button";
 import { Router } from "@angular/router";
 import { DialogMoreDetailsConfirmationComponent } from "../dialog-more-details-confirmation/dialog-more-details-confirmation.component";
+import { MatIconModule } from "@angular/material/icon";
 // import { UpdateState } from "../../model/format.type";
 
 @Component({
 	selector: "app-dialog-more-detail",
-	imports: [CommonModule, MatButtonModule, MatDialogClose],
+	imports: [
+		CommonModule,
+		MatButtonModule,
+		MatDialogClose,
+		MatIconModule,
+		MatButtonModule,
+	],
 	templateUrl: "./dialog-more-detail.component.html",
 	styleUrl: "./dialog-more-detail.component.css",
 })
@@ -47,6 +55,7 @@ export class DialogMoreDetailComponent {
 		comment: "",
 	};
 	answers = signal<Array<Question>>([]);
+	filenames = signal<Array<AttachmentFilename>>([]);
 	input_data = inject(MAT_DIALOG_DATA);
 	data_service = inject(DataProcessingService);
 	router = inject(Router);
@@ -64,6 +73,12 @@ export class DialogMoreDetailComponent {
 			.getAnswer(this.input_data.request_id)
 			.subscribe((result) => {
 				this.answers.set(result);
+			});
+
+		this.data_service
+			.getAttachmentFilename(this.input_data.request_id)
+			.subscribe((result) => {
+				this.filenames.set(result);
 			});
 	}
 

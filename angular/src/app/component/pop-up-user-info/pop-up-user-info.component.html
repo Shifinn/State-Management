@@ -1,0 +1,20 @@
+<div class="pop-up-container">
+  <div class="popup-header">
+    <h2>User Information</h2>
+  </div>
+
+  <div class="user-body">
+    <div class="user-info">
+      <label>Name</label>
+      <span>{{ ": "+data_service.getUserName() }}</span>
+    </div>
+    <div class="user-info">
+      <label>Email</label>
+      <span>{{": "+data_service.getUserEmail() }}</span>
+    </div>
+  </div>
+
+  <div class="popup-footer">
+    <button class="logout-button" (click)="logOut()">Log Out</button>
+  </div>
+</div>

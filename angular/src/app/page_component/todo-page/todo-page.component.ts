@@ -32,9 +32,7 @@ export class TodoPageComponent {
 			this.in_progress.set(
 				this.data_service.separateInProgress(this.todo_complete),
 			);
-			console.log(this.in_progress());
 			this.done.set(this.data_service.separateDone(this.todo_complete));
-			console.log(this.done());
 		});
 	}
 	setTodoWarningIfAboveTreshold(
@@ -42,7 +40,6 @@ export class TodoPageComponent {
 		threshold: number,
 	): number | undefined {
 		const hours = this.data_service.getTimeDifferenceInHour(date_ref);
-		console.log(`${hours}hours`);
 		if (hours > threshold) return Math.floor(hours);
 
 		return undefined;

@@ -1,0 +1,55 @@
+.pop-up-container {
+	position: absolute;
+	right: 0.5em; /* Anchors the popup's right edge */
+	top: 3.8em; /* adjust as needed */
+	background: #fff;
+	border: 1px solid #ccc;
+	border-radius: 12px;
+	padding: 0.85em;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	z-index: 1000;
+	min-width: 13em;
+	width: fit-content;
+	transition: all 0.2s ease;
+}
+
+.popup-header h2 {
+	margin-bottom: 0.8rem;
+	font-size: 1.25rem;
+	border-bottom: 1px solid #ddd;
+	padding-bottom: 0.5rem;
+}
+
+.user-info {
+	display: grid;
+	grid-template-columns: 2em 1fr; /* Two columns: label and value */
+	gap: 0.5rem 1rem; /* Row and column spacing */
+	color: #333;
+	margin: 0.5rem 0;
+}
+
+.user-info label {
+	font-weight: 600;
+	text-align: right; /* Align labels to the right */
+}
+
+.user-info span {
+	white-space: nowrap;
+}
+.popup-footer {
+	margin-top: 0.8rem;
+	text-align: right;
+}
+
+.logout-button {
+	background-color: #f03939;
+	color: white;
+	border: none;
+	padding: 0.5rem 1rem;
+	border-radius: 6px;
+	cursor: pointer;
+}
+
+.logout-button:hover {
+	background-color: #fd5454;
+}

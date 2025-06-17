@@ -164,21 +164,32 @@ CREATE OR REPLACE PROCEDURE create_new_request(
     pic_submitter_input         VARCHAR,
     urgent_input                BOOLEAN,
     requirement_type_input      INT,
-	answers_input				VARCHAR[],
-	remark_input				TEXT DEFAULT NULL
+    answers_input               VARCHAR[],
+    docx_input                  BYTEA DEFAULT NULL,
+    docx_filename_input         VARCHAR DEFAULT NULL,
+    excel_input                 BYTEA DEFAULT NULL,
+    excel_filename_input        VARCHAR DEFAULT NULL,
+    remark_input                TEXT DEFAULT NULL
 )
 AS $$
 DECLARE 
     temp_request_id INT;
-	temp_requirement_id INT;
 BEGIN
-    -- INSERT REQUIREMENT INTO TABLE AND RETURN ID TO CONNECT WITH REQUEST 
- --    INSERT INTO requirement_table(requirement_type, required_data)
- --    VALUES (requirement_type_input, required_data_input)
-	-- RETURNING requirement_id INTO temp_requirement_id;
-	 
-    -- INSERT NEW REQUEST
-    INSERT INTO request_table(
+    -- Validate required fields
+    IF request_title_input IS NULL OR
+       user_id_input IS NULL OR
+       requester_name_input IS NULL OR
+       analysis_purpose_input IS NULL OR
+       requested_finish_date_input IS NULL OR
+       pic_submitter_input IS NULL OR
+       urgent_input IS NULL OR
+       requirement_type_input IS NULL OR
+       answers_input IS NULL THEN
+        RAISE EXCEPTION 'One or more required fields are NULL';
+    END IF;
+
+    -- Insert request
+    INSERT INTO request_table (
         request_title,
         user_id, 
         requester_name, 
@@ -186,8 +197,8 @@ BEGIN
         requested_completed_date,
         pic_submitter,
         urgent,
-		requirement_type_id,
-		remark
+        requirement_type_id,
+        remark
     )
     VALUES (
         request_title_input,
@@ -197,20 +208,25 @@ BEGIN
         requested_finish_date_input,
         pic_submitter_input,
         urgent_input,
-		requirement_type_input,
-		remark_input
-    ) RETURNING request_id INTO temp_request_id;
+        requirement_type_input,
+        remark_input
+    )
+    RETURNING request_id INTO temp_request_id;
 
-    -- INSERT THE FIRST STATE FOR THE REQUEST
-	INSERT INTO state_table(state_name_id, request_id, started_by)
-    VALUES(1, temp_request_id, user_id_input);
-	
-    CALL insert_answers(temp_request_id,requirement_type_input, answers_input);
+    -- Insert state
+    INSERT INTO state_table(state_name_id, request_id, started_by)
+    VALUES (1, temp_request_id, user_id_input);
+
+    -- Store answers and attachments
+    CALL store_answers(temp_request_id, requirement_type_input, answers_input);
+    CALL store_attachments(temp_request_id, docx_input, docx_filename_input, excel_input, excel_filename_input);
 END;
 $$ LANGUAGE plpgsql;
 
+
+
 -- PROCEDURE TO INSERT THE QUESTIONS BASED ON REQUIREMENT
-CREATE OR REPLACE PROCEDURE insert_answers(
+CREATE OR REPLACE PROCEDURE store_answers(
     request_id_input    		INT,
     requirement_type_id_input   INT,
     answer						VARCHAR[]	
@@ -306,6 +322,47 @@ BEGIN
         SET question_amount = question_num
         WHERE requirement_type_id = req_type.requirement_type_id;
     END LOOP;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE PROCEDURE store_attachments(
+	request_id_input			INT,
+	docx_input					BYTEA,
+	docx_filename_input			VARCHAR,
+	excel_input					BYTEA,
+	excel_filename_input		VARCHAR
+) AS $$
+BEGIN
+	IF docx_input IS NOT NULL AND docx_filename_input IS NOT NULL THEN
+		INSERT INTO attachment_table(request_id, attachment_type_id, attachment_name, attachment)
+		VALUES (request_id_input, 1, docx_filename_input, docx_input);
+	END IF;
+
+	IF excel_input IS NOT NULL AND excel_filename_input IS NOT NULL THEN
+		INSERT INTO attachment_table(request_id, attachment_type_id, attachment_name, attachment)
+		VALUES (request_id_input, 2, excel_filename_input, excel_input);
+	END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE OR REPLACE FUNCTION get_attachment(
+    request_id_input INT,
+    attachment_type_input INT
+)
+RETURNS BYTEA AS $$
+DECLARE
+    result_file BYTEA;
+BEGIN
+    SELECT attachment
+    INTO result_file
+    FROM attachment_table
+    WHERE request_id = request_id_input 
+      AND attachment_type_id = attachment_type_input;
+
+    RETURN result_file;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -535,7 +592,8 @@ $$ LANGUAGE plpgsql;
 
 SELECT get_complete_data_of_request(23);
 
-CREATE OR REPLACE FUNCTION get_questions(	
+
+CREATE OR REPLACE FUNCTION get_filenames(	
 	request_id_input	INT
 	)
 RETURNS JSON AS $$
@@ -546,16 +604,14 @@ BEGIN
 	INTO result_json
 	FROM (
 		SELECT 
-			q.requirement_question,
-			re.answer
-		FROM requirement_table re
-		JOIN requirement_question_table q ON re.requirement_question_id = q.requirement_question_id
-		WHERE re.request_id = request_id_input
+			attachment_type_id,
+			attachment_name
+		FROM attachment_table
+		WHERE request_id = request_id_input
 	) t;
     RETURN result_json;
 END;
 $$ LANGUAGE plpgsql;
-
 
 SELECT get_complete_data_of_request(1);
 
@@ -740,10 +796,25 @@ VALUES
 (2,'Dataset (Penambahan Column)',4),
 (3, 'Dataset baru',6)
 
+INSERT INTO attachment_type_table 
+VALUES
+(1,'docx/pdf'),
+(2,'excel')
 
 -- set all name lower case
 UPDATE user_table
 SET user_name = LOWER(user_name);
+
+-- Step 1: Delete from attachment_table (check spelling!)
+DELETE FROM attachment_table WHERE request_id = 20;
+
+-- Step 2: Delete from state_table
+DELETE FROM state_table WHERE request_id = 20;
+
+-- Step 3: Delete from requirement_table
+DELETE FROM requirement_table WHERE request_id = 20;
+
+DELETE FROM request_table WHERE request_id >=17;
 
 
 UPDATE state_name_table
@@ -784,6 +855,14 @@ FROM   request_table;
 
 SELECT setval(pg_get_serial_sequence('state_table', 'state_id'), COALESCE(max(state_id) + 1, 1), false)
 FROM   state_table;
+
+SELECT 
+  docx_attachment, 
+  excel_attachment 
+FROM 
+  request_table 
+WHERE 
+  request_id = 15;
 
 -- VIEW USER_TABLE
 SELECT * FROM public.user_table

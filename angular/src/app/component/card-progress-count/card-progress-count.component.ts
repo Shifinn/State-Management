@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import type {
-	ProgressCardOutput,
+	CachedProgrestCardMemory,
 	StateStatus,
 	StatusInfo,
 } from "../../model/format.type";
@@ -14,8 +14,8 @@ import type {
 export class CardProgressCountComponent {
 	@Input() progress_info!: StatusInfo;
 	@Input() isShrunk = false;
-	@Input() isActiveCheck!: ProgressCardOutput;
-	@Output() buttonClick = new EventEmitter<ProgressCardOutput>();
+	@Input() isActiveCheck!: CachedProgrestCardMemory;
+	@Output() buttonClick = new EventEmitter<CachedProgrestCardMemory>();
 
 	isActive(): number {
 		if (this.isActiveCheck.state_id !== this.progress_info.state_id) return 0;
@@ -27,7 +27,7 @@ export class CardProgressCountComponent {
 	}
 
 	onClick(input: StateStatus) {
-		const output: ProgressCardOutput = {
+		const output: CachedProgrestCardMemory = {
 			type: input,
 			state_id: this.progress_info.state_id,
 		};

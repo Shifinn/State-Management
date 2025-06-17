@@ -3,7 +3,7 @@ import { CardProgressCountComponent } from "../../component/card-progress-count/
 import { DataProcessingService } from "../../service/data-processing.service";
 import type {
 	PeriodGranularity,
-	ProgressCardOutput,
+	CachedProgrestCardMemory,
 	StateInfoData,
 	StatusInfo,
 	TimePeriod,
@@ -11,14 +11,14 @@ import type {
 	CachedPeriodPickerMemory,
 } from "../../model/format.type";
 import { CardStateDataComponent } from "../../component/card-state-data/card-state-data.component";
-import { PeriodPickerComponent } from "../../component/period-picker/period-picker.component";
+import { PopUpPeriodPickerComponent } from "../../component/pop-up-period-picker/pop-up-period-picker.component";
 
 @Component({
 	selector: "app-progress-page",
 	imports: [
 		CardProgressCountComponent,
 		CardStateDataComponent,
-		PeriodPickerComponent,
+		PopUpPeriodPickerComponent,
 	],
 	templateUrl: "./progress-page.component.html",
 	styleUrl: "./progress-page.component.css",
@@ -44,7 +44,7 @@ export class ProgressPageComponent {
 		]),
 	);
 	visible_state_data = signal<Array<StateInfoData>>([]);
-	current_view_status = signal<ProgressCardOutput>({
+	current_view_status = signal<CachedProgrestCardMemory>({
 		type: "NAN",
 		state_id: -2,
 	});
@@ -135,9 +135,9 @@ export class ProgressPageComponent {
 			});
 	}
 
-	showStateData(input: ProgressCardOutput) {
+	showStateData(input: CachedProgrestCardMemory) {
 		console.log(`The type from card is: ${input.type}`);
-		if (!this.checkIfPressed(input)) return;
+		if (!this.checkPreviousStateSelection(input)) return;
 
 		this.current_view_status.set(input);
 
@@ -191,12 +191,11 @@ export class ProgressPageComponent {
 		}
 	}
 
-	checkIfPressed(check: ProgressCardOutput): boolean {
+	checkPreviousStateSelection(check: CachedProgrestCardMemory): boolean {
 		if (
 			this.current_view_status().state_id === check.state_id &&
 			this.current_view_status().type === check.type
 		) {
-			console.log("enter shrink");
 			this.toggleShrink(0);
 			this.visible_state_data.set([]);
 			this.current_view_status.set({ state_id: -2, type: "NAN" });

@@ -1,20 +1,32 @@
-import { Component, input, signal, Injectable, inject } from "@angular/core";
+import { Component, signal, inject } from "@angular/core";
 import { RouterLink } from "@angular/router";
 import { LoginService } from "../../service/login.service";
 import { DataProcessingService } from "../../service/data-processing.service";
+import { PopUpUserInfoComponent } from "../pop-up-user-info/pop-up-user-info.component";
+import { MatIconModule } from "@angular/material/icon";
 
 @Component({
 	selector: "app-header",
-	imports: [RouterLink],
+	imports: [RouterLink, PopUpUserInfoComponent, MatIconModule],
 	templateUrl: "./header.component.html",
 	styleUrl: "./header.component.css",
 })
 export class HeaderComponent {
-	loginService = inject(LoginService);
-	dataService = inject(DataProcessingService);
-	id = signal(Number(this.dataService.getUserId())); // Signal to track the ID
+	login_service = inject(LoginService);
+	data_service = inject(DataProcessingService);
+	user_name = signal(Number(this.data_service.getUserName())); // Signal to track the ID
+	user_role = signal<string>("1");
+	is_user_info_visible = signal<boolean>(false);
+
+	ngOnInit() {
+		this.user_role.set(this.data_service.getUserRole());
+	}
+
+	toggleUserInfoVisibility(input: boolean) {
+		this.is_user_info_visible.set(input);
+	}
 
 	logOut() {
-		this.loginService.logOut(); // Call the logout method from the servic
+		this.login_service.logOut(); // Call the logout method from the servic
 	}
 }

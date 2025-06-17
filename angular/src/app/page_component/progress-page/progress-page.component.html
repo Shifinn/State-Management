@@ -4,34 +4,24 @@
   </div>
   <div class="period-picker-container">
     <div class="period-type-container">
-    @for (item of period_type; track $index) {
-    <div
-      class="period-type-picker"
-      [class.active]="current_period && item == current_period.period_type"
-      (click)="clickPeriodType(item)"
-    >
-      
-      <span>{{ item }}</span>
-      <span
-        class="arrow"
-        (click)="
+      @for (item of period_type; track $index) {
+      <div class="period-type-picker" [class.active]="current_period && item == current_period.period_type"
+        (click)="clickPeriodType(item)">
+
+        <span>{{ item }}</span>
+        <span class="arrow" (click)="
           togglePeriodPickerVisibility(item); $event.stopPropagation()
-        "
-        >▼</span
-      >
+        ">▼</span>
 
-      @if (item === period_picker_visible()) {
-      <app-period-picker
-        (option_selected)="updateCurrentPeriod($event)"
-        (period_picker_visible)="period_picker_visible.set($event)"
-        [available_period]="available_period().get(item) || []"
-        [previous_menu]="current_period_menu()"
-        (store_menu)="current_period_menu.set($event)"
-      ></app-period-picker>
+        @if (item === period_picker_visible()) {
+        <app-pop-up-period-picker (option_selected)="updateCurrentPeriod($event)"
+          (period_picker_visible)="period_picker_visible.set($event)"
+          [available_period]="available_period().get(item) || []" [previous_menu]="current_period_menu()"
+          (store_menu)="current_period_menu.set($event)"></app-pop-up-period-picker>
+        }
+      </div>
+
       }
-    </div>
-
-    }
     </div>
     @if (current_period) {
     <div class="current-period-full-label">{{current_period.full_label}}</div>
@@ -40,16 +30,12 @@
 
   <div class="requests center" [class.shrink]="is_shrunk()">
     @for (type of progress_info(); track type.state_id) {
-    <app-card-progress-count
-      [progress_info]="type"
-      [isActiveCheck]="current_view_status()"
-      [isShrunk]="is_shrunk()"
-      (buttonClick)="showStateData($event)"
-    ></app-card-progress-count>
+    <app-card-progress-count [progress_info]="type" [isActiveCheck]="current_view_status()" [isShrunk]="is_shrunk()"
+      (buttonClick)="showStateData($event)"></app-card-progress-count>
     }
   </div>
 
-  <div  [class.left] = "is_left_aligned()">
+  <div [class.left]="is_left_aligned()">
     @for (item of visible_state_data(); track item.request_id) {
     <app-card-state-data [state_info]="item"></app-card-state-data>
     }

@@ -1,23 +1,34 @@
 .nav-bar {
 	background-color: #143580;
 	color: #ffffff;
-	padding: 0.8em 3em;
+	padding: 0.2em 2.2em;
 	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-	height: fit-content;
+	height: 4em; /* Set a fixed height for consistent alignment */
 	display: flex;
 	justify-content: space-between;
-	align-items: center;
+	align-items: center; /* Vertically center all child elements */
 }
 
 .app-title {
-	font-size: 2rem;
+	font-size: 1.8rem;
 	font-weight: bold;
 	cursor: pointer;
+	display: flex; /* Ensure proper alignment */
 }
 
-/* .app-title:hover {
-	opacity: 0.8;
-} */
+.profile-icon {
+	font-size: 2.5em;
+	cursor: pointer;
+	display: flex; /* Ensure proper alignment */
+	align-items: center; /* Vertically center the icon */
+	height: 100%; /* Match the height of the nav-bar */
+	width: fit-content;
+}
+
+.navigation {
+	display: flex; /* Ensure proper alignment */
+	align-items: center; /* Vertically center navigation items */
+}
 
 .navigation ul {
 	display: flex;
@@ -25,25 +36,24 @@
 	margin: 0;
 	padding: 0;
 	list-style: none;
+	align-items: center; /* Vertically center list items */
 }
 
-.navigation li a {
+.navigation li {
+	cursor: pointer;
 	color: #ffffff;
-	text-decoration: none;
 	font-weight: 600;
-	/* letter-spacing: normal; */
 	font-size: 1.2rem;
-	padding: 8px;
+	align-items: center; /* Vertically center list items */
 	border-radius: 4px;
 	transition: background-color 0.2s, color 0.2s;
 }
 
-.navigation li a:hover,
-.navigation li a.active {
-	/* background-color: rgba(255, 255, 255, 0.1); */
+.navigation li:hover,
+.navigation li.active {
 	color: lightblue;
 }
 
-.navigation li a.active {
-	border-bottom: 1px solid #1c52b5;
+.navigation li.active {
+	border-bottom: 2px solid #1c52b5;
 }

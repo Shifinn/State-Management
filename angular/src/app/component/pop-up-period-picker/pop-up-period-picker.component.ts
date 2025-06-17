@@ -16,12 +16,12 @@ import type {
 } from "../../model/format.type";
 
 @Component({
-	selector: "app-period-picker",
+	selector: "app-pop-up-period-picker",
 	imports: [],
-	templateUrl: "./period-picker.component.html",
-	styleUrls: ["./period-picker.component.css"],
+	templateUrl: "./pop-up-period-picker.component.html",
+	styleUrls: ["./pop-up-period-picker.component.css"],
 })
-export class PeriodPickerComponent implements OnInit {
+export class PopUpPeriodPickerComponent implements OnInit {
 	eref = inject(ElementRef);
 	@Input() category!: string[];
 	@Input() available_period!: TimePeriod[];

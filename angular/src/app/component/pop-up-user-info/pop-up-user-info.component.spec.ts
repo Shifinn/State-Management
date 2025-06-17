@@ -1,17 +1,17 @@
 import { type ComponentFixture, TestBed } from "@angular/core/testing";
 
-import { PeriodPickerComponent } from "./period-picker.component";
+import { PopUpUserInfoComponent } from "./pop-up-user-info.component";
 
-describe("PeriodPickerComponent", () => {
-	let component: PeriodPickerComponent;
-	let fixture: ComponentFixture<PeriodPickerComponent>;
+describe("PopUpUserInfoComponent", () => {
+	let component: PopUpUserInfoComponent;
+	let fixture: ComponentFixture<PopUpUserInfoComponent>;
 
 	beforeEach(async () => {
 		await TestBed.configureTestingModule({
-			imports: [PeriodPickerComponent],
+			imports: [PopUpUserInfoComponent],
 		}).compileComponents();
 
-		fixture = TestBed.createComponent(PeriodPickerComponent);
+		fixture = TestBed.createComponent(PopUpUserInfoComponent);
 		component = fixture.componentInstance;
 		fixture.detectChanges();
 	});

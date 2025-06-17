@@ -56,14 +56,36 @@
     </div>
     } @if (data.requested_completed_date) {
     <div class="requirement-item">
-      <label class="question-text">Harapan selesai</label>
+      <label class="question-text">Harapan Selesai</label>
       <div class="readonly-field">
         {{ data.requested_completed_date | date : "longDate" }}
       </div>
     </div>
     }
   </div>
+  @if (filenames().length ) {
+  <div class="row">
+    <div class="requirement-item">
+      <label class="question-text">Docx File</label>
+      <div class="readonly-field file-field">
+        {{ filenames()[0].attachment_name }}
+        <button class="download-icon-button" mat-icon-button>
+          <mat-icon class="download-icon">download</mat-icon>
+        </button>
+      </div>
+    </div>
 
+    <div class="requirement-item">
+      <label class="question-text">Excel File</label>
+      <div class="readonly-field file-field">
+        {{ filenames()[1].attachment_name }}
+        <button class="download-icon-button" mat-icon-button>
+          <mat-icon class="download-icon">download</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+  }
   <div class="row">
     @if (data.analysis_purpose) {
     <div class="requirement-item wide">
@@ -73,14 +95,14 @@
     }
   </div>
 
+  @if (data.remark) {
   <div class="row">
-    @if (data.remark) {
     <div class="requirement-item wide">
       <label class="question-text">Remark</label>
       <div class="readonly-field">{{ data.remark }}</div>
     </div>
-    }
   </div>
+  }
 
   <div class="row">
     @if (data.state_comment && data.state_name == 'REQUEST REJECTED') {

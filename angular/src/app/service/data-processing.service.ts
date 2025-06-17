@@ -13,6 +13,7 @@ import type {
 	StateInfoData,
 	StateStatus,
 	PeriodGranularity,
+	AttachmentFilename,
 } from "../model/format.type";
 import { map, type Observable, of } from "rxjs";
 import { Time } from "@angular/common";
@@ -134,8 +135,8 @@ export class DataProcessingService {
 		return this.http.get<Question[]>(url);
 	}
 
-	getAnswer(requirement_id_input: number) {
-		const url = `http://localhost:9090/answerData?request_id=${requirement_id_input}`;
+	getAnswer(request_id_input: number) {
+		const url = `http://localhost:9090/answerData?request_id=${request_id_input}`;
 		return this.http.get<Question[]>(url);
 	}
 
@@ -149,9 +150,43 @@ export class DataProcessingService {
 		return this.http.get<Date>(url);
 	}
 
-	postNewRequest(new_req: NewRequest) {
+	getAttachmentFilename(request_id_input: number) {
+		const url = `http://localhost:9090/getFilenames?request_id=${request_id_input}`;
+		return this.http.get<AttachmentFilename[]>(url);
+	}
+
+	postNewRequest(request: NewRequest) {
 		const url = "http://localhost:9090/newRequest";
-		return this.http.post(url, new_req);
+		const formData = new FormData();
+
+		formData.append("request_title", request.request_title);
+		formData.append("user_id", request.user_id.toString());
+		formData.append("requester_name", request.requester_name);
+		formData.append("analysis_purpose", request.analysis_purpose);
+		formData.append(
+			"requested_finish_date",
+			request.requested_finish_date
+				? request.requested_finish_date.toISOString()
+				: "",
+		);
+		formData.append("pic_request", request.pic_request);
+		formData.append("urgent", String(request.urgent));
+		formData.append("requirement_type", String(request.requirement_type));
+		formData.append("remark", request.remark ?? "");
+		formData.append("docx_filename", request.docx_filename ?? "");
+		formData.append("excel_filename", request.excel_filename ?? "");
+
+		// Answers as JSON string array
+		formData.append("answers", JSON.stringify(request.answers));
+
+		// Append files
+		if (request.docx_attachment)
+			formData.append("docx_attachment", request.docx_attachment);
+
+		if (request.excel_attachment)
+			formData.append("excel_attachment", request.excel_attachment);
+
+		return this.http.post(url, formData);
 	}
 
 	upgradeState(state_update_data: UpdateState) {

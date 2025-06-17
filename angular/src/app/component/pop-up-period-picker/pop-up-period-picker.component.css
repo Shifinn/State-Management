@@ -1,4 +1,4 @@
-.custom-dialog-grid {
+.pop-up-container {
 	position: absolute;
 	transform: translate(-10em, 0.91em);
 	background: #fff;
@@ -8,13 +8,20 @@
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 	z-index: 1000;
 	min-width: 20em;
+	transition: all 0.2s ease;
 }
 
-.custom-dialog-grid .top-bar {
+.top-bar {
 	display: flex;
 	justify-content: center;
 	gap: 10px;
 	margin-bottom: 10px;
+}
+
+.grid-content {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(8em, 1fr));
+	gap: 10px;
 }
 
 .custom-button {
@@ -29,10 +36,4 @@
 
 .custom-button:hover {
 	background-color: #d1f8ff;
-}
-
-.custom-dialog-grid .grid-content {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(8em, 1fr));
-	gap: 10px;
 }
