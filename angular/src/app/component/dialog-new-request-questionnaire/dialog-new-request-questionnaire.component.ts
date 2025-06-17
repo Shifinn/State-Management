@@ -1,4 +1,10 @@
-import { Component, inject, signal, ViewChild } from "@angular/core";
+import {
+	Component,
+	HostListener,
+	inject,
+	signal,
+	ViewChild,
+} from "@angular/core";
 import { MatButtonModule } from "@angular/material/button";
 import {
 	DateAdapter,
@@ -64,7 +70,16 @@ export class DialogNewRequestQuestionnaireComponent {
 		excel_attachment: null,
 		excel_filename: null,
 	};
+	inner_width = signal<number>(9999);
 
+	@HostListener("window:resize", ["$event"])
+	onResize(event: Event) {
+		this.inner_width.set(window.innerWidth);
+	}
+
+	ngOnInit() {
+		this.inner_width.set(window.innerWidth);
+	}
 	submitRequest() {
 		this.requestForm.form.markAllAsTouched();
 		if (this.allRequirementsAnswered()) {

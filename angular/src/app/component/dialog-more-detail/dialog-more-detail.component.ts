@@ -132,6 +132,13 @@ export class DialogMoreDetailComponent {
 		return this.router.url.includes("/home/(home:todo)");
 	}
 
+	downloadAttachment(index: number) {
+		this.data_service.getAttachmentFileDownload(
+			this.data.request_id,
+			this.filenames()[index].attachment_name,
+		);
+	}
+
 	isVisible(button: string): boolean {
 		const temp_state_name = this.data.state_name;
 

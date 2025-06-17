@@ -1,4 +1,10 @@
-import { Component, inject, signal, type OnInit } from "@angular/core";
+import {
+	Component,
+	HostListener,
+	inject,
+	signal,
+	type OnInit,
+} from "@angular/core";
 import { CardProgressCountComponent } from "../../component/card-progress-count/card-progress-count.component";
 import { DataProcessingService } from "../../service/data-processing.service";
 import type {
@@ -53,6 +59,17 @@ export class ProgressPageComponent {
 	is_left_aligned = signal<boolean>(true);
 	period_picker_visible = signal<PeriodGranularity>("NAN");
 	current_period_menu = signal<CachedPeriodPickerMemory | undefined>(undefined);
+	inner_width = signal<number>(9999);
+
+	@HostListener("window:resize", ["$event"])
+	onResize(event: Event) {
+		this.inner_width.set(window.innerWidth);
+	}
+
+	ngOnInit() {
+		this.initPeriodDataFrom("WEEK");
+		this.inner_width.set(window.innerWidth);
+	}
 
 	toggleShrink(input: number) {
 		if (input === 2) {
@@ -69,10 +86,6 @@ export class ProgressPageComponent {
 
 	setCachedPeriod(input: CachedPeriodPickerMemory) {
 		this.current_period_menu.set(input);
-	}
-
-	ngOnInit() {
-		this.initPeriodDataFrom("WEEK");
 	}
 
 	clickPeriodType(period_type: PeriodGranularity) {

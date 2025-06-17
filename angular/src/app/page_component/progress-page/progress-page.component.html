@@ -35,7 +35,7 @@
     }
   </div>
 
-  <div [class.left]="is_left_aligned()">
+  <div class="requests" [class.center]="inner_width() < 670" [class.state-card-container]="inner_width() > 670">
     @for (item of visible_state_data(); track item.request_id) {
     <app-card-state-data [state_info]="item"></app-card-state-data>
     }

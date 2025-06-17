@@ -4,7 +4,7 @@
 
     <div class="row">
       <mat-form-field appearance="outline" class="field">
-        <mat-label>JUDUL</mat-label>
+        <mat-label [class.smaller-label]="inner_width() < 600">JUDUL</mat-label>
         <input matInput name="judul" [(ngModel)]="data.request_title" required />
         <mat-error *ngIf="requestForm.submitted && data.request_title == ''">
           Tolong isi judul
@@ -12,7 +12,7 @@
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="field">
-        <mat-label>PIC_request</mat-label>
+        <mat-label [class.smaller-label]="inner_width() < 600">PIC_request</mat-label>
         <input matInput name="pic_request" [(ngModel)]="data.pic_request" required />
         <mat-error *ngIf="requestForm.submitted && data.pic_request == ''">
           Tolong isi PIC_request
@@ -22,7 +22,7 @@
 
     <div class="row">
       <mat-form-field appearance="outline" class="field">
-        <mat-label>HARAPAN SELESAI</mat-label>
+        <mat-label [class.smaller-label]="inner_width() < 600">HARAPAN SELESAI</mat-label>
         <input matInput name="finish_date" [matDatepicker]="picker" [(ngModel)]="data.requested_finish_date"
           [min]="today" required />
         <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
@@ -33,7 +33,7 @@
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="field">
-        <mat-label>URGENCY</mat-label>
+        <mat-label [class.smaller-label]="inner_width() < 600">URGENCY</mat-label>
         <mat-select name="urgency" [(ngModel)]="data.urgent" required>
           <mat-option [value]="false">REGULAR</mat-option>
           <mat-option [value]="true">URGENT</mat-option>
@@ -47,7 +47,7 @@
     <div class="row">
       <!-- DOCX Upload -->
       <mat-form-field appearance="outline" class="file-field">
-        <mat-label>Docx</mat-label>
+        <mat-label [class.smaller-label]="inner_width() < 600">Docx</mat-label>
         <input matInput name="docx_file" [(ngModel)]="data.docx_filename" required readonly />
         <button mat-icon-button matSuffix type="button" (click)="docxInput.click()" aria-label="Upload file">
           <mat-icon>drive_folder_upload</mat-icon>
@@ -60,7 +60,7 @@
 
       <!-- EXCEL Upload -->
       <mat-form-field appearance="outline" class="file-field">
-        <mat-label>Excel</mat-label>
+        <mat-label [class.smaller-label]="inner_width() < 600">Excel</mat-label>
         <input matInput name="excel_file" [(ngModel)]="data.excel_filename" required readonly />
         <button mat-icon-button matSuffix type="button" (click)="excelInput.click()" aria-label="Upload file">
           <mat-icon>drive_folder_upload</mat-icon>
@@ -75,7 +75,7 @@
 
     <div class="row">
       <mat-form-field appearance="outline" class="field">
-        <mat-label>TIPE DATA</mat-label>
+        <mat-label [class.smaller-label]="inner_width() < 600">TIPE DATA</mat-label>
         <mat-select name="requirement_type" [(ngModel)]="data.requirement_type" (selectionChange)="getQuestion()"
           required>
           <mat-option [value]="1">FFRA</mat-option>

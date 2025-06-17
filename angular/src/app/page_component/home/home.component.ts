@@ -12,6 +12,7 @@ import { DataProcessingService } from "../../service/data-processing.service";
 export class HomeComponent {
 	data_service = inject(DataProcessingService);
 	router = inject(Router);
+
 	ngOnInit() {
 		if (Number(this.data_service.getUserId()) === 0) {
 			this.router.navigate([""]);

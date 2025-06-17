@@ -4,8 +4,15 @@
 	gap: 12px;
 }
 
+mat-label {
+	transition: all 01s ease;
+}
+.smaller-label {
+	font-size: 0.87em !important;
+}
+
 .file-name {
-	margin-left: 1rem; /* or whatever margin you require */
+	margin-left: 1em; /* or whatever margin you require */
 }
 
 .file-field {
@@ -46,7 +53,7 @@
 }
 
 .inline-button {
-	height: 56px; /* same as mat-form-field default height */
+	height: 56px;
 	min-width: 56px;
 	padding: 0;
 }

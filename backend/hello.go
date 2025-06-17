@@ -99,7 +99,7 @@ func main() {
 	router.GET("/login", checkUserCredentials)
 	router.GET("/answerData", getAnswerForRequest)
 	router.GET("/getOldestRequestTime", getOldestRequest)
-	router.GET("/getAttachment", getAttachment)
+	router.GET("/getAttachmentFile", getAttachmentFile)
 	router.GET("/getFilenames", getFilenames)
 	router.POST("/newRequest", postNewRequest)
 	router.PUT("/upgradeState", putUpgradeState)
@@ -143,14 +143,14 @@ func checkEmpty(c *gin.Context, str string) {
 // It retrieves user_name and password from query parameters, executes a stored procedure
 // to get the user ID, and returns it as JSON.
 func checkUserCredentials(c *gin.Context) {
-	var newUser User
+	var new_user User
 	var data string // To store the result from the database
-	newUser.User_name = c.Query("user_name")
-	newUser.User_password = c.Query("password")
+	new_user.User_name = c.Query("user_name")
+	new_user.User_password = c.Query("password")
 
 	// Call a stored procedure in the database to get user ID by credentials
 	query := `SELECT get_user_id_by_credentials($1, $2)`
-	err := db.QueryRow(query, newUser.User_name, newUser.User_password).Scan(&data)
+	err := db.QueryRow(query, new_user.User_name, new_user.User_password).Scan(&data)
 	checkErr(c, err) // Handle any database errors
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
@@ -160,18 +160,18 @@ func checkUserCredentials(c *gin.Context) {
 // then calls a database function to fetch the relevant data.
 func getStateSpecificData(c *gin.Context) {
 	var data string
-	stateIdInput := c.Query("state_id")
-	startDateInput := c.Query("start_date")
-	endDateInput := c.Query("end_date")
+	state_id_input := c.Query("state_id")
+	start_date_input := c.Query("start_date")
+	end_date_input := c.Query("end_date")
 
 	// Validate required query parameters
-	checkEmpty(c, stateIdInput)
-	checkEmpty(c, startDateInput)
-	checkEmpty(c, endDateInput)
+	checkEmpty(c, state_id_input)
+	checkEmpty(c, start_date_input)
+	checkEmpty(c, end_date_input)
 
 	// Call a database function to get state-specific data
 	query := `SELECT get_state_specific_data($1, $2, $3)`
-	err := db.QueryRow(query, stateIdInput, startDateInput, endDateInput).Scan(&data)
+	err := db.QueryRow(query, state_id_input, start_date_input, end_date_input).Scan(&data)
 	checkErr(c, err)
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
@@ -180,14 +180,14 @@ func getStateSpecificData(c *gin.Context) {
 // It requires a user_id as a query parameter and fetches data from the database.
 func getUserCurrentRequests(c *gin.Context) {
 	var data string
-	userIdInput := c.Query("user_id")
+	user_id_input := c.Query("user_id")
 
 	// Validate required query parameter
-	checkEmpty(c, userIdInput)
+	checkEmpty(c, user_id_input)
 
 	// Call a database function to get user's current requests
 	query := `SELECT get_user_request_data($1)`
-	err := db.QueryRow(query, userIdInput).Scan(&data)
+	err := db.QueryRow(query, user_id_input).Scan(&data)
 	checkErr(c, err)
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
@@ -196,14 +196,14 @@ func getUserCurrentRequests(c *gin.Context) {
 // It expects a role_id as a query parameter.
 func getTodoData(c *gin.Context) {
 	var data string
-	userRoleInput := c.Query("role_id")
+	user_role_input := c.Query("role_id")
 
 	// Validate required query parameter
-	checkEmpty(c, userRoleInput)
+	checkEmpty(c, user_role_input)
 
 	// Call a database function to get to-do data
 	query := `SELECT get_todo_data($1)`
-	err := db.QueryRow(query, userRoleInput).Scan(&data)
+	err := db.QueryRow(query, user_role_input).Scan(&data)
 	checkErr(c, err)
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
@@ -212,14 +212,14 @@ func getTodoData(c *gin.Context) {
 // It requires a request_id as a query parameter.
 func getCompleteRequestData(c *gin.Context) {
 	var data string
-	requestIdInput := c.Query("request_id")
+	request_id_input := c.Query("request_id")
 
 	// Validate required query parameter
-	checkEmpty(c, requestIdInput)
+	checkEmpty(c, request_id_input)
 
 	// Call a database function to get complete request data
 	query := `SELECT get_complete_data_of_request($1)`
-	err := db.QueryRow(query, requestIdInput).Scan(&data)
+	err := db.QueryRow(query, request_id_input).Scan(&data)
 	checkErr(c, err)
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
@@ -244,14 +244,14 @@ func getStateCount(c *gin.Context) {
 		{State_id: -1, State_name: "TOTAL", Todo: 0, Done: 0}, // Placeholder for total counts
 	}
 
-	startDateInput := c.Query("start_date")
-	checkEmpty(c, startDateInput)
-	endDateInput := c.Query("end_date")
-	checkEmpty(c, endDateInput)
+	start_date_input := c.Query("start_date")
+	checkEmpty(c, start_date_input)
+	end_date_input := c.Query("end_date")
+	checkEmpty(c, end_date_input)
 
 	// Call a database function to get state counts within the specified date range
 	query := `SELECT get_state_count($1, $2)`
-	err := db.QueryRow(query, startDateInput, endDateInput).Scan(&sqlNullString)
+	err := db.QueryRow(query, start_date_input, end_date_input).Scan(&sqlNullString)
 	checkErr(c, err)
 
 	// If the database query returns a NULL, it means no data for the given range.
@@ -301,14 +301,14 @@ func getStateCount(c *gin.Context) {
 // It requires a request_id as a query parameter.
 func getFullStateHistoryData(c *gin.Context) {
 	var data string
-	requestIdInput := c.Query("request_id")
+	request_id_input := c.Query("request_id")
 
 	// Validate required query parameter
-	checkEmpty(c, requestIdInput)
+	checkEmpty(c, request_id_input)
 
 	// Call a database function to get full state history
 	query := `SELECT get_full_state_history($1)`
-	err := db.QueryRow(query, requestIdInput).Scan(&data)
+	err := db.QueryRow(query, request_id_input).Scan(&data)
 	checkErr(c, err)
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
@@ -317,14 +317,14 @@ func getFullStateHistoryData(c *gin.Context) {
 // It requires a requirement_type as a query parameter.
 func getQuestionData(c *gin.Context) {
 	var data string
-	requirementTypeInput := c.Query("requirement_type")
+	requirement_type_input := c.Query("requirement_type")
 
 	// Validate required query parameter
-	checkEmpty(c, requirementTypeInput)
+	checkEmpty(c, requirement_type_input)
 
 	// Call a database function to get questions
 	query := `SELECT get_questions($1)`
-	err := db.QueryRow(query, requirementTypeInput).Scan(&data)
+	err := db.QueryRow(query, requirement_type_input).Scan(&data)
 	checkErr(c, err)
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
@@ -333,14 +333,14 @@ func getQuestionData(c *gin.Context) {
 // It requires a request_id as a query parameter.
 func getAnswerForRequest(c *gin.Context) {
 	var data string
-	requestIdInput := c.Query("request_id")
+	request_id_input := c.Query("request_id")
 
 	// Validate required query parameter
-	checkEmpty(c, requestIdInput)
+	checkEmpty(c, request_id_input)
 
 	// Call a database function to get request requirement answers
 	query := `SELECT get_request_requirement_answer($1)`
-	err := db.QueryRow(query, requestIdInput).Scan(&data)
+	err := db.QueryRow(query, request_id_input).Scan(&data)
 	checkErr(c, err)
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
@@ -360,41 +360,45 @@ func getOldestRequest(c *gin.Context) {
 // getAttachment retrieves and sends a specified attachment (docx or excel) for a request.
 // It expects request_id, attachment_type, and filename as query parameters.
 // It also sets the correct Content-Type and Content-Disposition headers for file download.
-func getAttachment(c *gin.Context) {
+func getAttachmentFile(c *gin.Context) {
 	var data []byte // To store the file content
-
+	var attachment_type int
 	// Get query parameters
-	requestIdInput := c.Query("request_id")
-	attachmentTypeInput := c.Query("attachment_type")
-	filenameInput := c.Query("filename")
+	request_id_input := c.Query("request_id")
+	// attachment_typeInput := c.Query("attachment_type")
+	filename_input := c.Query("filename")
 
 	// Validate required query parameters
-	checkEmpty(c, requestIdInput)
-	checkEmpty(c, attachmentTypeInput)
-	checkEmpty(c, filenameInput)
+	checkEmpty(c, request_id_input)
+	// checkEmpty(c, attachment_typeInput)
+	checkEmpty(c, filename_input)
 
 	// Call a database function to get the attachment data
-	query := `SELECT get_attachment($1, $2)`
-	err := db.QueryRow(query, requestIdInput, attachmentTypeInput).Scan(&data)
-	checkErr(c, err)
 
 	// Determine content type based on file extension for proper serving
-	var contentType string
+	var content_type string
 	switch {
-	case strings.HasSuffix(filenameInput, ".docx"):
-		contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-	case strings.HasSuffix(filenameInput, ".xls"), strings.HasSuffix(filenameInput, ".xlsx"):
-		contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-	case strings.HasSuffix(filenameInput, ".pdf"):
-		contentType = "application/pdf"
+	case strings.HasSuffix(filename_input, ".docx"):
+		content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+		attachment_type = 1
+	case strings.HasSuffix(filename_input, ".pdf"):
+		content_type = "application/pdf"
+		attachment_type = 1
+	case strings.HasSuffix(filename_input, ".xls"), strings.HasSuffix(filename_input, ".xlsx"):
+		content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+		attachment_type = 2
 	default:
-		contentType = "application/octet-stream" // Default for unknown types
+		content_type = "application/octet-stream" // Default for unknown types
 	}
 
+	query := `SELECT get_attachment($1, $2)`
+	err := db.QueryRow(query, request_id_input, attachment_type).Scan(&data)
+	checkErr(c, err)
+
 	// Set Content-Disposition header to prompt download with the original filename
-	c.Header("Content-Disposition", "attachment; filename="+strconv.Quote(filenameInput))
+	c.Header("Content-Disposition", "attachment; filename="+strconv.Quote(filename_input))
 	// Serve the file data with the determined content type
-	c.Data(http.StatusOK, contentType, data)
+	c.Data(http.StatusOK, content_type, data)
 }
 
 // getFilenames retrieves and sends filenames associated with a request.
@@ -402,15 +406,15 @@ func getAttachment(c *gin.Context) {
 // for fetching filenames. It might be a copy-paste error.
 func getFilenames(c *gin.Context) {
 	var data string
-	requestIdInput := c.Query("request_id")
+	request_id_input := c.Query("request_id")
 
 	// Validate required query parameter
-	checkEmpty(c, requestIdInput)
+	checkEmpty(c, request_id_input)
 
 	// Call a database function to get filenames.
 	// The query `get_questions($1)` might be a placeholder or incorrect.
 	query := `SELECT get_filenames($1)`
-	err := db.QueryRow(query, requestIdInput).Scan(&data)
+	err := db.QueryRow(query, request_id_input).Scan(&data)
 	checkErr(c, err)
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
@@ -460,20 +464,20 @@ func postNewRequest(c *gin.Context) {
 	}
 
 	// Print NewRequest details for debugging purposes
-	fmt.Printf("NewRequest: {\n")
-	fmt.Printf("   Request_title: %s\n", nr.Request_title)
-	fmt.Printf("   User_id: %d\n", nr.User_id)
-	fmt.Printf("   Requester_name: %s\n", nr.Requester_name)
-	fmt.Printf("   Analysis_purpose: %s\n", nr.Analysis_purpose)
-	fmt.Printf("   Requested_finish_date: %s\n", nr.Requested_finish_date.Format(time.RFC3339))
-	fmt.Printf("   Pic_request: %s\n", nr.Pic_request)
-	fmt.Printf("   Urgent: %t\n", nr.Urgent)
-	fmt.Printf("   Requirement_type: %d\n", nr.Requirement_type)
-	fmt.Printf("   Answers: %v\n", nr.Answers)
-	fmt.Printf("   Docx_filename: %s\n", nr.Docx_filename)
-	fmt.Printf("   Excel_filename: %s\n", nr.Excel_filename)
-	fmt.Printf("   Remark: %s\n", nr.Remark)
-	fmt.Printf("}\n")
+	// fmt.Printf("NewRequest: {\n")
+	// fmt.Printf("   Request_title: %s\n", nr.Request_title)
+	// fmt.Printf("   User_id: %d\n", nr.User_id)
+	// fmt.Printf("   Requester_name: %s\n", nr.Requester_name)
+	// fmt.Printf("   Analysis_purpose: %s\n", nr.Analysis_purpose)
+	// fmt.Printf("   Requested_finish_date: %s\n", nr.Requested_finish_date.Format(time.RFC3339))
+	// fmt.Printf("   Pic_request: %s\n", nr.Pic_request)
+	// fmt.Printf("   Urgent: %t\n", nr.Urgent)
+	// fmt.Printf("   Requirement_type: %d\n", nr.Requirement_type)
+	// fmt.Printf("   Answers: %v\n", nr.Answers)
+	// fmt.Printf("   Docx_filename: %s\n", nr.Docx_filename)
+	// fmt.Printf("   Excel_filename: %s\n", nr.Excel_filename)
+	// fmt.Printf("   Remark: %s\n", nr.Remark)
+	// fmt.Printf("}\n")
 
 	// Call a stored procedure to create a new request in the database
 	// pq.Array is used to pass the Go slice `nr.Answers` as a PostgreSQL array.

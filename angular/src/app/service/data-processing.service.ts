@@ -155,6 +155,21 @@ export class DataProcessingService {
 		return this.http.get<AttachmentFilename[]>(url);
 	}
 
+	getAttachmentFileDownload(
+		request_id_input: number,
+		attachment_file_name: string,
+	): void {
+		const url = `http://localhost:9090/getAttachmentFile?request_id=${request_id_input}&filename=${attachment_file_name}`;
+		this.http.get(url, { responseType: "blob" }).subscribe((blob) => {
+			const downloadLink = document.createElement("a");
+			const objectUrl = URL.createObjectURL(blob);
+			downloadLink.href = objectUrl;
+			downloadLink.download = attachment_file_name;
+			downloadLink.click();
+			URL.revokeObjectURL(objectUrl);
+		});
+	}
+
 	postNewRequest(request: NewRequest) {
 		const url = "http://localhost:9090/newRequest";
 		const formData = new FormData();

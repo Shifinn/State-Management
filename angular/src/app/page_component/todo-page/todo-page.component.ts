@@ -1,4 +1,4 @@
-import { Component, inject, signal } from "@angular/core";
+import { Component, HostListener, inject, signal } from "@angular/core";
 import { DataProcessingService } from "../../service/data-processing.service";
 import type { SimpleData } from "../../model/format.type";
 import { CardRequestComponent } from "../../component/card-request/card-request.component";
@@ -16,9 +16,16 @@ export class TodoPageComponent {
 	in_progress = signal<Array<SimpleData>>([]);
 	done = signal<Array<SimpleData>>([]);
 	current_menu: "TODO" | "IN PROGRESS" | "DONE" = "TODO";
+	inner_width = signal<number>(9999);
+
+	@HostListener("window:resize", ["$event"])
+	onResize(event: Event) {
+		this.inner_width.set(window.innerWidth);
+	}
 
 	ngOnInit(): void {
 		this.getTodo();
+		this.inner_width.set(window.innerWidth);
 	}
 
 	setMenu(new_menu: "TODO" | "IN PROGRESS" | "DONE") {

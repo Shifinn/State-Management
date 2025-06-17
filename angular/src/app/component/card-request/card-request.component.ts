@@ -1,6 +1,7 @@
 import {
 	Component,
 	EventEmitter,
+	HostListener,
 	inject,
 	Input,
 	Output,
