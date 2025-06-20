@@ -1,46 +1,46 @@
 <div class="pop-up-container">
   <!-- Centered top buttons inside the dropdown -->
   @if (!(period_type === "NAN" || period_type === "YEAR")) {
-    <div class="top-bar">
-      <button class="custom-button" (click)="changeYear()">
-        {{ current_menu.year }}
-      </button>
-      @if (period_type === "WEEK") {
-        <button  class="custom-button" (click)="changeMonth()">
-          {{ monthNames[current_menu.month] }}
-        </button>
-      }
-    </div>
+  <div class="top-bar">
+    <button class="custom-button" (click)="changeYear()">
+      {{ current_menu.year }}
+    </button>
+    @if (period_type === "WEEK") {
+    <button class="custom-button" (click)="changeMonth()">
+      {{ monthNames[current_menu.month] }}
+    </button>
+    }
+  </div>
   }
 
   <!-- Grid content section -->
   @if (current_menu.type === "PERIOD") {
-    <div class="grid-content">
-      @for (item of visible_period(); track item.start_date) {
-        <button class="custom-button" (click)="selectOption(item)">
-          {{ item.label }}
-        </button>
-      }
-    </div>
+  <div class="grid-content">
+    @for (item of visible_period(); track item.start_date) {
+    <button class="custom-button" (click)="selectOption(item)">
+      {{ item.label }}
+    </button>
+    }
+  </div>
   }
 
   @if (current_menu.type === "YEAR") {
-    <div class="grid-content">
-      @for (item of year_list(); track item) {
-        <button  class="custom-button" (click)="selectYear(item)">
-          {{ item }}
-        </button>
-      }
-    </div>
+  <div class="grid-content">
+    @for (item of year_list(); track item) {
+    <button class="custom-button" (click)="selectYear(item)">
+      {{ item }}
+    </button>
+    }
+  </div>
   }
 
   @if (current_menu.type === "MONTH") {
-    <div class="grid-content">
-      @for (item of month_list(); track $index) {
-        <button class="custom-button" (click)="selectMonth(item)">
-          {{ item }}
-        </button>
-      }
-    </div>
+  <div class="grid-content">
+    @for (item of month_list(); track $index) {
+    <button class="custom-button" (click)="selectMonth(item)">
+      {{ item }}
+    </button>
+    }
+  </div>
   }
 </div>

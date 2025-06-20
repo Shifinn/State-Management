@@ -1,10 +1,24 @@
+.card {
+	background-color: #fff9f9;
+}
+
 .request-title {
 	margin: 0.1em;
 }
 
-.request-date {
+.data-label {
 	color: #333;
 	font-size: 0.9em;
+}
+
+.icon {
+	color: #222;
+	width: fit-content;
+	height: fit-content;
+	font-size: 0.95em;
+	vertical-align: baseline;
+	margin-left: 0.1em;
+	transform: translateY(0.15em);
 }
 
 .card-status {
@@ -25,33 +39,33 @@
 }
 
 .s0 {
-	background-color: #ffcccb; /* pastel yellow */
+	background-color: #ffadad;
 	color: #8b2e2e;
 }
 
 .s1 {
-	background-color: #fff3b0; /* pastel yellow */
-	color: #4a430f;
+	background-color: #ffadad;
+	color: #4a0f0f;
 }
 
 .s2 {
-	background-color: #aad7f0; /* soft blue */
-	color: #18324b;
+	background-color: #ffd6a5;
+	color: #18494b;
 }
 
 .s3 {
-	background-color: #ffd59e; /* pastel orange */
-	color: #5a3a00;
+	background-color: #fdffb6;
+	color: #4b4a18;
 }
 
 .s4 {
-	background-color: #d3b5ff; /* soft lavender */
-	color: #3b2d4a;
+	background-color: #9bf6ff;
+	color: #2d484a;
 }
 
 .s5 {
-	background-color: #bae6ab; /* mint green */
-	color: #1c3e2a;
+	background-color: #caffbf;
+	color: #1c3e1f;
 }
 
 .card-footer {

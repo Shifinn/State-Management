@@ -59,6 +59,6 @@ export class LoginPageComponent {
 
 		// Otherwise, proceed with login
 		const { username, password } = this.loginData;
-		this.login_service.login(username.toLowerCase(), password);
+		this.login_service.login(username, password);
 	}
 }

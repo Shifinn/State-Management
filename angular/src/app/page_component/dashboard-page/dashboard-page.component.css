@@ -1,25 +1,16 @@
-body {
-    margin: 0;
-    font-family: 'Segoe UI';
+.page-title {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	vertical-align: middle;
+	/* justify-content: space-between; */
+}
+.page-title h1 {
+	vertical-align: middle;
+	text-align: center;
 }
 
-.dashboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.5em 2.5em 0em 2.5em;
-    background: transparent;
-    border-radius: 0;
-    box-shadow: none;
-    margin-bottom: 2em;
+.page-title app-custom-square-button {
+	position: absolute;
+	right: 2em;
 }
-
-.dashboard-header h1 {
-    margin: 0;
-    font-size: 2.1em;
-    font-weight: 700;
-    color: #2d3250;
-    letter-spacing: 1px;
-}
-
-

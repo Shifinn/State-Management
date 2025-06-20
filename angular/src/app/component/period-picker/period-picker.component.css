@@ -1,0 +1,82 @@
+.period-type-container {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	overflow: hidden;
+	/* border: 1px solid #444; */
+	border-bottom: 1px solid #c2d6ff;
+	width: fit-content;
+	margin-inline: auto;
+}
+
+.period-picker-container {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	gap: 0;
+	margin-top: 1em;
+	border-radius: 999px;
+	overflow: hidden;
+	border: 1px solid #444;
+	width: fit-content;
+	margin-inline: auto;
+	margin-bottom: 1.5em; /* background-color: #f0f4ff; */
+}
+
+.period-type-picker {
+	display: flex;
+	align-items: center;
+	padding: 0.3em 0.2em 0.1em 0.5em;
+	cursor: pointer;
+	font-weight: 500;
+	font-size: 0.9em;
+	color: #333;
+	transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.current-period-full-label {
+	font-weight: 500;
+	font-size: 0.96em;
+	color: #333;
+	padding: 0.1em 0em 0.1em 0em;
+}
+.period-type-picker:not(:last-child) {
+	border-right: 1px solid #c2d6ff;
+}
+
+.period-type-picker:last-child {
+	padding-right: 0.5em;
+}
+
+.period-type-picker:first-child {
+	padding-left: 1em;
+}
+.period-type-picker:hover {
+	background-color: #e6f5ff;
+	color: #1c52b5;
+}
+
+.period-type-picker.active {
+	background-color: #e6f5ff;
+	color: #1c52b5;
+	/* background-color: #d0e0ff; */
+	/* background-color: yellow; */
+}
+/* .period-head {
+	display: flex;
+	flex-direction: column;
+} */
+.arrow {
+	font-size: 0.85em;
+	/* color: #2e6edc; */
+	padding: 0.2em 0.4em;
+	border-radius: 50%;
+	transition: background-color 0.2s ease;
+	cursor: pointer;
+}
+
+.arrow:hover {
+	background-color: #d6e4ff;
+	color: #1a47aa;
+}

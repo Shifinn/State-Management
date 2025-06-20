@@ -1,19 +1,45 @@
-body {
-	/* background: #f4f6fb; */
-	/* margin: 0; */
-	/* font-family: "Segoe UI", Arial, sans-serif; */
+.todo-page-header {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	margin-top: 1.5em;
+	margin-bottom: 2em;
+}
+.todo-page-header.column {
+	flex-direction: column;
+	gap: 1em;
 }
 
-.page-title {
-	justify-content: center;
+mat-label {
+	align-self: center;
+	font-size: 1.2em;
+}
+mat-form-field {
+	position: absolute;
+	right: -1em;
+	top: 5.5em;
+	width: 21em;
+	transform: scale(0.8);
+}
+mat-form-field.flex {
+	position: relative;
+	right: 0em;
+	top: 0em;
+	width: 21em;
+	transform: scale(0.9);
+}
+/* mat-select {
+	transform: scale(0.8);
+} */
+mat-option {
+	font-size: 0.85em;
+	white-space: normal;
 }
 
 .menu-selector {
 	display: flex;
 	justify-content: center;
 	gap: 3em;
-	margin-top: 1.5em;
-	margin-bottom: 2em;
 }
 
 .menu-item {

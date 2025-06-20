@@ -1,25 +1,26 @@
-
-<div class="{{'card s' + progress_info.state_id}}"  [class.active-card]= "isActive() === 3" [class.shrink]="isShrunk"(click)="onClick('TOTAL')">
+<div class="{{ 'card s' + progress_info.state_id }}" [class.active-card]="isActive() === 3" [class.shrink]="isShrunk"
+  (click)="onClick('TOTAL')">
   <div class="card-header">
     <h3 class="request-title">{{ progress_info.state_name }}</h3>
   </div>
   <div class="row">
-    @if (progress_info.state_id < 5) {
-    <div class="{{'progress-square current s' + progress_info.state_id}}"  [class.active]= "isActive() === 1" (click)="onClick('TODO'); $event.stopPropagation()">
+    @if (progress_info.state_id < 5) { <div class="{{ 'progress-square inner-card s' + progress_info.state_id }}"
+      [class.active]="isActive() === 1" (click)="onClick('TODO'); $event.stopPropagation()">
       <div class="label">Current</div>
-      <div class="value">{{progress_info.todo}}</div>
-    </div>
-    <div class="{{'progress-square current s' + progress_info.state_id}}" [class.active]= "isActive() === 2" (click)="onClick('DONE'); $event.stopPropagation()">
-      <div class="label">Done</div>
-      <div class="value">{{progress_info.done}}</div>
-    </div>
-  }
-
-  @if (progress_info.state_id === 5) {
-    <div class="{{'progress-square no-hover current s' + progress_info.state_id}}" >
-      <div class="label">Done</div>
-      <div class="value">{{progress_info.done}}</div>
-    </div>
-  }
+      <div class="value">{{ progress_info.todo }}</div>
   </div>
+  <div class="{{ 'progress-square inner-card s' + progress_info.state_id }}" [class.active]="isActive() === 2"
+    (click)="onClick('DONE'); $event.stopPropagation()">
+    <div class="label">Done</div>
+    <div class="value">{{ progress_info.done }}</div>
+  </div>
+  } @if (progress_info.state_id === 5) {
+  <div class="{{
+        'progress-square no-hover inner-card s' + progress_info.state_id
+      }}">
+    <div class="label">Done</div>
+    <div class="value">{{ progress_info.done }}</div>
+  </div>
+  }
+</div>
 </div>

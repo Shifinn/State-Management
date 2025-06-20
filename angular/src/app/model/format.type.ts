@@ -15,6 +15,8 @@ export type SimpleData = {
 	state_name: string;
 	user_name: string;
 	request_date: Date;
+	requirement_type_id: number;
+	data_type_name: string;
 	date_start: Date;
 	state_comment: string;
 };
@@ -37,6 +39,7 @@ export type StateInfoData = {
 export type CompleteData = {
 	request_id: number;
 	request_title: string;
+	user_id: number;
 	requester_name: string;
 	analysis_purpose: string;
 	requested_completed_date: Date;
@@ -75,7 +78,7 @@ export type Question = {
 
 export type AttachmentFilename = {
 	attachment_type_id: number;
-	attachment_name: string;
+	attachment_filename: string;
 };
 
 export type UpdateState = {
@@ -109,4 +112,14 @@ export type CachedPeriodPickerMemory = {
 	type: string;
 	year: number;
 	month: number;
+};
+
+export type StateThreshold = {
+	state_name_id: number;
+	state_threshold_hour: number;
+};
+
+export type Duration = {
+	day: number;
+	hour: number;
 };

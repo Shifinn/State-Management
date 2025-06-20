@@ -17,7 +17,7 @@ BEGIN
             ur.role_id
         FROM user_table u
         JOIN user_role_table ur ON u.user_id = ur.user_id
-        WHERE u.user_name = username_input
+        WHERE LOWER(u.user_name) = LOWER(username_input)
           AND u.user_password = password_input
         LIMIT 1
     ) t;
@@ -35,7 +35,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-	
+
 
 SELECT get_user_id_by_credentials('alice', '1234');
 
@@ -101,6 +101,60 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+-- UPGRADE STATE IF NEED TO HAVE A SIGNAL WHEN REQUEST IS DONE (TO SEND DONE EMAIL)
+-- CREATE OR REPLACE FUNCTION upgrade_state(
+-- 	request_id_input   INT,
+--     user_id_input      INT,    
+-- 	comment_input      TEXT DEFAULT NULL
+-- ) RETURNS VARCHAR AS $$
+-- DECLARE 
+--     temp_state_id INT;
+-- 	complete BOOLEAN := false;
+-- BEGIN
+-- 	-- Step 1: Get the current state
+-- 	SELECT current_state
+-- 	INTO temp_state_id
+-- 	FROM request_table
+-- 	WHERE request_id = request_id_input;
+
+-- 	-- Step 2: Guard against max state
+-- 	IF temp_state_id >= 5 THEN
+-- 		RAISE EXCEPTION 'Upgrade failed: state % has reached the maximum allowed (5)', temp_state_id;
+-- 	END IF;
+
+-- 	-- Step 3: Update request_table with new state
+-- 	UPDATE request_table
+-- 	SET current_state = current_state + 1
+-- 	WHERE request_id = request_id_input
+-- 	RETURNING current_state INTO temp_state_id;
+
+-- 	-- Step 4: If now at final state (5), mark as complete
+-- 	IF temp_state_id = 5 THEN
+-- 		complete := true;
+-- 	END IF;
+
+-- 	-- Step 5: Update previous state in state_table
+-- 	UPDATE state_table
+-- 	SET 
+-- 		date_end = CURRENT_TIMESTAMP,
+-- 		completed = true,
+-- 		state_comment = comment_input,
+--         ended_by = user_id_input
+-- 	WHERE request_id = request_id_input
+-- 	  AND state_name_id = temp_state_id - 1;
+
+-- 	-- Step 6: Insert new state row
+-- 	INSERT INTO state_table(state_name_id, request_id, started_by, completed)
+-- 	VALUES(temp_state_id, request_id_input, user_id_input, complete);
+
+-- 	-- Step 7: Return final result
+-- 	IF temp_state_id = 5 THEN 
+-- 		RETURN 'DONE';
+-- 	ELSE 
+-- 		RETURN '';
+-- 	END IF;
+-- END;
+-- $$ LANGUAGE plpgsql;
 
 -- PROCEDURE TO DECREASE/DEGRADE STATE WHEN REJECTED
 CREATE OR REPLACE PROCEDURE degrade_state( 
@@ -335,12 +389,12 @@ CREATE OR REPLACE PROCEDURE store_attachments(
 ) AS $$
 BEGIN
 	IF docx_input IS NOT NULL AND docx_filename_input IS NOT NULL THEN
-		INSERT INTO attachment_table(request_id, attachment_type_id, attachment_name, attachment)
+		INSERT INTO attachment_table(request_id, attachment_type_id, attachment_filename, attachment)
 		VALUES (request_id_input, 1, docx_filename_input, docx_input);
 	END IF;
 
 	IF excel_input IS NOT NULL AND excel_filename_input IS NOT NULL THEN
-		INSERT INTO attachment_table(request_id, attachment_type_id, attachment_name, attachment)
+		INSERT INTO attachment_table(request_id, attachment_type_id, attachment_filename, attachment)
 		VALUES (request_id_input, 2, excel_filename_input, excel_input);
 	END IF;
 END;
@@ -482,10 +536,12 @@ BEGIN
 			r.request_id,
 			r.request_title,
 			r.request_date,
+			rt.data_type_name,
 			n.state_name,
 			n.state_name_id
 		FROM request_table r
 		JOIN state_name_table n ON r.current_state = n.state_name_id
+		JOIN requirement_type_table rt ON r.requirement_type_id = rt.requirement_type_id
 		WHERE r.user_id = user_id_input
 		ORDER BY r.request_id
 	) t;
@@ -537,6 +593,8 @@ BEGIN
             r.request_id,
             r.request_title,
 			r.request_date,
+			rt.requirement_type_id,
+			rt.data_type_name,
             u.user_name, 
 			n.state_name_id,
             n.state_name,
@@ -546,6 +604,7 @@ BEGIN
         JOIN user_table u ON r.user_id = u.user_id 
         JOIN state_table s ON r.request_id = s.request_id
 		JOIN state_name_table n ON r.current_state = n.state_name_id
+		JOIN requirement_type_table rt ON r.requirement_type_id = rt.requirement_type_id
         WHERE s.state_name_id = ANY(viewable)
 			AND s.state_name_id = r.current_state
 		ORDER BY s.state_name_id ASC, r.request_id
@@ -554,7 +613,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
+select get_todo_data(3)
 -- FUNCTION TO GET THE COMPLETE DATA OF A SPECIFIC REQUEST
 -- USED FOR 'MORE DETAILS'
 CREATE OR REPLACE FUNCTION get_complete_data_of_request(	
@@ -571,6 +630,7 @@ BEGIN
 			r.request_id,
 			r.request_title,
 			r.requester_name, 
+			r.user_id,
 			r.analysis_purpose,
 			r.requested_completed_date,
 			r.pic_submitter,
@@ -590,8 +650,67 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-SELECT get_complete_data_of_request(23);
+select get_role_emails(2)
+CREATE OR REPLACE FUNCTION get_role_emails(	
+	role_id_input	INT
+	)
+RETURNS JSON AS $$
+DECLARE
+    result_json JSON;
+BEGIN
+    SELECT json_agg(row_to_json(t))
+    INTO result_json
+	FROM (
+		SELECT 
+			u.user_name,
+			u.email
+		FROM user_role_table ur
+		JOIN user_table u ON  ur.user_id = u.user_id
+		WHERE ur.role_id = role_id_input
+	) t;
+    RETURN result_json;
+END;
+$$ LANGUAGE plpgsql;
 
+select get_validator_email(1)
+
+CREATE OR REPLACE FUNCTION get_user_email(	
+	user_id_input	INT
+	)
+RETURNS JSON AS $$
+DECLARE
+    result_json JSON;
+BEGIN
+    SELECT row_to_json(t)
+    INTO result_json
+	FROM (
+		SELECT 
+			user_name,
+			email
+		FROM user_table
+		WHERE user_id = user_id_input
+	) t;
+    RETURN result_json;
+END;
+$$ LANGUAGE plpgsql;
+
+select get_user_email(1)
+
+CREATE OR REPLACE FUNCTION get_state_threshold()
+RETURNS JSON AS $$
+DECLARE
+    result_json JSON;
+BEGIN
+    SELECT json_agg(row_to_json(t))
+    INTO result_json
+	FROM (
+		SELECT * FROM state_threshold_table
+	) t;
+    RETURN result_json;
+END;
+$$ LANGUAGE plpgsql;
+
+select get_state_threshold()
 
 CREATE OR REPLACE FUNCTION get_filenames(	
 	request_id_input	INT
@@ -605,7 +724,7 @@ BEGIN
 	FROM (
 		SELECT 
 			attachment_type_id,
-			attachment_name
+			attachment_filename
 		FROM attachment_table
 		WHERE request_id = request_id_input
 	) t;
@@ -800,6 +919,13 @@ INSERT INTO attachment_type_table
 VALUES
 (1,'docx/pdf'),
 (2,'excel')
+
+INSERT INTO state_threshold_table
+VALUES
+(1,8),
+(2,8),
+(3,8),
+(4,8)
 
 -- set all name lower case
 UPDATE user_table

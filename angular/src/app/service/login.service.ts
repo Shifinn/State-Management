@@ -3,7 +3,6 @@ import { HttpClient } from "@angular/common/http";
 import { Router } from "@angular/router";
 import type { User } from "../model/format.type";
 import { DataProcessingService } from "./data-processing.service";
-
 @Injectable({
 	providedIn: "root",
 })
@@ -13,7 +12,7 @@ export class LoginService {
 	data_service = inject(DataProcessingService);
 
 	login(username: string, password: string): void {
-		const url = `http://localhost:9090/login?user_name=${username}&password=${password}`; // Ensure http, not just Localhost
+		const url = `http://localhost:9090/login?user_name=${username.toLowerCase()}&password=${password}`; // Ensure http, not just Localhost
 
 		this.http.get<User>(url).subscribe((response: User) => {
 			console.log(

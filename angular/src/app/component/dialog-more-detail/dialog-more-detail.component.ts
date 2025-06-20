@@ -36,6 +36,7 @@ export class DialogMoreDetailComponent {
 	data: CompleteData = {
 		request_id: 0,
 		request_title: "",
+		user_id: -1,
 		requester_name: "",
 		analysis_purpose: "",
 		requested_completed_date: new Date(""),
@@ -135,7 +136,7 @@ export class DialogMoreDetailComponent {
 	downloadAttachment(index: number) {
 		this.data_service.getAttachmentFileDownload(
 			this.data.request_id,
-			this.filenames()[index].attachment_name,
+			this.filenames()[index].attachment_filename,
 		);
 	}
 

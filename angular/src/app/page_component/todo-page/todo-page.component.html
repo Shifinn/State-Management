@@ -1,34 +1,38 @@
 <body>
-  <div class="menu-selector">
-    <div class="menu-item" [class.active]="current_menu === 'TODO'" (click)="setMenu('TODO')">
-      Todo
+  <div class="todo-page-header" [class.column]="inner_width() < 1050">
+    <div class="menu-selector">
+      <div class="menu-item" [class.active]="current_menu === 'TODO'" (click)="setMenu('TODO')">
+        Todo
+      </div>
+      <div class="menu-item" [class.active]="current_menu === 'IN PROGRESS'" (click)="setMenu('IN PROGRESS')">
+        In Progress
+      </div>
+      <div class="menu-item" [class.active]="current_menu === 'DONE'" (click)="setMenu('DONE')">
+        Done
+      </div>
     </div>
-    <div class="menu-item" [class.active]="current_menu === 'IN PROGRESS'" (click)="setMenu('IN PROGRESS')">
-      In Progress
-    </div>
-    <div class="menu-item" [class.active]="current_menu === 'DONE'" (click)="setMenu('DONE')">
-      Done
+    <div>
+      <mat-form-field class="filter" appearance="outline" [class.flex]="inner_width() < 1050">
+        <mat-select name="requirement_type" [(ngModel)]="current_filter" (selectionChange)="setVisiblebasedOnFilter()">
+          <mat-option [value]="-1">ALL</mat-option>
+          <mat-option [value]="1">FFRA</mat-option>
+          <mat-option [value]="2">DATASET ( PENAMBAHAN COLUMN )</mat-option>
+          <mat-option [value]="3">DATASET BARU</mat-option>
+        </mat-select>
+      </mat-form-field>
     </div>
   </div>
-
   <div class="requests" [class.center]="inner_width() < 822">
-    @if (todo().length > 0 && current_menu === 'TODO') {
-    @for (request of todo(); track request.request_id) {
-    <app-card-request [reminder_tooltip]="setTodoWarningIfAboveTreshold(request.date_start, 8)" [request]="request"
-      (refresh)="getTodo()" />
+    @if (visible_todo().length > 0 && current_menu != 'DONE') {
+    @for (request of visible_todo(); track request.request_id) {
+    <app-card-request [reminder_tooltip]="todo_state_threshold()" [request]="request" (refresh)="getTodo()" />
     }
     }
-
-    @if (in_progress().length > 0 && current_menu === 'IN PROGRESS') {
-    @for (request of in_progress(); track request.request_id) {
+    @if (visible_todo().length > 0 && current_menu === 'DONE') {
+    @for (request of visible_todo(); track request.request_id) {
     <app-card-request [request]="request" (refresh)="getTodo()" />
     }
     }
 
-    @if (done().length > 0 && current_menu === 'DONE') {
-    @for (request of done(); track request.request_id) {
-    <app-card-request [request]="request" (refresh)="getTodo()" />
-    }
-    }
   </div>
 </body>

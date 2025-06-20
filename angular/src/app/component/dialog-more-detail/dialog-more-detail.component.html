@@ -68,7 +68,7 @@
     <div class="requirement-item">
       <label class="question-text">Docx File</label>
       <div class="readonly-field file-field">
-        {{ filenames()[0].attachment_name }}
+        {{ filenames()[0].attachment_filename }}
         <button mat-icon-button class="download-icon-button" (click)="downloadAttachment(0)">
           <mat-icon class="download-icon">download</mat-icon>
         </button>
@@ -78,7 +78,7 @@
     <div class="requirement-item">
       <label class="question-text">Excel File</label>
       <div class="readonly-field file-field">
-        {{ filenames()[1].attachment_name }}
+        {{ filenames()[1].attachment_filename }}
         <button mat-icon-button class="download-icon-button" (click)="downloadAttachment(1)">
           <mat-icon class="download-icon">download</mat-icon>
         </button>

@@ -69,14 +69,35 @@ export class PopUpPeriodPickerComponent implements OnInit {
 		}
 
 		if (this.period_type === "WEEK") {
-			const lastYear = this.year_list()[this.year_list().length - 1];
-			this.month_list.set(this.getMonthList(lastYear));
+			// const lastYear = this.year_list()[this.year_list().length - 1];
+			const currentYear = new Date().getFullYear();
+			this.month_list.set(this.getMonthList(2025));
 		}
 
 		this.updateVisiblePeriod();
 	}
 
+	updateVisiblePeriod() {
+		const { year, month } = this.current_menu;
+		let filtered: TimePeriod[];
+
+		if (this.period_type === "WEEK") {
+			filtered = this.available_period.filter(
+				(period) =>
+					period.start_date.getFullYear() === year &&
+					period.start_date.getMonth() === month,
+			);
+		} else {
+			filtered = this.available_period.filter(
+				(period) => period.start_date.getFullYear() === year,
+			);
+		}
+
+		this.visible_period.set(filtered);
+	}
+
 	selectOption(option: TimePeriod) {
+		console.log(option.start_date.getDate());
 		this.option_selected.emit(option);
 		this.store_menu.emit(this.current_menu);
 		this.period_picker_visible.emit("NAN");
@@ -104,25 +125,6 @@ export class PopUpPeriodPickerComponent implements OnInit {
 
 	changeMonth() {
 		this.current_menu.type = "MONTH";
-	}
-
-	updateVisiblePeriod() {
-		const { year, month } = this.current_menu;
-		let filtered: TimePeriod[];
-
-		if (this.period_type === "WEEK") {
-			filtered = this.available_period.filter(
-				(period) =>
-					period.start_date.getFullYear() === year &&
-					period.start_date.getMonth() === month,
-			);
-		} else {
-			filtered = this.available_period.filter(
-				(period) => period.start_date.getFullYear() === year,
-			);
-		}
-
-		this.visible_period.set(filtered);
 	}
 
 	getOldestPeriod(): TimePeriod | undefined {
@@ -153,16 +155,24 @@ export class PopUpPeriodPickerComponent implements OnInit {
 
 		const startYear = oldest.start_date.getFullYear();
 		const currentYear = new Date().getFullYear();
+
 		const currentMonth = new Date().getMonth();
+
+		if (input === currentYear && input === startYear) {
+			return this.monthNames.slice(
+				oldest.start_date.getMonth(),
+				currentMonth + 1,
+			);
+		}
+		if (input === currentYear) {
+			return this.monthNames.slice(0, currentMonth + 1);
+		}
 
 		if (input === startYear) {
 			return this.monthNames.slice(oldest.start_date.getMonth());
 		}
 
-		if (input === currentYear) {
-			return this.monthNames.slice(0, currentMonth + 1);
-		}
-
+		console.log(this.monthNames);
 		return this.monthNames;
 	}
 

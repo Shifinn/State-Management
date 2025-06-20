@@ -20,6 +20,7 @@
         }
     </div>
     @if (current_period) {
-    <div class="current-period-full-label">{{current_period.full_label}}</div>
+    <div class="current-period-full-label" [matTooltip]="current_period_tooltip()">
+        {{current_period.full_label}}</div>
     }
 </div>

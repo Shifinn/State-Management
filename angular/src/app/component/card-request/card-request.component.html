@@ -1,38 +1,33 @@
 <div class="card">
   <div class="card-header">
-    <h3 class="request-title">{{ request.request_title }}</h3>
+    <h3 class="request-title">{{ request.request_title}}</h3>
     <span>
-      @if (reminder_tooltip){
-      <span class="reminder" matTooltip="Has been {{reminder_tooltip}} hours since {{request.state_name}} started" >!</span>
+      @if (reminder_tooltip && state_duration_string() != ""){
+      <span class="reminder" [matTooltip]="state_duration_string()">!</span>
       }
+
       <span class="card-request-id">#{{ request.request_id }}</span>
     </span>
   </div>
 
   <div>
-    <span class="request-date">{{ request.request_date | date : "short" }}</span>
+    <div>
+      <span class="data-label">{{
+        request.request_date | date : "short"
+        }}</span>
+      <mat-icon class="icon" [matTooltip]="request_duration_string()">timer</mat-icon>
+    </div>
+    <div class="data-label">{{ request.data_type_name }}</div>
   </div>
 
-  <!-- @if (request.date_start){
-        <div class="state-info">
-      <div class="state-label">State Start Date:</div>
-      <div class="state-data">
-        <span class="date">{{ request.date_start | date : "medium" }}</span>
-
-      </div>
-    </div>
-  } -->
 
   <div class="card-status">
-    <span class="{{ 's' + request.state_name_id }}">{{
+    <span class="{{ 's' + request.state_name_id }} state-label">{{
       request.state_name
-    }}</span>
+      }}</span>
   </div>
 
   <div class="card-footer">
-    <app-custom-square-button
-      [button_label]="'More Details'"
-      (buttonClick)="moreDetails()"
-    />
+    <app-custom-square-button [button_label]="'More Details'" (buttonClick)="moreDetails()" />
   </div>
 </div>
