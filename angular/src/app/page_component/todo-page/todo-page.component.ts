@@ -4,19 +4,18 @@ import type { SimpleData, StateThreshold } from "../../model/format.type";
 import { CardRequestComponent } from "../../component/card-request/card-request.component";
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatSelectModule } from "@angular/material/select";
-import { CommonModule } from "@angular/common";
+
 import { NgModule } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 
 @Component({
 	selector: "app-todo-page",
 	imports: [
-		CardRequestComponent,
-		MatFormFieldModule,
-		MatSelectModule,
-		CommonModule,
-		FormsModule,
-	],
+    CardRequestComponent,
+    MatFormFieldModule,
+    MatSelectModule,
+    FormsModule
+],
 	templateUrl: "./todo-page.component.html",
 	styleUrl: "./todo-page.component.css",
 })

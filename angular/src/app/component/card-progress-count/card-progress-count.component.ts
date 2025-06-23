@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output } from "@angular/core";
-import { CommonModule } from "@angular/common";
+
 import type {
 	CachedProgrestCardMemory,
 	StateStatus,
@@ -7,7 +7,7 @@ import type {
 } from "../../model/format.type";
 @Component({
 	selector: "app-card-progress-count",
-	imports: [CommonModule],
+	imports: [],
 	templateUrl: "./card-progress-count.component.html",
 	styleUrl: "./card-progress-count.component.css",
 })

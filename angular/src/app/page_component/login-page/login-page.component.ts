@@ -5,19 +5,18 @@ import { LoginService } from "../../service/login.service";
 import { DataProcessingService } from "../../service/data-processing.service";
 import { MatFormFieldModule } from "@angular/material/form-field";
 import { MatInputModule } from "@angular/material/input";
-import { CommonModule } from "@angular/common";
+
 import { FormsModule, type NgForm } from "@angular/forms";
 
 @Component({
 	selector: "app-login-page",
 	imports: [
-		MatButtonModule,
-		MatFormFieldModule,
-		MatInputModule,
-		MatFormFieldModule,
-		CommonModule,
-		FormsModule,
-	],
+    MatButtonModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatFormFieldModule,
+    FormsModule
+],
 	templateUrl: "./login-page.component.html",
 	styleUrl: "./login-page.component.css",
 })
