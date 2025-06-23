@@ -1,4 +1,14 @@
 {
+	"builds": [
+		{
+			"src": "angular/package.json",
+			"use": "@vercel/angular"
+		},
+		{
+			"src": "api/**/*.go",
+			"use": "@vercel/go"
+		}
+	],
 	"rewrites": [
 		{
 			"source": "/(.*)",

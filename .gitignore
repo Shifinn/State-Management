@@ -22,4 +22,5 @@ node_modules/.package-lock.json
 backup-db-data-only.sql
 backup-db-scheman-only.sql
 backup-db.sql
-backend/Files
+
+api/Files
