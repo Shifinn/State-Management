@@ -1,42 +1,59 @@
 import type { Routes } from "@angular/router";
+// Notice we only import the main layout components now!
 import { LoginPageComponent } from "./page_component/login-page/login-page.component";
 import { HomeComponent } from "./page_component/home/home.component";
-import { DashboardPageComponent } from "./page_component/dashboard-page/dashboard-page.component";
-import { ProgressPageComponent } from "./page_component/progress-page/progress-page.component";
-import { ProfilePageComponent } from "./page_component/profile-page/profile-page.component";
-import { CardProgressCountComponent } from "./component/card-progress-count/card-progress-count.component";
-import { TodoPageComponent } from "./page_component/todo-page/todo-page.component";
 
 export const routes: Routes = [
 	{
 		path: "",
 		pathMatch: "full",
-		component: LoginPageComponent, // Default route to login page
+		component: LoginPageComponent, // Login page is loaded first.
 	},
 	{
 		path: "home",
-		component: HomeComponent, // Main page with header and router outlet
+		component: HomeComponent, // The main layout is loaded after login.
 		children: [
-			// Child routes for the main page
+			// Your redirect will still work perfectly!
 			{
 				path: "",
 				pathMatch: "full",
-				redirectTo: "/home/(home:dashboard)", // Redirect to dashboard by default
+				redirectTo: "/home/(home:dashboard)",
 				outlet: "home",
 			},
 			{
 				path: "dashboard",
-				component: DashboardPageComponent, // Dashboard page
+				// This component is now LAZY LOADED
+				loadComponent: () =>
+					import(
+						"./page_component/dashboard-page/dashboard-page.component"
+					).then((c) => c.DashboardPageComponent),
 				outlet: "home",
 			},
 			{
 				path: "todo",
-				component: TodoPageComponent, // Progress page
+				// This component is now LAZY LOADED
+				loadComponent: () =>
+					import("./page_component/todo-page/todo-page.component").then(
+						(c) => c.TodoPageComponent,
+					),
 				outlet: "home",
 			},
 			{
 				path: "progress",
-				component: ProgressPageComponent, // Profile page
+				// This component is now LAZY LOADED
+				loadComponent: () =>
+					import("./page_component/progress-page/progress-page.component").then(
+						(c) => c.ProgressPageComponent,
+					),
+				outlet: "home",
+			},
+			// You can apply the same pattern to your Profile page and others
+			{
+				path: "profile",
+				loadComponent: () =>
+					import("./page_component/profile-page/profile-page.component").then(
+						(c) => c.ProfilePageComponent,
+					),
 				outlet: "home",
 			},
 		],

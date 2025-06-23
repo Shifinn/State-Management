@@ -10,11 +10,11 @@ import { FormsModule, type NgForm } from "@angular/forms";
 
 @Component({
 	selector: "app-login-page",
+	standalone: true,
 	imports: [
 		MatButtonModule,
 		MatFormFieldModule,
 		MatInputModule,
-		MatFormFieldModule,
 		CommonModule,
 		FormsModule,
 	],
