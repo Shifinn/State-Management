@@ -53,11 +53,11 @@ export class TodoPageComponent {
 
 	setMenu(new_menu: "TODO" | "IN PROGRESS" | "DONE") {
 		this.current_menu = new_menu;
-		this.setVisiblebasedOnFilter();
+		this.setVisibleBasedOnFilter();
 		// this.visible_todo.set(this.todo_map().get(new_menu) ?? []);
 	}
 
-	setVisiblebasedOnFilter() {
+	setVisibleBasedOnFilter() {
 		if (this.current_filter === -1) {
 			this.visible_todo.set(this.todo_map().get(this.current_menu) ?? []);
 		} else {
@@ -65,6 +65,28 @@ export class TodoPageComponent {
 				.get(this.current_menu)
 				?.filter((todo) => todo.requirement_type_id === this.current_filter);
 			this.visible_todo.set(filtered_todos ?? []);
+		}
+	}
+
+	sortVisibleData(input: string) {
+		switch (input) {
+			case "REQ_ID":
+				this.visible_todo().sort((a, b) =>
+					a.request_id > b.request_id ? 1 : -1,
+				);
+				break;
+
+			case "STATE":
+				this.visible_todo().sort((a, b) =>
+					a.state_name_id > b.state_name_id ? 1 : -1,
+				);
+				break;
+
+			case "REQ_TYPE":
+				this.visible_todo().sort((a, b) =>
+					a.requirement_type_id > b.requirement_type_id ? 1 : -1,
+				);
+				break;
 		}
 	}
 	getTodo() {

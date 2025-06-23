@@ -156,8 +156,8 @@ $$ LANGUAGE plpgsql;
 -- END;
 -- $$ LANGUAGE plpgsql;
 
--- PROCEDURE TO DECREASE/DEGRADE STATE WHEN REJECTED
-CREATE OR REPLACE PROCEDURE degrade_state( 
+-- FUNCTION TO DECREASE/DEGRADE STATE WHEN REJECTED
+CREATE OR REPLACE FUNCTION degrade_state( 
     request_id_input    INT,
     user_id_input       INT,
     comment_input       TEXT DEFAULT NULL	
@@ -209,46 +209,31 @@ $$ LANGUAGE plpgsql;
 
 
 -- PROCEDURE TO CREATE NEW REQUEST AND START WITH NEW STATE
-CREATE OR REPLACE PROCEDURE create_new_request(
-    request_title_input         VARCHAR, 
+CREATE OR REPLACE FUNCTION create_new_request(
+    request_title_input         VARCHAR,
     user_id_input               INTEGER,
     requester_name_input        VARCHAR,
     analysis_purpose_input      TEXT,
-    requested_finish_date_input TIMESTAMP,
+    requested_completed_date_input TIMESTAMP,
     pic_submitter_input         VARCHAR,
     urgent_input                BOOLEAN,
-    requirement_type_input      INT,
+    requirement_type_input      INTEGER,
     answers_input               VARCHAR[],
-    docx_input                  BYTEA DEFAULT NULL,
-    docx_filename_input         VARCHAR DEFAULT NULL,
-    excel_input                 BYTEA DEFAULT NULL,
-    excel_filename_input        VARCHAR DEFAULT NULL,
     remark_input                TEXT DEFAULT NULL
 )
-AS $$
-DECLARE 
-    temp_request_id INT;
+RETURNS INTEGER AS $$
+DECLARE
+    temp_request_id INTEGER;
 BEGIN
-    -- Validate required fields
-    IF request_title_input IS NULL OR
-       user_id_input IS NULL OR
-       requester_name_input IS NULL OR
-       analysis_purpose_input IS NULL OR
-       requested_finish_date_input IS NULL OR
-       pic_submitter_input IS NULL OR
-       urgent_input IS NULL OR
-       requirement_type_input IS NULL OR
-       answers_input IS NULL THEN
-        RAISE EXCEPTION 'One or more required fields are NULL';
-    END IF;
+    -- It's generally better to let the database handle NOT NULL constraints
+    -- on the table itself, but this validation is okay for complex checks.
 
-    -- Insert request
     INSERT INTO request_table (
         request_title,
-        user_id, 
-        requester_name, 
+        user_id,
+        requester_name,
         analysis_purpose,
-        requested_completed_date,
+        requested_completed_date, 
         pic_submitter,
         urgent,
         requirement_type_id,
@@ -256,10 +241,10 @@ BEGIN
     )
     VALUES (
         request_title_input,
-        user_id_input, 
-        requester_name_input, 
+        user_id_input,
+        requester_name_input,
         analysis_purpose_input,
-        requested_finish_date_input,
+        requested_completed_date_input,
         pic_submitter_input,
         urgent_input,
         requirement_type_input,
@@ -267,16 +252,16 @@ BEGIN
     )
     RETURNING request_id INTO temp_request_id;
 
-    -- Insert state
+    -- Insert initial state
     INSERT INTO state_table(state_name_id, request_id, started_by)
     VALUES (1, temp_request_id, user_id_input);
 
-    -- Store answers and attachments
+    -- Store answers if they are provided
     CALL store_answers(temp_request_id, requirement_type_input, answers_input);
-    CALL store_attachments(temp_request_id, docx_input, docx_filename_input, excel_input, excel_filename_input);
+
+    RETURN temp_request_id;
 END;
 $$ LANGUAGE plpgsql;
-
 
 
 -- PROCEDURE TO INSERT THE QUESTIONS BASED ON REQUIREMENT
@@ -382,41 +367,44 @@ $$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE PROCEDURE store_attachments(
 	request_id_input			INT,
-	docx_input					BYTEA,
+	docx_filepath				VARCHAR,
 	docx_filename_input			VARCHAR,
-	excel_input					BYTEA,
+	excel_filepath				VARCHAR,
 	excel_filename_input		VARCHAR
 ) AS $$
 BEGIN
-	IF docx_input IS NOT NULL AND docx_filename_input IS NOT NULL THEN
-		INSERT INTO attachment_table(request_id, attachment_type_id, attachment_filename, attachment)
-		VALUES (request_id_input, 1, docx_filename_input, docx_input);
+	IF docx_filepath IS NOT NULL AND docx_filename_input IS NOT NULL THEN
+		INSERT INTO attachment_table(request_id, attachment_type_id, attachment_filename, attachment_path)
+		VALUES (request_id_input, 1, docx_filename_input, docx_filepath);
 	END IF;
 
-	IF excel_input IS NOT NULL AND excel_filename_input IS NOT NULL THEN
-		INSERT INTO attachment_table(request_id, attachment_type_id, attachment_filename, attachment)
-		VALUES (request_id_input, 2, excel_filename_input, excel_input);
+	IF excel_filepath IS NOT NULL AND excel_filename_input IS NOT NULL THEN
+		INSERT INTO attachment_table(request_id, attachment_type_id, attachment_filename, attachment_path)
+		VALUES (request_id_input, 2, excel_filename_input, excel_filepath);
 	END IF;
 END;
 $$ LANGUAGE plpgsql;
 
+CALL store_attachments(1, 'a','a.pdf', 'b', 'b.pdf');
 
 
-CREATE OR REPLACE FUNCTION get_attachment(
+
+
+CREATE OR REPLACE FUNCTION get_attachment_filepath(
     request_id_input INT,
     attachment_type_input INT
 )
-RETURNS BYTEA AS $$
+RETURNS VARCHAR AS $$
 DECLARE
-    result_file BYTEA;
+    result_filepath VARCHAR;
 BEGIN
-    SELECT attachment
-    INTO result_file
+    SELECT attachment_path
+    INTO result_filepath
     FROM attachment_table
     WHERE request_id = request_id_input 
       AND attachment_type_id = attachment_type_input;
 
-    RETURN result_file;
+    RETURN result_filepath;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -607,7 +595,7 @@ BEGIN
 		JOIN requirement_type_table rt ON r.requirement_type_id = rt.requirement_type_id
         WHERE s.state_name_id = ANY(viewable)
 			AND s.state_name_id = r.current_state
-		ORDER BY s.state_name_id ASC, r.request_id
+		ORDER BY rt.requirement_type_id,s.state_name_id ASC, r.request_id
     ) t;
     RETURN result_json;
 END;
@@ -780,6 +768,25 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION get_requirement_names()	
+	)
+RETURNS JSON AS $$
+DECLARE
+    result_json JSON;
+BEGIN
+	SELECT json_agg(row_to_json(t))
+	INTO result_json
+	FROM (
+		SELECT 
+			requirement_type_id,
+			data_type_name
+		FROM requirement_type_table
+		WHERE request_id = request_id_input
+	) t;
+    RETURN result_json;
+END;
+$$ LANGUAGE plpgsql;
+
 SELECT get_oldest_request();
 
 
@@ -810,7 +817,7 @@ INSERT INTO role_table (role_id, role_name)
 VALUES 
 (1, 'user'),
 (2, 'worker'),
-(3, 'validator')
+(3, 'validator');
 
 -- INSERT DUMMY USER ROLE
 INSERT INTO user_role_table (user_id, role_id) VALUES
@@ -827,17 +834,17 @@ INSERT INTO user_role_table (user_id, role_id) VALUES
 (11, 3);
 
 -- INSERT DUMMY USER
-INSERT INTO user_table (user_name, user_password, user_role, email, nik, position, department) VALUES
-('alice',   '1234', 1, 'alice@example.com',   1001, 'Manager',      'HR'),
-('bob',     '1234', 2, 'bob@example.com',     1002, 'Staff',        'Finance'),
-('carol',   '1234', 3, 'carol@example.com',   1003, 'Supervisor',   'IT'),
-('dave',    '1234', 1, 'dave@example.com',    1004, 'Manager',      'IT'),
-('eve',     '1234', 2, 'eve@example.com',     1005, 'Staff',        'HR'),
-('frank',   '1234', 3, 'frank@example.com',   1006, 'Supervisor',   'Finance'),
-('grace',   '1234', 1, 'grace@example.com',   1007, 'Manager',      'Marketing'),
-('heidi',   '1234', 2, 'heidi@example.com',   1008, 'Staff',        'Marketing'),
-('ivan',    '1234', 3, 'ivan@example.com',    1009, 'Supervisor',   'IT'),
-('judy',    '1234', 1, 'judy@example.com',    1010, 'Manager',      'Finance');
+INSERT INTO user_table (user_name, user_password, email, nik, position, department) VALUES
+('alice',   '1234', 'alice@example.com',   1001, 'Manager',      'HR'),
+('bob',     '1234', 'bob@example.com',     1002, 'Staff',        'Finance'),
+('carol',   '1234', 'carol@example.com',   1003, 'Supervisor',   'IT'),
+('dave',    '1234', 'dave@example.com',    1004, 'Manager',      'IT'),
+('eve',     '1234', 'eve@example.com',     1005, 'Staff',        'HR'),
+('frank',   '1234', 'frank@example.com',   1006, 'Supervisor',   'Finance'),
+('grace',   '1234', 'grace@example.com',   1007, 'Manager',      'Marketing'),
+('heidi',   '1234', 'heidi@example.com',   1008, 'Staff',        'Marketing'),
+('ivan',    '1234', 'ivan@example.com',    1009, 'Supervisor',   'IT'),
+('judy',    '1234', 'judy@example.com',    1010, 'Manager',      'Finance');
 
 INSERT INTO user_table (user_name, user_password, user_role, email, nik, position, department) VALUES
 ('barta',    '1234', 1, 'barta@example.com',    1011, 'Manager',      'Finance');
@@ -918,29 +925,29 @@ VALUES
 INSERT INTO attachment_type_table 
 VALUES
 (1,'docx/pdf'),
-(2,'excel')
+(2,'excel');
 
 INSERT INTO state_threshold_table
 VALUES
 (1,8),
 (2,8),
 (3,8),
-(4,8)
+(4,8);
 
 -- set all name lower case
 UPDATE user_table
 SET user_name = LOWER(user_name);
 
 -- Step 1: Delete from attachment_table (check spelling!)
-DELETE FROM attachment_table WHERE request_id = 20;
+DELETE FROM attachment_table WHERE request_id > 21;
 
 -- Step 2: Delete from state_table
-DELETE FROM state_table WHERE request_id = 20;
+DELETE FROM state_table WHERE request_id > 21;
 
 -- Step 3: Delete from requirement_table
-DELETE FROM requirement_table WHERE request_id = 20;
+DELETE FROM requirement_table WHERE request_id > 21;
 
-DELETE FROM request_table WHERE request_id >=17;
+DELETE FROM request_table WHERE request_id >21;
 
 
 UPDATE state_name_table

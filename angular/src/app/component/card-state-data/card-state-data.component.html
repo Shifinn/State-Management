@@ -7,37 +7,34 @@
     <span class="request-date">{{state_info.request_date| date:'short'}}</span>
   </div>
 
-    <div class="state-info">
-      <div class="state-label">{{ box_text_variant() }}</div>
-      <div class="state-data">
-        <span class="date">{{ state_info.date_start | date : "medium" }}</span>
-        <span class="by-user">by {{ state_info.started_by }}</span>
-      </div>
+  <div class="state-info">
+    <div class="state-label">{{ box_text_variant() }}</div>
+    <div class="state-data">
+      <span class="date">{{ state_info.date_start | date : "medium" }}</span>
+      <span class="by-user">by {{ state_info.started_by }}</span>
     </div>
+  </div>
 
-    @if (state_info.completed && state_info.state_name_id < 5) {
-    <div class="state-info">
-      <div class="state-label">State End Date</div>
-      <div class="state-data">
-        <span class="date">{{ state_info.date_end | date : "medium" }}</span>
-        <span class="by-user">by {{ state_info.ended_by }}</span>
-      </div>
+  @if (state_info.completed && state_info.state_name_id < 5) { <div class="state-info">
+    <div class="state-label">State End Date</div>
+    <div class="state-data">
+      <span class="date">{{ state_info.date_end | date : "medium" }}</span>
+      <span class="by-user">by {{ state_info.ended_by }}</span>
     </div>
-    }
+</div>
+}
 
-    <div class="state-current">
-      <div class="state-label">Current State</div>
-      <div class="card-status">
-        <span class="{{ 's' + state_info.current_state }}">{{
-          state_info.current_state_name
-        }}</span>
-      </div>
-    </div>
 
-    <div class="card-footer">
-      <app-custom-square-button
-        [button_label]="'More Details'"
-        (buttonClick)="moreDetails()"
-      ></app-custom-square-button>
-    </div>
+
+<div class="card-footer">
+
+  <div class="card-status">
+    <span [matTooltip]="`Current state is ${state_info.current_state_name}`"
+      class="{{ 's' + state_info.current_state }}">{{
+      state_info.current_state_name
+      }}</span>
+  </div>
+
+  <app-custom-square-button [button_label]="'More Details'" (buttonClick)="moreDetails()"></app-custom-square-button>
+</div>
 </div>

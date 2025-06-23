@@ -21,13 +21,18 @@
   </div>
 
 
-  <div class="card-status">
+  <!-- <div class="card-status">
     <span class="{{ 's' + request.state_name_id }} state-label">{{
       request.state_name
       }}</span>
-  </div>
+  </div> -->
 
   <div class="card-footer">
+    <div class="card-status">
+      <span class="{{ 's' + request.state_name_id }} state-label">{{
+        request.state_name
+        }}</span>
+    </div>
     <app-custom-square-button [button_label]="'More Details'" (buttonClick)="moreDetails()" />
   </div>
 </div>

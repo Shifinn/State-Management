@@ -3,12 +3,15 @@
 	border: none;
 	border-radius: 8px;
 	color: white;
-	padding: 0.6em 1.2em;
+	padding: 0.45em 1em;
 	cursor: pointer;
-	font-weight: 700;
-	font-size: 0.83em;
+	font-weight: 500;
+	font-size: 0.95em;
 	box-shadow: 0 2px 8px rgba(44, 62, 80, 0.08);
 	transition: background 0.2s;
+	/* font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif, Roboto; */
+
+	font-family: Roboto, sans-serif;
 }
 
 .details-button:hover {

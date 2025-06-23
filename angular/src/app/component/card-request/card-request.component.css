@@ -4,6 +4,8 @@
 
 .request-title {
 	margin: 0.1em;
+	font-size: 1.23em;
+	/* font-weight: 500/; */
 }
 
 .data-label {
@@ -21,15 +23,26 @@
 	transform: translateY(0.15em);
 }
 
-.card-status {
+/* .card-status {
 	margin: 1.1em 0;
-	text-align: center;
-}
+} */
 
 .card-status span {
-	padding: 6px 12px;
-	border-radius: 4px;
-	font-size: 1.1em;
+	padding: 0.45em 1em;
+	border-radius: 8px;
+	font-size: 0.95em;
+	font-weight: 500;
+	font-family: Roboto, sans-serif;
+	/* font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif, Roboto; */
+}
+
+.card-footer {
+	margin-top: 0.8em;
+	margin-bottom: 0.4em;
+	display: flex;
+	/* text-align: right; */
+	align-items: center;
+	justify-content: space-between;
 }
 
 .reminder {
@@ -50,12 +63,12 @@
 
 .s2 {
 	background-color: #ffd6a5;
-	color: #18494b;
+	color: #4b4318;
 }
 
 .s3 {
 	background-color: #fdffb6;
-	color: #4b4a18;
+	color: #4a4b18;
 }
 
 .s4 {
@@ -66,8 +79,4 @@
 .s5 {
 	background-color: #caffbf;
 	color: #1c3e1f;
-}
-
-.card-footer {
-	text-align: right;
 }

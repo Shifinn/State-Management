@@ -19,3 +19,7 @@ node_modules/@biomejs/biome/bin/biome
 node_modules/@biomejs/biome/scripts/postinstall.js
 node_modules/@biomejs/cli-win32-x64/biome.exe
 node_modules/.package-lock.json
+backup-db-data-only.sql
+backup-db-scheman-only.sql
+backup-db.sql
+backend/Files

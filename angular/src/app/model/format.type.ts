@@ -123,3 +123,8 @@ export type Duration = {
 	day: number;
 	hour: number;
 };
+
+export type RequestType = {
+	requirement_type_id: number;
+	data_type_name: string;
+};

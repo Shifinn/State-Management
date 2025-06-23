@@ -4,10 +4,11 @@ import { CustomSquareButtonComponent } from "../custom-square-button/custom-squa
 import type { StateInfoData } from "../../model/format.type";
 import { MatDialog } from "@angular/material/dialog";
 import { DialogMoreDetailComponent } from "../dialog-more-detail/dialog-more-detail.component";
+import { MatTooltipModule } from "@angular/material/tooltip";
 
 @Component({
 	selector: "app-card-state-data",
-	imports: [CustomSquareButtonComponent, CommonModule],
+	imports: [CustomSquareButtonComponent, CommonModule, MatTooltipModule],
 	templateUrl: "./card-state-data.component.html",
 	styleUrl: "./card-state-data.component.css",
 })

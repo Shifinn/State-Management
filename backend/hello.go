@@ -4,17 +4,18 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
-	"gopkg.in/gomail.v2"
+	"gopkg.in/gomail.v2" // For sending emails
 
-	"github.com/gin-gonic/gin"
-	"github.com/lib/pq"
+	"github.com/gin-gonic/gin" // Web framework
+	"github.com/lib/pq"        // PostgreSQL driver specific features
 )
 
 // Database connection details
@@ -23,83 +24,83 @@ const (
 	port     = 5432
 	user     = "postgres"
 	password = "12345678"
-	db_name  = "gudang_garam"
+	dbName   = "gudang_garam"
 )
 
-// User struct for user authentication
+// User represents a user for authentication purposes.
 type User struct {
-	User_name     string `json:"user_name"`
-	User_password string `json:"user_password"`
+	UserName string `json:"user_name"`     // User's login name (JSON tag: snake_case for DB compatibility)
+	Password string `json:"user_password"` // User's password (JSON tag: snake_case for DB compatibility)
 }
 
-// StateCount struct to hold state-wise request counts
+// StateCount holds the number of requests in a specific state.
 type StateCount struct {
-	State_id   int    `json:"state_id"`
-	State_name string `json:"state_name"`
-	Todo       int    `json:"todo"`
-	Done       int    `json:"done"`
+	StateID   int    `json:"state_id"`   // Unique ID of the state (JSON tag: snake_case)
+	StateName string `json:"state_name"` // Name of the state (JSON tag: snake_case)
+	Todo      int    `json:"todo"`       // Number of requests currently in this state (JSON tag: snake_case)
+	Done      int    `json:"done"`       // Number of requests that have passed through this state (JSON tag: snake_case)
 }
 
-// NewRequest struct for creating a new request
+// NewRequest represents the data for creating a new request.
 type NewRequest struct {
-	Request_title         string    `json:"request_title"`
-	User_id               int       `json:"user_id"`
-	Requester_name        string    `json:"requester_name"`
-	Analysis_purpose      string    `json:"analysis_purpose"`
-	Requested_finish_date time.Time `json:"requested_finish_date"`
-	Pic_request           string    `json:"pic_request"`
-	Urgent                bool      `json:"urgent"`
-	Requirement_type      int       `json:"requirement_type"`
-	Answers               []string  `json:"answers"`
-	Docx_attachment       []byte    `json:"docx_attachment"`
-	Docx_filename         string    `json:"docx_filename"`
-	Excel_attachment      []byte    `json:"excel_attachment"`
-	Excel_filename        string    `json:"Excelfilename"`
-	Remark                string    `json:"remark"`
+	RequestTitle        string    `json:"request_title"`         // Title of the request (JSON tag: snake_case)
+	UserID              int       `json:"user_id"`               // ID of the user submitting the request (JSON tag: snake_case)
+	RequesterName       string    `json:"requester_name"`        // Name of the person requesting analysis (JSON tag: snake_case)
+	AnalysisPurpose     string    `json:"analysis_purpose"`      // Purpose of the analysis (JSON tag: snake_case)
+	RequestedFinishDate time.Time `json:"requested_finish_date"` // Desired completion date (JSON tag: snake_case)
+	PicRequest          string    `json:"pic_request"`           // Person in charge for the request (JSON tag: snake_case)
+	Urgent              bool      `json:"urgent"`                // Indicates if the request is urgent
+	RequirementType     int       `json:"requirement_type"`      // Type of requirement (e.g., 1 for docx, 2 for excel) (JSON tag: snake_case)
+	Answers             []string  `json:"answers"`               // Array of answers to dynamic questions
+	DocxAttachment      []byte    `json:"docx_attachment"`       // Byte content of DOCX attachment (JSON tag: snake_case)
+	DocxFilename        string    `json:"docx_filename"`         // Original filename of DOCX attachment (JSON tag: snake_case)
+	ExcelAttachment     []byte    `json:"excel_attachment"`      // Byte content of Excel attachment (JSON tag: snake_case)
+	ExcelFilename       string    `json:"excel_filename"`        // Original filename of Excel attachment (JSON tag: snake_case)
+	Remark              string    `json:"remark"`                // Additional remarks for the request
 }
 
-// UpdateState struct for updating a request's state
+// UpdateState represents data for changing a request's state.
 type UpdateState struct {
-	Request_id int    `json:"request_id"`
-	User_id    int    `json:"user_id"`
-	Comment    string `json:"comment"`
+	RequestID int    `json:"request_id"` // ID of the request to update (JSON tag: snake_case)
+	UserID    int    `json:"user_id"`    // ID of the user performing the update (JSON tag: snake_case)
+	Comment   string `json:"comment"`    // Optional comment for the state change
 }
 
+// EmailRecipient holds user and state information for sending emails.
 type EmailRecipient struct {
-	User_name     string `json:"user_name"`
-	Email         string `json:"email"`
-	Request_state string `json:"request_state"`
+	UserName     string `json:"user_name"` // Recipient's name (JSON tag: snake_case)
+	Email        string `json:"email"`
+	RequestState string `json:"request_state"` // Current state of the request (JSON tag: snake_case)
 }
 
-// Database connection initialized at program start
-var db *sql.DB = openDB()
-var mail = gomail.NewDialer("smtp.gmail.com", 587, "testinggomail222@gmail.com", "hqsq twwx ilao jvik")
-var dialed = startDial()
+// Global variables for database connection, mailer, and upload directory.
+var (
+	db              *sql.DB           = openDB()                                                                                     // Database connection
+	mail            *gomail.Dialer    = gomail.NewDialer("smtp.gmail.com", 587, "testinggomail222@gmail.com", "hqsq twwx ilao jvik") // Email dialer
+	dialed          gomail.SendCloser = startDial()                                                                                  // Mailer sender closer
+	uploadDirectory string            = ".\\files"                                                                                   // Base directory for file uploads
+)
 
 func main() {
-	// Close the database connection when the program exits
+	// Ensure database connection is closed when the application exits.
 	defer db.Close()
 
-	// Initialize Gin router
+	// Initialize Gin router for HTTP handling.
 	router := gin.Default()
 
-	// CORS middleware configuration
+	// CORS middleware configuration to allow cross-origin requests.
 	router.Use(func(c *gin.Context) {
-		// Allow requests from any origin
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		// Allow specific headers
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-		// Allow specific HTTP methods
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		// Handle preflight requests
 		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204) // No Content
+			c.AbortWithStatus(204) // Handle preflight requests
 			return
 		}
-		c.Next() // Continue to the next middleware/handler
+		c.Next() // Continue to the next handler
 	})
 
-	// Define API routes and their corresponding handlers
+	// Define API routes and their corresponding handlers.
 	router.GET("/stateSpecificData", getStateSpecificData)
 	router.GET("/userRequestsData", getUserCurrentRequests)
 	router.GET("/todoData", getTodoData)
@@ -118,14 +119,14 @@ func main() {
 	router.POST("/postReminderEmailToRole", postReminderEmailToRole)
 	router.PUT("/upgradeState", putUpgradeState)
 	router.PUT("/degradeState", putDegradeState)
-	router.Run("Localhost:9090") // Run the server on port 9090
+
+	// Run the server on port 9090.
+	router.Run("Localhost:9090")
 }
 
 // openDB initializes and returns a new PostgreSQL database connection.
-// It constructs the connection string and attempts to open the database.
-// If an error occurs during connection, it prints the error and returns nil.
 func openDB() *sql.DB {
-	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, db_name)
+	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbName)
 	db, err := sql.Open("postgres", psqlconn)
 	if err != nil {
 		fmt.Println("Error opening database: ", err)
@@ -134,237 +135,241 @@ func openDB() *sql.DB {
 	return db
 }
 
+// startDial attempts to connect to the SMTP server for sending emails.
 func startDial() gomail.SendCloser {
 	dialed, err := mail.Dial()
 	if err != nil {
-		log.Fatalf("Failed to connect to SMTP server: %v", err)
+		log.Fatalf("Failed to connect to SMTP server: %v", err) // Fatal error if connection fails
 	}
 	return dialed
 }
 
-// checkErr checks for a database error and sends a BadRequest response if an error exists.
-// It's a utility function to streamline error handling across handlers.
-func checkErr(c *gin.Context, err error, err_msg string) {
+// checkErr logs a database error and sends an HTTP response with the specified error type.
+func checkErr(c *gin.Context, errType int, err error, errMsg string) {
 	if err != nil {
-		println("error:" + err.Error()) // Print the error to the console for debugging
-		c.JSON(http.StatusBadRequest, gin.H{"error": err_msg})
-		c.Abort() // Abort the request to prevent further processing
+		println("Error: " + err.Error()) // Log error for debugging
+		if errType == http.StatusInternalServerError {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": errMsg})
+		} else if errType == http.StatusBadRequest {
+			c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
+		}
 	}
 }
 
-// checkEmpty checks if a string is empty and sends a BadRequest response if it is.
-// Used for validating required query parameters.
+// checkEmpty validates if a required query parameter is empty.
 func checkEmpty(c *gin.Context, str string) {
 	if str == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing query parameters"})
-		c.Abort() // Abort the request
+		c.Abort() // Stop further processing
 		return
 	}
 }
 
-// checkUserCredentials handles user login, verifying credentials against the database.
-// It retrieves user_name and password from query parameters, executes a stored procedure
-// to get the user ID, and returns it as JSON.
+// checkUserCredentials handles user login by verifying credentials against the database.
 func checkUserCredentials(c *gin.Context) {
-	var new_user User
-	var data string // To store the result from the database
-	new_user.User_name = c.Query("user_name")
-	new_user.User_password = c.Query("password")
+	var newUser User
+	var data string // Stores the result (e.g., user ID) from the database
 
-	// Call a stored procedure in the database to get user ID by credentials
+	// Retrieve user name and password from query parameters (expecting snake_case for user_name, literal for password)
+	newUser.UserName = c.Query("user_name")
+	newUser.Password = c.Query("password")
+	println("UserName = " + newUser.UserName + " Password = " + newUser.Password)
+
+	// Call a database function to get user ID by credentials
 	query := `SELECT get_user_id_by_credentials($1, $2)`
-	err := db.QueryRow(query, new_user.User_name, new_user.User_password).Scan(&data)
-	checkErr(c, err, "failed to get user id") // Handle any database errors
+	if err := db.QueryRow(query, newUser.UserName, newUser.Password).Scan(&data); err != nil {
+		checkErr(c, http.StatusBadRequest, err, "Failed to get user ID") // Use http.StatusBadRequest for client-side input errors
+		return
+	}
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
 
-// getStateSpecificData retrieves and sends state-specific request data.
-// It expects state_id, start_date, and end_date as query parameters,
-// then calls a database function to fetch the relevant data.
+// getStateSpecificData retrieves and sends state-specific request data based on date range.
 func getStateSpecificData(c *gin.Context) {
 	var data string
-	state_id_input := c.Query("state_id")
-	start_date_input := c.Query("start_date")
-	end_date_input := c.Query("end_date")
+	// Retrieve state ID and date range from query parameters (expecting snake_case)
+	stateIDInput := c.Query("state_id")
+	startDateInput := c.Query("start_date")
+	endDateInput := c.Query("end_date")
 
-	// Validate required query parameters
-	checkEmpty(c, state_id_input)
-	checkEmpty(c, start_date_input)
-	checkEmpty(c, end_date_input)
+	checkEmpty(c, stateIDInput)
+	checkEmpty(c, startDateInput)
+	checkEmpty(c, endDateInput)
 
 	// Call a database function to get state-specific data
 	query := `SELECT get_state_specific_data($1, $2, $3)`
-	err := db.QueryRow(query, state_id_input, start_date_input, end_date_input).Scan(&data)
-	checkErr(c, err, "Failed to get state data")
+	if err := db.QueryRow(query, stateIDInput, startDateInput, endDateInput).Scan(&data); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to get state data") // Use InternalServerError for DB errors
+		return
+	}
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
 
 // getUserCurrentRequests retrieves and sends a user's current requests.
-// It requires a user_id as a query parameter and fetches data from the database.
 func getUserCurrentRequests(c *gin.Context) {
 	var data string
-	user_id_input := c.Query("user_id")
+	// Retrieve user ID from query parameters (expecting snake_case)
+	userIDInput := c.Query("user_id")
 
-	// Validate required query parameter
-	checkEmpty(c, user_id_input)
+	checkEmpty(c, userIDInput)
 
 	// Call a database function to get user's current requests
 	query := `SELECT get_user_request_data($1)`
-	err := db.QueryRow(query, user_id_input).Scan(&data)
-	checkErr(c, err, "Failed to get user requests")
+	if err := db.QueryRow(query, userIDInput).Scan(&data); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to get user requests") // Use InternalServerError for DB errors
+		return
+	}
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
 
-// getTodoData retrieves and sends to-do data based on user role.
-// It expects a role_id as a query parameter.
+// getTodoData retrieves and sends to-do requests based on user role.
 func getTodoData(c *gin.Context) {
 	var data string
-	user_role_input := c.Query("role_id")
+	// Retrieve role ID from query parameters (expecting snake_case)
+	userRoleInput := c.Query("role_id")
 
-	// Validate required query parameter
-	checkEmpty(c, user_role_input)
+	checkEmpty(c, userRoleInput)
 
 	// Call a database function to get to-do data
 	query := `SELECT get_todo_data($1)`
-	err := db.QueryRow(query, user_role_input).Scan(&data)
-	checkErr(c, err, "Failed to get todo data")
+	if err := db.QueryRow(query, userRoleInput).Scan(&data); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to get todo data") // Use InternalServerError for DB errors
+		return
+	}
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
 
-// getCompleteRequestData retrieves and sends complete data for a specific request.
-// It requires a request_id as a query parameter.
+// getCompleteRequestData retrieves and sends complete details for a specific request.
 func getCompleteRequestData(c *gin.Context) {
 	var data string
-	request_id_input := c.Query("request_id")
+	// Retrieve request ID from query parameters (expecting snake_case)
+	requestIDInput := c.Query("request_id")
 
-	// Validate required query parameter
-	checkEmpty(c, request_id_input)
+	checkEmpty(c, requestIDInput)
 
 	// Call a database function to get complete request data
 	query := `SELECT get_complete_data_of_request($1)`
-	err := db.QueryRow(query, request_id_input).Scan(&data)
-	checkErr(c, err, "Failed to get complete data of request")
+	if err := db.QueryRow(query, requestIDInput).Scan(&data); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to get complete data of request") // Use InternalServerError for DB errors
+		return
+	}
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
 
-// getStateCount retrieves and sends state-wise counts of requests.
-// It initializes a slice of StateCount structs with predefined states,
-// queries the database for actual counts within a date range,
-// and then calculates "Done" counts by summing "Todo" counts of subsequent states.
+// getStateCount retrieves and calculates state-wise request counts within a date range.
 func getStateCount(c *gin.Context) {
 	var data string
-	var count []StateCount           // To unmarshal database result
-	var sqlNullString sql.NullString // To handle potential null results from database
+	var count []StateCount
+	var sqlNullString sql.NullString // Handles potential NULL results from DB
 
-	// Initialize result with predefined state IDs and names, and zero counts.
-	// This ensures all states are present in the final output, even if they have no requests.
+	// Initialize result with all possible states and zero counts.
 	result := []StateCount{
-		{State_id: 1, State_name: "SUBMITTED", Todo: 0, Done: 0},
-		{State_id: 2, State_name: "VALIDATED", Todo: 0, Done: 0},
-		{State_id: 3, State_name: "IN PROGRESS", Todo: 0, Done: 0},
-		{State_id: 4, State_name: "WAITING FOR REVIEW", Todo: 0, Done: 0},
-		{State_id: 5, State_name: "DONE", Todo: 0, Done: 0},
-		{State_id: -1, State_name: "TOTAL", Todo: 0, Done: 0}, // Placeholder for total counts
+		{StateID: 1, StateName: "SUBMITTED", Todo: 0, Done: 0},
+		{StateID: 2, StateName: "VALIDATED", Todo: 0, Done: 0},
+		{StateID: 3, StateName: "IN PROGRESS", Todo: 0, Done: 0},
+		{StateID: 4, StateName: "WAITING FOR REVIEW", Todo: 0, Done: 0},
+		{StateID: 5, StateName: "DONE", Todo: 0, Done: 0},
+		{StateID: -1, StateName: "TOTAL", Todo: 0, Done: 0}, // Placeholder for total counts
 	}
 
-	start_date_input := c.Query("start_date")
-	checkEmpty(c, start_date_input)
-	end_date_input := c.Query("end_date")
-	checkEmpty(c, end_date_input)
+	// Retrieve date range from query parameters (expecting snake_case)
+	startDateInput := c.Query("start_date")
+	checkEmpty(c, startDateInput)
+	endDateInput := c.Query("end_date")
+	checkEmpty(c, endDateInput)
 
-	// Call a database function to get state counts within the specified date range
+	// Call a database function to get state counts
 	query := `SELECT get_state_count($1, $2)`
-	err := db.QueryRow(query, start_date_input, end_date_input).Scan(&sqlNullString)
-	checkErr(c, err, "Failed to get state count")
+	if err := db.QueryRow(query, startDateInput, endDateInput).Scan(&sqlNullString); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to get state count") // Use InternalServerError for DB errors
+		return
+	}
 
-	// If the database query returns a NULL, it means no data for the given range.
-	// In this case, return the initialized result with all counts as zero.
+	// If no data is returned from the DB, send the initialized result.
 	if !sqlNullString.Valid {
 		c.IndentedJSON(http.StatusOK, result)
 		return
 	}
 
-	data = sqlNullString.String // Extract string value if not null
+	data = sqlNullString.String // Extract string value
 
-	// Unmarshal JSON data from the database into the 'count' slice
-	err = json.Unmarshal([]byte(data), &count)
-	checkErr(c, err, "failed to mashal count")
+	// Unmarshal JSON data into the 'count' slice.
+	if err := json.Unmarshal([]byte(data), &count); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to unmarshal count data") // Use InternalServerError for unmarshal errors
+		return
+	}
 
-	// Populate the 'Todo' values in the 'result' slice by matching 'state_id'
-	// The state_id from the database is 1-indexed, so we convert it to 0-indexed for array access.
+	// Populate 'Todo' counts in the result slice by matching state IDs.
 	for _, item := range count {
-		if idx := item.State_id - 1; idx >= 0 && idx < len(result) {
+		if idx := item.StateID - 1; idx >= 0 && idx < len(result) {
 			result[idx].Todo = item.Todo
 		}
 	}
 
-	// Calculate 'Done' counts: For each state, 'Done' represents the sum of 'Todo' counts
-	// for all subsequent states, including itself if it's the final 'Done' state.
-	// The loop runs up to 'len(result)-2' to exclude the last two (DONE and TOTAL)
-	// from accumulating 'Done' counts from states that come after them.
+	// Calculate 'Done' counts by summing 'Todo' counts of subsequent states.
 	for i := 0; i < len(result)-2; i++ {
 		for j := i + 1; j < len(result)-1; j++ {
-			result[i].Done += result[j].Todo // Sum up 'Todo' of all subsequent states
+			result[i].Done += result[j].Todo
 		}
 		result[5].Todo += result[i].Todo // Accumulate total 'Todo' requests
 	}
 
-	// Final adjustment for the "DONE" state and "TOTAL"
-	// The "DONE" state's 'Done' count is its own 'Todo' count, as no states come after it.
+	// Final adjustments for "DONE" and "TOTAL" states.
 	result[4].Done = result[4].Todo
-	// The "TOTAL" 'Done' count is the same as the "DONE" state's 'Todo' count.
 	result[5].Done = result[4].Todo
-	// Once processed, the "DONE" state's 'Todo' count is set to 0 as it's effectively "Done".
 	result[4].Todo = 0
 
 	c.IndentedJSON(http.StatusOK, result)
 }
 
-// getFullStateHistoryData retrieves and sends the full state history for a request.
-// It requires a request_id as a query parameter.
+// getFullStateHistoryData retrieves and sends the full state history for a specific request.
 func getFullStateHistoryData(c *gin.Context) {
 	var data string
-	request_id_input := c.Query("request_id")
+	// Retrieve request ID from query parameters (expecting snake_case)
+	requestIDInput := c.Query("request_id")
 
-	// Validate required query parameter
-	checkEmpty(c, request_id_input)
+	checkEmpty(c, requestIDInput)
 
 	// Call a database function to get full state history
 	query := `SELECT get_full_state_history($1)`
-	err := db.QueryRow(query, request_id_input).Scan(&data)
-	checkErr(c, err, "Failed to get full state history")
+	if err := db.QueryRow(query, requestIDInput).Scan(&data); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to get full state history") // Use InternalServerError for DB errors
+		return
+	}
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
 
-// getQuestionData retrieves and sends questions based on requirement type.
-// It requires a requirement_type as a query parameter.
+// getQuestionData retrieves and sends questions based on a specific requirement type.
 func getQuestionData(c *gin.Context) {
 	var data string
-	requirement_type_input := c.Query("requirement_type")
+	// Retrieve requirement type from query parameters (expecting snake_case)
+	requirementTypeInput := c.Query("requirement_type")
 
-	// Validate required query parameter
-	checkEmpty(c, requirement_type_input)
+	checkEmpty(c, requirementTypeInput)
 
 	// Call a database function to get questions
 	query := `SELECT get_questions($1)`
-	err := db.QueryRow(query, requirement_type_input).Scan(&data)
-	checkErr(c, err, "Failed to get questions")
+	if err := db.QueryRow(query, requirementTypeInput).Scan(&data); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to get questions") // Use InternalServerError for DB errors
+		return
+	}
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
 
 // getAnswerForRequest retrieves and sends answers for a specific request.
-// It requires a request_id as a query parameter.
 func getAnswerForRequest(c *gin.Context) {
 	var data string
-	request_id_input := c.Query("request_id")
+	// Retrieve request ID from query parameters (expecting snake_case)
+	requestIDInput := c.Query("request_id")
 
-	// Validate required query parameter
-	checkEmpty(c, request_id_input)
+	checkEmpty(c, requestIDInput)
 
 	// Call a database function to get request requirement answers
 	query := `SELECT get_request_requirement_answer($1)`
-	err := db.QueryRow(query, request_id_input).Scan(&data)
-	checkErr(c, err, "Failed to get request answers")
+	if err := db.QueryRow(query, requestIDInput).Scan(&data); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to get request answers") // Use InternalServerError for DB errors
+		return
+	}
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
 
@@ -374,291 +379,315 @@ func getOldestRequest(c *gin.Context) {
 
 	// Call a database function to get the oldest request timestamp
 	query := `SELECT get_oldest_request()`
-	err := db.QueryRow(query).Scan(&data)
-	checkErr(c, err, "Failed to get oldest request")
+	if err := db.QueryRow(query).Scan(&data); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to get oldest request") // Use InternalServerError for DB errors
+		return
+	}
 
 	c.JSON(http.StatusOK, data)
 }
 
-// getAttachment retrieves and sends a specified attachment (docx or excel) for a request.
-// It expects request_id, attachment_type, and filename as query parameters.
-// It also sets the correct Content-Type and Content-Disposition headers for file download.
+// getAttachmentFile retrieves and sends a specified attachment (DOCX/Excel/PDF) for a request.
 func getAttachmentFile(c *gin.Context) {
-	var data []byte // To store the file content
-	var attachment_type int
-	// Get query parameters
-	request_id_input := c.Query("request_id")
-	// attachment_typeInput := c.Query("attachment_type")
-	filename_input := c.Query("filename")
+	var data []byte // Stores the file content
+	var attachmentType int
 
-	// Validate required query parameters
-	checkEmpty(c, request_id_input)
-	// checkEmpty(c, attachment_typeInput)
-	checkEmpty(c, filename_input)
+	// Retrieve request ID and filename from query parameters (expecting snake_case)
+	requestIDInput := c.Query("request_id")
+	filenameInput := c.Query("filename")
 
-	// Call a database function to get the attachment data
+	checkEmpty(c, requestIDInput)
+	checkEmpty(c, filenameInput)
 
-	// Determine content type based on file extension for proper serving
-	var content_type string
+	var contentType string
+	// Determine content type and attachment type based on file extension.
 	switch {
-	case strings.HasSuffix(filename_input, ".docx"):
-		content_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-		attachment_type = 1
-	case strings.HasSuffix(filename_input, ".pdf"):
-		content_type = "application/pdf"
-		attachment_type = 1
-	case strings.HasSuffix(filename_input, ".xls"), strings.HasSuffix(filename_input, ".xlsx"):
-		content_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-		attachment_type = 2
+	case strings.HasSuffix(filenameInput, ".docx"):
+		contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+		attachmentType = 1
+	case strings.HasSuffix(filenameInput, ".pdf"):
+		contentType = "application/pdf"
+		attachmentType = 1
+	case strings.HasSuffix(filenameInput, ".xls"), strings.HasSuffix(filenameInput, ".xlsx"):
+		contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+		attachmentType = 2
 	default:
-		content_type = "application/octet-stream" // Default for unknown types
+		contentType = "application/octet-stream" // Default for unknown types
 	}
 
-	query := `SELECT get_attachment($1, $2)`
-	err := db.QueryRow(query, request_id_input, attachment_type).Scan(&data)
-	checkErr(c, err, "Failed to get attachment")
+	// Call a database function to get the attachment data (binary content or path).
+	query := `SELECT get_attachment_filepath($1, $2)`
+	if err := db.QueryRow(query, requestIDInput, attachmentType).Scan(&data); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to get attachment") // Use InternalServerError for DB errors
+		return
+	}
 
-	// Set Content-Disposition header to prompt download with the original filename
-	c.Header("Content-Disposition", "attachment; filename="+strconv.Quote(filename_input))
-	// Serve the file data with the determined content type
-	c.Data(http.StatusOK, content_type, data)
+	// Set headers for file download and serve the file data.
+	file, err := os.Open(string(data)) // Convert byte slice to string for file path
+	if err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to open attachment file") // Use InternalServerError for file opening errors
+		return
+	}
+
+	defer file.Close()
+	fileContent, err := os.ReadFile(string(data))
+
+	if err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to read attachment file") // Use InternalServerError for file reading errors
+		return
+	}
+
+	c.Header("Content-Disposition", "attachment; filename="+strconv.Quote(filenameInput))
+	c.Data(http.StatusOK, contentType, fileContent)
 }
 
 // getFilenames retrieves and sends filenames associated with a request.
-// for fetching filenames.
 func getFilenames(c *gin.Context) {
 	var data string
-	request_id_input := c.Query("request_id")
+	// Retrieve request ID from query parameters (expecting snake_case)
+	requestIDInput := c.Query("request_id")
 
-	// Validate required query parameter
-	checkEmpty(c, request_id_input)
+	checkEmpty(c, requestIDInput)
 
 	// Call a database function to get filenames.
-	// The query `get_questions($1)` might be a placeholder or incorrect.
 	query := `SELECT get_filenames($1)`
-	err := db.QueryRow(query, request_id_input).Scan(&data)
-	checkErr(c, err, "Failed to get filename")
+	if err := db.QueryRow(query, requestIDInput).Scan(&data); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to get filename") // Use InternalServerError for DB errors
+		return
+	}
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
 
+// getStateThreshold retrieves and sends the state threshold data.
 func getStateThreshold(c *gin.Context) {
 	var data string
-	err := db.QueryRow(`SELECT get_state_threshold()`).Scan(&data)
-	checkErr(c, err, "Failed to get state threshold")
+	// Call a database function to get the state threshold.
+	if err := db.QueryRow(`SELECT get_state_threshold()`).Scan(&data); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to get state threshold") // Use InternalServerError for DB errors
+		return
+	}
 	c.Data(http.StatusOK, "application/json", []byte(data))
 }
 
-// postNewRequest handles the creation of a new request in the database.
-// It processes form data, including file attachments, and then calls a stored procedure
-// to insert the new request details into the database.
+// postNewRequest handles the creation of a new request, including file uploads.
 func postNewRequest(c *gin.Context) {
 	var nr NewRequest
+	var requestID string
+	var docxFilePath string
+	var excelFilePath string
 
-	// Parse simple string fields from form data
-	nr.Request_title = c.PostForm("request_title")
-	nr.Requester_name = c.PostForm("requester_name")
-	nr.Analysis_purpose = c.PostForm("analysis_purpose")
-	nr.Pic_request = c.PostForm("pic_request")
+	// Parse string fields from form data (expecting snake_case from frontend).
+	nr.RequestTitle = c.PostForm("request_title")
+	nr.RequesterName = c.PostForm("requester_name")
+	nr.AnalysisPurpose = c.PostForm("analysis_purpose")
+	nr.PicRequest = c.PostForm("pic_request")
 	nr.Remark = c.PostForm("remark")
-	nr.Docx_filename = c.PostForm("docx_filename")
-	nr.Excel_filename = c.PostForm("excel_filename")
+	nr.DocxFilename = c.PostForm("docx_filename")
+	nr.ExcelFilename = c.PostForm("excel_filename")
 
-	// Convert numeric fields from string to their respective types
-	nr.User_id, _ = strconv.Atoi(c.PostForm("user_id"))
-	nr.Requirement_type, _ = strconv.Atoi(c.PostForm("requirement_type"))
+	// Convert numeric and boolean fields from string to their respective types.
+	nr.UserID, _ = strconv.Atoi(c.PostForm("user_id"))
+	nr.RequirementType, _ = strconv.Atoi(c.PostForm("requirement_type"))
 	nr.Urgent, _ = strconv.ParseBool(c.PostForm("urgent"))
 
-	// Parse the requested finish date string into a time.Time object
+	// Parse the requested finish date string into a time.Time object.
 	dateStr := c.PostForm("requested_finish_date")
-	nr.Requested_finish_date, _ = time.Parse(time.RFC3339, dateStr)
+	nr.RequestedFinishDate, _ = time.Parse(time.RFC3339, dateStr)
 
-	// Parse answers which are expected as a JSON array string
-	if err := json.Unmarshal([]byte(c.PostForm("answers")), &nr.Answers); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid answers"})
+	// Parse answers (expected as a JSON array string) into a Go slice.
+	if answersJSON := c.PostForm("answers"); answersJSON != "" {
+		if err := json.Unmarshal([]byte(answersJSON), &nr.Answers); err != nil {
+			checkErr(c, http.StatusBadRequest, err, "Invalid answers format") // Use http.StatusBadRequest for malformed input
+			return
+		}
+	}
+
+	// Call a database function to create a new request and retrieve its ID.
+	query := `SELECT create_new_request($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
+	if err := db.QueryRow(query,
+		nr.RequestTitle, nr.UserID, nr.RequesterName, nr.AnalysisPurpose,
+		nr.RequestedFinishDate, nr.PicRequest, nr.Urgent,
+		nr.RequirementType, pq.Array(nr.Answers), nr.Remark,
+	).Scan(&requestID); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to get request ID after creation") // Use InternalServerError for DB errors
 		return
 	}
 
-	// Read DOCX file attachment if present
-	if file, err := c.FormFile("docx_attachment"); err == nil {
-		f, _ := file.Open()                   // Open the uploaded file
-		defer f.Close()                       // Ensure the file is closed
-		nr.Docx_attachment, _ = io.ReadAll(f) // Read file content into byte slice
+	// Create a dedicated directory for the new request's files.
+	requestDirectory := filepath.Join(uploadDirectory, "Request"+requestID)
+	if err := os.MkdirAll(requestDirectory, 0755); err != nil {
+		log.Printf("Error creating directory: %v", err)
+		checkErr(c, http.StatusInternalServerError, err, "Could not create storage directory") // Use InternalServerError for file system errors
+		return
 	}
 
-	// Read EXCEL file attachment if present
-	if file, err := c.FormFile("excel_attachment"); err == nil {
-		f, _ := file.Open()
-		defer f.Close()
-		nr.Excel_attachment, _ = io.ReadAll(f)
+	// Process DOCX file attachment if present.
+	if file, err := c.FormFile("docx_attachment"); err == nil { // Expecting snake_case form field
+		safeFilename := filepath.Base(nr.DocxFilename) // Sanitize filename
+		if safeFilename == "" || safeFilename == "." {
+			checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid docx filename"), "Invalid docx filename provided") // Use http.StatusBadRequest for bad input
+			return
+		}
+		docxFilePath = filepath.Join(requestDirectory, safeFilename) // Assign to function-scoped variable
+		if err := c.SaveUploadedFile(file, docxFilePath); err != nil {
+			checkErr(c, http.StatusInternalServerError, err, "Unable to save docx file") // Use InternalServerError for file saving errors
+			return
+		}
+	} else if err != http.ErrMissingFile { // If file is not missing, but some other error occurred
+		checkErr(c, http.StatusInternalServerError, err, "Error processing docx attachment") // Catch other potential file upload errors
+		return
 	}
 
-	// Print NewRequest details for debugging purposes
-	// fmt.Printf("NewRequest: {\n")
-	// fmt.Printf("   Request_title: %s\n", nr.Request_title)
-	// fmt.Printf("   User_id: %d\n", nr.User_id)
-	// fmt.Printf("   Requester_name: %s\n", nr.Requester_name)
-	// fmt.Printf("   Analysis_purpose: %s\n", nr.Analysis_purpose)
-	// fmt.Printf("   Requested_finish_date: %s\n", nr.Requested_finish_date.Format(time.RFC3339))
-	// fmt.Printf("   Pic_request: %s\n", nr.Pic_request)
-	// fmt.Printf("   Urgent: %t\n", nr.Urgent)
-	// fmt.Printf("   Requirement_type: %d\n", nr.Requirement_type)
-	// fmt.Printf("   Answers: %v\n", nr.Answers)
-	// fmt.Printf("   Docx_filename: %s\n", nr.Docx_filename)
-	// fmt.Printf("   Excel_filename: %s\n", nr.Excel_filename)
-	// fmt.Printf("   Remark: %s\n", nr.Remark)
-	// fmt.Printf("}\n")
+	// Process EXCEL file attachment if present.
+	if file, err := c.FormFile("excel_attachment"); err == nil { // Expecting snake_case form field
+		safeFilename := filepath.Base(nr.ExcelFilename) // Sanitize filename
+		if safeFilename == "" || safeFilename == "." {
+			checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid excel filename"), "Invalid excel filename provided") // Use http.StatusBadRequest for bad input
+			return
+		}
+		excelFilePath = filepath.Join(requestDirectory, safeFilename) // Assign to function-scoped variable
+		if err := c.SaveUploadedFile(file, excelFilePath); err != nil {
+			checkErr(c, http.StatusInternalServerError, err, "Unable to save excel file") // Use InternalServerError for file saving errors
+			return
+		}
+	} else if err != http.ErrMissingFile { // If file is not missing, but some other error occurred
+		checkErr(c, http.StatusInternalServerError, err, "Error processing excel attachment") // Catch other potential file upload errors
+		return
+	}
 
-	// Call a stored procedure to create a new request in the database
-	// pq.Array is used to pass the Go slice `nr.Answers` as a PostgreSQL array.
-	query := `CALL create_new_request($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
-	_, err := db.Exec(query, nr.Request_title, nr.User_id, nr.Requester_name, nr.Analysis_purpose, nr.Requested_finish_date, nr.Pic_request, nr.Urgent, nr.Requirement_type, pq.Array(nr.Answers), nr.Docx_attachment, nr.Docx_filename, nr.Excel_attachment, nr.Excel_filename, nr.Remark)
-	checkErr(c, err, "Failed to create new request") // Handle any database execution errors
+	// Convert request ID to integer for database storage.
+	requestIDInt, err := strconv.Atoi(requestID)
+	if err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Unable to convert request ID to integer") // Use InternalServerError for conversion errors
+		return
+	}
+	println("docxFilePath = " + docxFilePath + " excelFilePath = " + excelFilePath)
+
+	// Store attachment file paths in the database.
+	queryAttachment := `CALL store_attachments($1, $2, $3, $4, $5);`
+	if _, err = db.Exec(queryAttachment, requestIDInt, docxFilePath, nr.DocxFilename, excelFilePath, nr.ExcelFilename); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Unable to store attachments filepath to db") // Use InternalServerError for DB errors
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"message": "Request submitted.",
+	})
 }
+
+// postReminderEmail sends a reminder email to a single recipient.
 func postReminderEmail(c *gin.Context) {
 	var recipient EmailRecipient
 	if err := c.BindJSON(&recipient); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		checkErr(c, http.StatusBadRequest, err, "Invalid input") // Use http.StatusBadRequest for malformed JSON
 		return
 	}
-	// c.JSON(http.StatusOK, gin.H{"message": "Sending reminder..."})
-	sendReminderEmail(c, recipient)
+	sendReminderEmail(c, []string{recipient.Email}, recipient.RequestState)
 }
 
+// postReminderEmailToRole sends a reminder email to all users of a specific role.
 func postReminderEmailToRole(c *gin.Context) {
-	role_id_input := c.Query("role_id")
-	checkEmpty(c, role_id_input)
+	// Retrieve role ID and state name from query parameters (expecting snake_case).
+	roleIDInput := c.Query("role_id")
+	checkEmpty(c, roleIDInput)
 
-	state_name_input := c.Query("state_name")
-	checkEmpty(c, state_name_input)
+	stateNameInput := c.Query("state_name")
+	checkEmpty(c, stateNameInput)
 
-	// Call the function and retrieve the JSON array of recipients
 	var recipientsJSON string
+	// Call a database function to get emails for the specified role.
 	query := `SELECT get_role_emails($1)`
-	err := db.QueryRow(query, role_id_input).Scan(&recipientsJSON)
-	checkErr(c, err, "Failed to get role emails")
-
-	// Unmarshal JSON into Go slice
-	var recipients []EmailRecipient
-	err2 := json.Unmarshal([]byte(recipientsJSON), &recipients)
-	checkErr(c, err2, "Failed to marshal role emails")
-	// Send email to each recipient
-	for _, r := range recipients {
-		println(r.User_name)
-		r.Request_state = state_name_input
-		sendReminderEmail(c, r)
+	if err := db.QueryRow(query, roleIDInput).Scan(&recipientsJSON); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to get role emails") // Use InternalServerError for DB errors
+		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "reminder succefully sent"})
+	// Unmarshal JSON string of recipients into a Go slice.
+	var recipients []EmailRecipient
+	if err := json.Unmarshal([]byte(recipientsJSON), &recipients); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to unmarshal role emails") // Use InternalServerError for unmarshal errors
+		return
+	}
+
+	// Collect all email addresses.
+	var emails []string
+	for _, r := range recipients {
+		emails = append(emails, r.Email)
+	}
+
+	sendReminderEmail(c, emails, stateNameInput)
+	c.JSON(http.StatusOK, gin.H{"message": "Reminder successfully sent"})
 }
 
-func sendReminderEmail(c *gin.Context, recipient EmailRecipient) {
-
+// sendReminderEmail constructs and sends a reminder email.
+func sendReminderEmail(c *gin.Context, emails []string, state string) {
 	m := gomail.NewMessage()
 	m.SetHeader("From", "testinggomail222@gmail.com")
-	m.SetHeader("To", recipient.Email)
+	m.SetHeader("To", emails...)
 	m.SetHeader("Subject", "StateManager request")
 
-	body := fmt.Sprintf(`Selamat pagi Bapak/Ibu %s,<br><br>
+	// HTML body of the email.
+	body := fmt.Sprintf(`Selamat pagi Bapak/Ibu,<br><br>
 			Email ini dikirim secara otomatis untuk memberitahukan bahwa terdapat request yang telah memasuki status %s.<br><br>
 			Mohon dapat dilakukan tindak lanjut terhadap request tersebut.<br><br>
 			Terima kasih atas perhatian dan kerja samanya.<br><br>
-			Salam,<br>StateManager`, recipient.User_name, recipient.Request_state)
+			Salam,<br>StateManager`, state)
 
 	m.SetBody("text/html", body)
 
+	// Send the email and log any errors.
 	if err := gomail.Send(dialed, m); err != nil {
 		log.Printf("Send error: %v", err)
+		checkErr(c, http.StatusInternalServerError, err, "Could not send email to "+strings.Join(emails, ", ")) // Use InternalServerError for email sending errors
 	} else {
-		println("Email sent successfully to " + recipient.Email)
+		println("Email sent successfully to " + strings.Join(emails, ", "))
 	}
 }
 
-// func sendRequestDoneEmail(user_id_input int, c *gin.Context) {
-// 	var recipient EmailRecipient
-// 	query := `SELECT get_Email($1)`
-// 	err := db.QueryRow(query, user_id_input).Scan(&recipient)
-// 	checkErr(c, err)
-
-// 	m := gomail.NewMessage()
-// 	m.SetHeader("From", "testinggomail222@gmail.com")
-// 	m.SetHeader("To", recipient.Email)
-// 	m.SetHeader("Subject", "StateManager request")
-
-// 	body := fmt.Sprintf(`Selamat pagi Bapak/Ibu %s,<br><br>
-// 			Email ini dikirim secara otomatis untuk memberitahukan bahwa request yang telah memasuki status <b>%s</b> melalui sistem kami.<br><br>
-// 			Mohon dapat dilakukan tindak lanjut terhadap request tersebut.<br><br>
-// 			Terima kasih atas perhatian dan kerja samanya.<br><br>
-// 			Salam,<br><b>StateManager</b>`, recipient.User_name, recipient.Request_state)
-
-// 	m.SetBody("text/html", body)
-
-// 	if err := gomail.Send(dialed, m); err != nil {
-// 		log.Printf("Send error: %v", err)
-// 	}
-// }
-
 // putUpgradeState handles upgrading the state of a request.
-// It expects a JSON body containing request_id, user_id, and an optional comment.
-// It calls a stored procedure to advance the request's state and record the change.
 func putUpgradeState(c *gin.Context) {
 	var us UpdateState
-	err := c.BindJSON(&us)                               // Bind JSON request body to UpdateState struct
-	checkErr(c, err, "Failed to bind update state JSON") // Handle JSON binding errors
+	// Bind JSON request body to UpdateState struct.
+	if err := c.BindJSON(&us); err != nil {
+		checkErr(c, http.StatusBadRequest, err, "Failed to bind update state JSON") // Use http.StatusBadRequest for malformed JSON
+		return
+	}
 
-	println("req_id = " + fmt.Sprint(us.Request_id) + " user_id: " + fmt.Sprint(us.User_id))
+	println("requestID = " + fmt.Sprint(us.RequestID) + " userID: " + fmt.Sprint(us.UserID))
 
-	// Call the appropriate stored procedure based on whether a comment is provided
+	// Call the appropriate database procedure to upgrade the state.
 	if us.Comment == "" {
-		query := `CALL upgrade_state($1, $2)`
-		_, err = db.Exec(query, us.Request_id, us.User_id)
-		checkErr(c, err, "Failed to upgrade state")
+		query := `CALL upgrade_state($1, $2)` // Without comment
+		if _, err := db.Exec(query, us.RequestID, us.UserID); err != nil {
+			checkErr(c, http.StatusInternalServerError, err, "Failed to upgrade state") // Use InternalServerError for DB errors
+			return
+		}
 	} else {
-		query := `CALL upgrade_state($1, $2, $3)`
-		_, err = db.Exec(query, us.Request_id, us.User_id, us.Comment)
-		checkErr(c, err, "Failed to upgrade state")
+		query := `CALL upgrade_state($1, $2, $3)` // With comment
+		if _, err := db.Exec(query, us.RequestID, us.UserID, us.Comment); err != nil {
+			checkErr(c, http.StatusInternalServerError, err, "Failed to upgrade state") // Use InternalServerError for DB errors
+			return
+		}
 	}
 
 	c.IndentedJSON(http.StatusOK, gin.H{"message": "State updated successfully"})
 }
 
-//if sending email when done
-// func putUpgradeState(c *gin.Context) {
-// 	var us UpdateState
-// 	var done string
-// 	err := c.BindJSON(&us) // Bind JSON request body to UpdateState struct
-// 	checkErr(c, err)       // Handle JSON binding errors
-
-// 	println("req_id = " + fmt.Sprint(us.Request_id) + " user_id: " + fmt.Sprint(us.User_id))
-
-// 	// Call the appropriate stored procedure based on whether a comment is provided
-// 	if us.Comment == "" {
-// 		query := `SELECT upgrade_state($1, $2)`
-// 		err := db.QueryRow(query, us.Request_id, us.User_id).Scan(&done)
-// 		checkErr(c, err)
-// 	} else {
-// 		query := `SELECT upgrade_state($1, $2, $3)`
-// 		err := db.QueryRow(query, us.Request_id, us.User_id, us.Comment).Scan(&done)
-// 		checkErr(c, err)
-// 	}
-
-// 	if done == "DONE" {
-
-// 	}
-
-// 	c.IndentedJSON(http.StatusOK, gin.H{"message": "State updated successfully"})
-// }
-
 // putDegradeState handles degrading the state of a request.
-// It expects a JSON body containing request_id, user_id, and a comment.
-// It calls a stored procedure to revert the request's state and record the change.
 func putDegradeState(c *gin.Context) {
 	var us UpdateState
-	err := c.BindJSON(&us)                             // Bind JSON request body to UpdateState struct
-	checkErr(c, err, "Failed to bin update data JSON") // Handle JSON binding errors
+	// Bind JSON request body to UpdateState struct.
+	if err := c.BindJSON(&us); err != nil {
+		checkErr(c, http.StatusBadRequest, err, "Failed to bind update data JSON") // Use http.StatusBadRequest for malformed JSON
+		return
+	}
 
-	// Call a stored procedure to downgrade the state, requiring a comment
+	// Call a database procedure to downgrade the state (requires a comment).
 	query := `CALL degrade_state($1, $2, $3)`
-	_, err = db.Exec(query, us.Request_id, us.User_id, us.Comment)
-	checkErr(c, err, "Failed to degrade state")
+	if _, err := db.Exec(query, us.RequestID, us.UserID, us.Comment); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to degrade state") // Use InternalServerError for DB errors
+		return
+	}
 	c.IndentedJSON(http.StatusOK, gin.H{"message": "State downgraded successfully"})
 }
