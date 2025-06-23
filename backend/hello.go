@@ -20,11 +20,11 @@ import (
 
 // Database connection details
 const (
-	host     = "localhost"
+	user     = "postgres.jdujcnoojlthzezlgebw"
+	password = "Kx6rdWWKpSztKN3P"
+	host     = "aws-0-ap-southeast-1.pooler.supabase.com"
 	port     = 5432
-	user     = "postgres"
-	password = "12345678"
-	dbName   = "gudang_garam"
+	dbName   = "postgres"
 )
 
 // User represents a user for authentication purposes.
@@ -126,7 +126,7 @@ func main() {
 
 // openDB initializes and returns a new PostgreSQL database connection.
 func openDB() *sql.DB {
-	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbName)
+	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=require", host, port, user, password, dbName)
 	db, err := sql.Open("postgres", psqlconn)
 	if err != nil {
 		fmt.Println("Error opening database: ", err)
