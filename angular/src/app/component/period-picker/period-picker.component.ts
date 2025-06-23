@@ -7,11 +7,11 @@ import type {
 import { DataProcessingService } from "../../service/data-processing.service";
 import { PopUpPeriodPickerComponent } from "../pop-up-period-picker/pop-up-period-picker.component";
 import { MatTooltipModule } from "@angular/material/tooltip";
-import { DatePipe } from "@angular/common";
+import { CommonModule, DatePipe } from "@angular/common";
 
 @Component({
 	selector: "app-period-picker",
-	imports: [PopUpPeriodPickerComponent, MatTooltipModule],
+	imports: [PopUpPeriodPickerComponent, MatTooltipModule, CommonModule],
 	templateUrl: "./period-picker.component.html",
 	styleUrl: "./period-picker.component.css",
 	providers: [DatePipe],

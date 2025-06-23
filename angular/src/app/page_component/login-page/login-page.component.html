@@ -8,28 +8,24 @@
       <mat-form-field appearance="outline" class="field">
         <input matInput name="username" [(ngModel)]="loginData.username" #usernameBox="ngModel" required
           autocomplete="username" />
-          @if (loginForm.submitted && !loginData.username) {
-            <mat-error>
-              Tolong isi username
-            </mat-error>
-          }
-        </mat-form-field>
+        <mat-error *ngIf="loginForm.submitted && !loginData.username">
+          Tolong isi username
+        </mat-error>
+      </mat-form-field>
 
-        <!-- Password -->
-        <div class="text-label">Password</div>
-        <mat-form-field appearance="outline" class="field">
-          <input matInput type="password" name="password" [(ngModel)]="loginData.password" #passwordBox="ngModel" required
-            autocomplete="current-password" />
-            @if (loginForm.submitted && !loginData.password) {
-              <mat-error>
-                Tolong isi password
-              </mat-error>
-            }
-          </mat-form-field>
-          <!-- Login Button -->
-          <button mat-flat-button class="button" color="primary" (click)="checkLogin(loginForm)">
-            Login
-          </button>
-        </div>
-      </main>
-    </form>
+      <!-- Password -->
+      <div class="text-label">Password</div>
+      <mat-form-field appearance="outline" class="field">
+        <input matInput type="password" name="password" [(ngModel)]="loginData.password" #passwordBox="ngModel" required
+          autocomplete="current-password" />
+        <mat-error *ngIf="loginForm.submitted && !loginData.password">
+          Tolong isi password
+        </mat-error>
+      </mat-form-field>
+      <!-- Login Button -->
+      <button mat-flat-button class="button" color="primary" (click)="checkLogin(loginForm)">
+        Login
+      </button>
+    </div>
+  </main>
+</form>

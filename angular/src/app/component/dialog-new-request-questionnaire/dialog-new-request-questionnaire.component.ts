@@ -22,23 +22,24 @@ import { MatFormFieldModule } from "@angular/material/form-field";
 import { FormsModule, type NgForm } from "@angular/forms";
 import type { NewRequest, Question } from "../../model/format.type";
 import { DataProcessingService } from "../../service/data-processing.service";
-
+import { NgIf } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
 
 @Component({
 	selector: "app-dialog-new-request-questionnaire",
 	imports: [
-    MatInputModule,
-    MatDatepickerModule,
-    MatFormFieldModule,
-    MatDialogClose,
-    MatSelectModule,
-    MatNativeDateModule,
-    MatButtonModule,
-    FormsModule,
-    MatError,
-    MatIconModule
-],
+		MatInputModule,
+		MatDatepickerModule,
+		MatFormFieldModule,
+		MatDialogClose,
+		MatSelectModule,
+		MatNativeDateModule,
+		MatButtonModule,
+		FormsModule,
+		MatError,
+		MatIconModule,
+		NgIf,
+	],
 	templateUrl: "./dialog-new-request-questionnaire.component.html",
 	styleUrl: "./dialog-new-request-questionnaire.component.css",
 	providers: [
