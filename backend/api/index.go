@@ -95,47 +95,47 @@ var db *sql.DB = openDB()
 // This function is the entry point for ALL API requests.
 func Handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Hello from Go!")
-	router := gin.New()        // Use gin.New() instead of gin.Default() for more control
-	router.Use(gin.Recovery()) // Add recovery middleware
+	// router := gin.New()        // Use gin.New() instead of gin.Default() for more control
+	// router.Use(gin.Recovery()) // Add recovery middleware
 
-	// --- Your CORS Middleware ---
-	router.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-		c.Next()
-	})
+	// // --- Your CORS Middleware ---
+	// router.Use(func(c *gin.Context) {
+	// 	c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+	// 	c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	// 	c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	// 	if c.Request.Method == "OPTIONS" {
+	// 		c.AbortWithStatus(204)
+	// 		return
+	// 	}
+	// 	c.Next()
+	// })
 
-	// --- Your API Routes ---
-	// The path here is relative to /api/. So "/login" becomes "/api/login".
-	// Since we named our file index.go, we don't need an extra path segment.
-	// All routes will be available at /api/your-route-name
-	router.GET("/stateSpecificData", getStateSpecificData)
-	router.GET("/userRequestsData", getUserCurrentRequests)
-	router.GET("/todoData", getTodoData)
-	router.GET("/completeRequestData", getCompleteRequestData)
-	router.GET("/stateCountData", getStateCount)
-	router.GET("/fullStateHistoryData", getFullStateHistoryData)
-	router.GET("/questionData", getQuestionData)
-	router.GET("/login", checkUserCredentials)
-	router.GET("/answerData", getAnswerForRequest)
-	router.GET("/getOldestRequestTime", getOldestRequest)
-	router.GET("/getAttachmentFile", getAttachmentFile)
-	router.GET("/getFilenames", getFilenames)
-	router.GET("/getStateThreshold", getStateThreshold)
-	router.POST("/newRequest", postNewRequest)
-	// router.POST("/postReminderEmail", postReminderEmail)
-	// router.POST("/postReminderEmailToRole", postReminderEmailToRole)
-	router.PUT("/upgradeState", putUpgradeState)
-	router.PUT("/degradeState", putDegradeState)
-	// ... add all your other router.GET, router.POST, router.PUT lines here ...
+	// // --- Your API Routes ---
+	// // The path here is relative to /api/. So "/login" becomes "/api/login".
+	// // Since we named our file index.go, we don't need an extra path segment.
+	// // All routes will be available at /api/your-route-name
+	// router.GET("/stateSpecificData", getStateSpecificData)
+	// router.GET("/userRequestsData", getUserCurrentRequests)
+	// router.GET("/todoData", getTodoData)
+	// router.GET("/completeRequestData", getCompleteRequestData)
+	// router.GET("/stateCountData", getStateCount)
+	// router.GET("/fullStateHistoryData", getFullStateHistoryData)
+	// router.GET("/questionData", getQuestionData)
+	// router.GET("/login", checkUserCredentials)
+	// router.GET("/answerData", getAnswerForRequest)
+	// router.GET("/getOldestRequestTime", getOldestRequest)
+	// router.GET("/getAttachmentFile", getAttachmentFile)
+	// router.GET("/getFilenames", getFilenames)
+	// router.GET("/getStateThreshold", getStateThreshold)
+	// router.POST("/newRequest", postNewRequest)
+	// // router.POST("/postReminderEmail", postReminderEmail)
+	// // router.POST("/postReminderEmailToRole", postReminderEmailToRole)
+	// router.PUT("/upgradeState", putUpgradeState)
+	// router.PUT("/degradeState", putDegradeState)
+	// // ... add all your other router.GET, router.POST, router.PUT lines here ...
 
-	// Let Gin handle the incoming request from Vercel.
-	router.ServeHTTP(w, r)
+	// // Let Gin handle the incoming request from Vercel.
+	// router.ServeHTTP(w, r)
 }
 
 // func main() {
