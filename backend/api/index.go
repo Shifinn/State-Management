@@ -15,7 +15,6 @@ import (
 	"github.com/gin-gonic/gin"
 	// PostgreSQL driver specific features
 	"github.com/lib/pq"
-	_ "github.com/lib/pq"
 )
 
 // Database connection details
