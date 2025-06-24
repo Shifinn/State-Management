@@ -94,7 +94,7 @@ var db *sql.DB = openDB()
 
 // --- Vercel's Main Handler ---
 // This function is the entry point for ALL API requests.
-func Handlers(w http.ResponseWriter, r *http.Request) {
+func Handler(w http.ResponseWriter, r *http.Request) {
 	router := gin.New()        // Use gin.New() instead of gin.Default() for more control
 	router.Use(gin.Recovery()) // Add recovery middleware
 

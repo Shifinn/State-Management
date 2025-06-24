@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func Handler(w http.ResponseWriter, r *http.Request) {
+func Handlers(w http.ResponseWriter, r *http.Request) {
 	// This log message is the most important part for our test.
 	log.Println("--- Go test handler was successfully executed! ---")
 
