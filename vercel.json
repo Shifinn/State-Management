@@ -5,13 +5,13 @@
 			"use": "@vercel/angular"
 		},
 		{
-			"src": "api/index.go",
+			"src": "api/**/*.go",
 			"use": "@vercel/go"
 		}
 	],
 	"rewrites": [
 		{
-			"source": "/((?!api/|assets/|favicon.ico).*)",
+			"source": "/((?!api/).*)",
 			"destination": "/index.html"
 		}
 	]
