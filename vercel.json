@@ -5,7 +5,7 @@
 			"use": "@vercel/angular"
 		},
 		{
-			"src": "api/**/*.go",
+			"src": "api/index.go",
 			"use": "@vercel/go"
 		}
 	],

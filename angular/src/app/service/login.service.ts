@@ -10,9 +10,11 @@ export class LoginService {
 	http = inject(HttpClient); //enables the use of HTTP client calls for the application
 	router = inject(Router); // enables navigation using the Router
 	data_service = inject(DataProcessingService);
+	// host = "http://localhost:9090";
+	host = "/api";
 
 	login(username: string, password: string): void {
-		const url = `http://localhost:9090/login?user_name=${username.toLowerCase()}&password=${password}`; // Ensure http, not just Localhost
+		const url = `${this.host}/login?user_name=${username.toLowerCase()}&password=${password}`; // Ensure http, not just Localhost
 
 		this.http.get<User>(url).subscribe((response: User) => {
 			console.log(

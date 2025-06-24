@@ -1,5 +1,4 @@
 import type { Routes } from "@angular/router";
-// Notice we only import the main layout components now!
 import { LoginPageComponent } from "./page_component/login-page/login-page.component";
 import { HomeComponent } from "./page_component/home/home.component";
 
@@ -13,7 +12,6 @@ export const routes: Routes = [
 		path: "home",
 		component: HomeComponent, // The main layout is loaded after login.
 		children: [
-			// Your redirect will still work perfectly!
 			{
 				path: "",
 				pathMatch: "full",
@@ -22,7 +20,6 @@ export const routes: Routes = [
 			},
 			{
 				path: "dashboard",
-				// This component is now LAZY LOADED
 				loadComponent: () =>
 					import(
 						"./page_component/dashboard-page/dashboard-page.component"
@@ -31,7 +28,6 @@ export const routes: Routes = [
 			},
 			{
 				path: "todo",
-				// This component is now LAZY LOADED
 				loadComponent: () =>
 					import("./page_component/todo-page/todo-page.component").then(
 						(c) => c.TodoPageComponent,
@@ -40,14 +36,12 @@ export const routes: Routes = [
 			},
 			{
 				path: "progress",
-				// This component is now LAZY LOADED
 				loadComponent: () =>
 					import("./page_component/progress-page/progress-page.component").then(
 						(c) => c.ProgressPageComponent,
 					),
 				outlet: "home",
 			},
-			// You can apply the same pattern to your Profile page and others
 			{
 				path: "profile",
 				loadComponent: () =>

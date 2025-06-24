@@ -1,4 +1,5 @@
-package main
+// package main
+package handler
 
 import (
 	"database/sql"
@@ -7,12 +8,11 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
-	"gopkg.in/gomail.v2" // For sending emails
+	// For sending emails
 
 	"github.com/gin-gonic/gin" // Web framework
 	"github.com/lib/pq"        // PostgreSQL driver specific features
@@ -27,13 +27,13 @@ import (
 // 	dbName   = "postgres"
 // )
 
-const (
-	user     = "postgres"
-	password = "12345678"
-	host     = "localhost"
-	port     = 5432
-	dbName   = "gudang_garam"
-)
+// const (
+// 	user     = "postgres"
+// 	password = "12345678"
+// 	host     = "localhost"
+// 	port     = 5432
+// 	dbName   = "gudang_garam"
+// )
 
 // User represents a user for authentication purposes.
 type User struct {
@@ -82,33 +82,38 @@ type EmailRecipient struct {
 }
 
 // Global variables for database connection, mailer, and upload directory.
-var (
-	db              *sql.DB           = openDB()                                                                                     // Database connection
-	mail            *gomail.Dialer    = gomail.NewDialer("smtp.gmail.com", 587, "testinggomail222@gmail.com", "hqsq twwx ilao jvik") // Email dialer
-	dialed          gomail.SendCloser = startDial()                                                                                  // Mailer sender closer
-	uploadDirectory string            = ".\\files"                                                                                   // Base directory for file uploads
-)
+// var (
+//
+//	db              *sql.DB           = openDB()                                                                                     // Database connection
+//	mail            *gomail.Dialer    = gomail.NewDialer("smtp.gmail.com", 587, "testinggomail222@gmail.com", "hqsq twwx ilao jvik") // Email dialer
+//	dialed          gomail.SendCloser = startDial()                                                                                  // Mailer sender closer
+//	uploadDirectory string            = ".\\files"                                                                                   // Base directory for file uploads
+//
+// )
+var db *sql.DB = openDB()
 
-func main() {
-	// Ensure database connection is closed when the application exits.
-	defer db.Close()
+// --- Vercel's Main Handler ---
+// This function is the entry point for ALL API requests.
+func Handler(w http.ResponseWriter, r *http.Request) {
+	router := gin.New()        // Use gin.New() instead of gin.Default() for more control
+	router.Use(gin.Recovery()) // Add recovery middleware
 
-	// Initialize Gin router for HTTP handling.
-	router := gin.Default()
-
-	// CORS middleware configuration to allow cross-origin requests.
+	// --- Your CORS Middleware ---
 	router.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204) // Handle preflight requests
+			c.AbortWithStatus(204)
 			return
 		}
-		c.Next() // Continue to the next handler
+		c.Next()
 	})
 
-	// Define API routes and their corresponding handlers.
+	// --- Your API Routes ---
+	// The path here is relative to /api/. So "/login" becomes "/api/login".
+	// Since we named our file index.go, we don't need an extra path segment.
+	// All routes will be available at /api/your-route-name
 	router.GET("/stateSpecificData", getStateSpecificData)
 	router.GET("/userRequestsData", getUserCurrentRequests)
 	router.GET("/todoData", getTodoData)
@@ -123,35 +128,99 @@ func main() {
 	router.GET("/getFilenames", getFilenames)
 	router.GET("/getStateThreshold", getStateThreshold)
 	router.POST("/newRequest", postNewRequest)
-	router.POST("/postReminderEmail", postReminderEmail)
-	router.POST("/postReminderEmailToRole", postReminderEmailToRole)
+	// router.POST("/postReminderEmail", postReminderEmail)
+	// router.POST("/postReminderEmailToRole", postReminderEmailToRole)
 	router.PUT("/upgradeState", putUpgradeState)
 	router.PUT("/degradeState", putDegradeState)
+	// ... add all your other router.GET, router.POST, router.PUT lines here ...
 
-	// Run the server on port 9090.
-	router.Run("Localhost:9090")
+	// Let Gin handle the incoming request from Vercel.
+	router.ServeHTTP(w, r)
 }
 
+// func main() {
+// 	// Ensure database connection is closed when the application exits.
+// 	defer db.Close()
+
+// 	// Initialize Gin router for HTTP handling.
+// 	router := gin.Default()
+
+// 	// CORS middleware configuration to allow cross-origin requests.
+// 	router.Use(func(c *gin.Context) {
+// 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+// 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+// 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+// 		if c.Request.Method == "OPTIONS" {
+// 			c.AbortWithStatus(204) // Handle preflight requests
+// 			return
+// 		}
+// 		c.Next() // Continue to the next handler
+// 	})
+
+// 	// Define API routes and their corresponding handlers.
+// 	router.GET("/stateSpecificData", getStateSpecificData)
+// 	router.GET("/userRequestsData", getUserCurrentRequests)
+// 	router.GET("/todoData", getTodoData)
+// 	router.GET("/completeRequestData", getCompleteRequestData)
+// 	router.GET("/stateCountData", getStateCount)
+// 	router.GET("/fullStateHistoryData", getFullStateHistoryData)
+// 	router.GET("/questionData", getQuestionData)
+// 	router.GET("/login", checkUserCredentials)
+// 	router.GET("/answerData", getAnswerForRequest)
+// 	router.GET("/getOldestRequestTime", getOldestRequest)
+// 	router.GET("/getAttachmentFile", getAttachmentFile)
+// 	router.GET("/getFilenames", getFilenames)
+// 	router.GET("/getStateThreshold", getStateThreshold)
+// 	router.POST("/newRequest", postNewRequest)
+// 	router.POST("/postReminderEmail", postReminderEmail)
+// 	router.POST("/postReminderEmailToRole", postReminderEmailToRole)
+// 	router.PUT("/upgradeState", putUpgradeState)
+// 	router.PUT("/degradeState", putDegradeState)
+
+// 	// Run the server on port 9090.
+// 	router.Run("Localhost:9090")
+// }
+
 // openDB initializes and returns a new PostgreSQL database connection.
+// func openDB() *sql.DB {
+// 	// psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=require", host, port, user, password, dbName)
+// 	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbName)
+// 	db, err := sql.Open("postgres", psqlconn)
+// 	if err != nil {
+// 		fmt.Println("Error opening database: ", err)
+// 		return nil
+// 	}
+// 	return db
+// }
+
 func openDB() *sql.DB {
-	// psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=require", host, port, user, password, dbName)
-	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbName)
-	db, err := sql.Open("postgres", psqlconn)
-	if err != nil {
-		fmt.Println("Error opening database: ", err)
-		return nil
+	// Reads the database URL from an environment variable set in Vercel.
+	databaseUrl := os.Getenv("DATABASE_URL")
+	if databaseUrl == "" {
+		// This is a fallback for easy local testing if the variable isn't set.
+		databaseUrl = "postgres://postgres:12345678@localhost:5432/gudang_garam?sslmode=disable"
+		log.Println("INFO: DATABASE_URL not set, using local fallback.")
 	}
+
+	db, err := sql.Open("postgres", databaseUrl)
+	if err != nil {
+		log.Fatalf("FATAL: Error opening database: %v", err)
+	}
+	if err = db.Ping(); err != nil {
+		log.Fatalf("FATAL: Error pinging database: %v", err)
+	}
+	log.Println("INFO: Database connection successful.")
 	return db
 }
 
 // startDial attempts to connect to the SMTP server for sending emails.
-func startDial() gomail.SendCloser {
-	dialed, err := mail.Dial()
-	if err != nil {
-		log.Fatalf("Failed to connect to SMTP server: %v", err) // Fatal error if connection fails
-	}
-	return dialed
-}
+// func startDial() gomail.SendCloser {
+// 	dialed, err := mail.Dial()
+// 	if err != nil {
+// 		log.Fatalf("Failed to connect to SMTP server: %v", err) // Fatal error if connection fails
+// 	}
+// 	return dialed
+// }
 
 // checkErr logs a database error and sends an HTTP response with the specified error type.
 func checkErr(c *gin.Context, errType int, err error, errMsg string) {
@@ -482,8 +551,8 @@ func getStateThreshold(c *gin.Context) {
 func postNewRequest(c *gin.Context) {
 	var nr NewRequest
 	var requestID string
-	var docxFilePath string
-	var excelFilePath string
+	// var docxFilePath string
+	// var excelFilePath string
 
 	// Parse string fields from form data (expecting snake_case from frontend).
 	nr.RequestTitle = c.PostForm("request_title")
@@ -522,62 +591,62 @@ func postNewRequest(c *gin.Context) {
 		return
 	}
 
-	// Create a dedicated directory for the new request's files.
-	requestDirectory := filepath.Join(uploadDirectory, "Request"+requestID)
-	if err := os.MkdirAll(requestDirectory, 0755); err != nil {
-		log.Printf("Error creating directory: %v", err)
-		checkErr(c, http.StatusInternalServerError, err, "Could not create storage directory") // Use InternalServerError for file system errors
-		return
-	}
+	// // Create a dedicated directory for the new request's files.
+	// requestDirectory := filepath.Join(uploadDirectory, "Request"+requestID)
+	// if err := os.MkdirAll(requestDirectory, 0755); err != nil {
+	// 	log.Printf("Error creating directory: %v", err)
+	// 	checkErr(c, http.StatusInternalServerError, err, "Could not create storage directory") // Use InternalServerError for file system errors
+	// 	return
+	// }
 
-	// Process DOCX file attachment if present.
-	if file, err := c.FormFile("docx_attachment"); err == nil { // Expecting snake_case form field
-		safeFilename := filepath.Base(nr.DocxFilename) // Sanitize filename
-		if safeFilename == "" || safeFilename == "." {
-			checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid docx filename"), "Invalid docx filename provided") // Use http.StatusBadRequest for bad input
-			return
-		}
-		docxFilePath = filepath.Join(requestDirectory, safeFilename) // Assign to function-scoped variable
-		if err := c.SaveUploadedFile(file, docxFilePath); err != nil {
-			checkErr(c, http.StatusInternalServerError, err, "Unable to save docx file") // Use InternalServerError for file saving errors
-			return
-		}
-	} else if err != http.ErrMissingFile { // If file is not missing, but some other error occurred
-		checkErr(c, http.StatusInternalServerError, err, "Error processing docx attachment") // Catch other potential file upload errors
-		return
-	}
+	// // Process DOCX file attachment if present.
+	// if file, err := c.FormFile("docx_attachment"); err == nil { // Expecting snake_case form field
+	// 	safeFilename := filepath.Base(nr.DocxFilename) // Sanitize filename
+	// 	if safeFilename == "" || safeFilename == "." {
+	// 		checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid docx filename"), "Invalid docx filename provided") // Use http.StatusBadRequest for bad input
+	// 		return
+	// 	}
+	// 	docxFilePath = filepath.Join(requestDirectory, safeFilename) // Assign to function-scoped variable
+	// 	if err := c.SaveUploadedFile(file, docxFilePath); err != nil {
+	// 		checkErr(c, http.StatusInternalServerError, err, "Unable to save docx file") // Use InternalServerError for file saving errors
+	// 		return
+	// 	}
+	// } else if err != http.ErrMissingFile { // If file is not missing, but some other error occurred
+	// 	checkErr(c, http.StatusInternalServerError, err, "Error processing docx attachment") // Catch other potential file upload errors
+	// 	return
+	// }
 
-	// Process EXCEL file attachment if present.
-	if file, err := c.FormFile("excel_attachment"); err == nil { // Expecting snake_case form field
-		safeFilename := filepath.Base(nr.ExcelFilename) // Sanitize filename
-		if safeFilename == "" || safeFilename == "." {
-			checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid excel filename"), "Invalid excel filename provided") // Use http.StatusBadRequest for bad input
-			return
-		}
-		excelFilePath = filepath.Join(requestDirectory, safeFilename) // Assign to function-scoped variable
-		if err := c.SaveUploadedFile(file, excelFilePath); err != nil {
-			checkErr(c, http.StatusInternalServerError, err, "Unable to save excel file") // Use InternalServerError for file saving errors
-			return
-		}
-	} else if err != http.ErrMissingFile { // If file is not missing, but some other error occurred
-		checkErr(c, http.StatusInternalServerError, err, "Error processing excel attachment") // Catch other potential file upload errors
-		return
-	}
+	// // Process EXCEL file attachment if present.
+	// if file, err := c.FormFile("excel_attachment"); err == nil { // Expecting snake_case form field
+	// 	safeFilename := filepath.Base(nr.ExcelFilename) // Sanitize filename
+	// 	if safeFilename == "" || safeFilename == "." {
+	// 		checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid excel filename"), "Invalid excel filename provided") // Use http.StatusBadRequest for bad input
+	// 		return
+	// 	}
+	// 	excelFilePath = filepath.Join(requestDirectory, safeFilename) // Assign to function-scoped variable
+	// 	if err := c.SaveUploadedFile(file, excelFilePath); err != nil {
+	// 		checkErr(c, http.StatusInternalServerError, err, "Unable to save excel file") // Use InternalServerError for file saving errors
+	// 		return
+	// 	}
+	// } else if err != http.ErrMissingFile { // If file is not missing, but some other error occurred
+	// 	checkErr(c, http.StatusInternalServerError, err, "Error processing excel attachment") // Catch other potential file upload errors
+	// 	return
+	// }
 
-	// Convert request ID to integer for database storage.
-	requestIDInt, err := strconv.Atoi(requestID)
-	if err != nil {
-		checkErr(c, http.StatusInternalServerError, err, "Unable to convert request ID to integer") // Use InternalServerError for conversion errors
-		return
-	}
-	println("docxFilePath = " + docxFilePath + " excelFilePath = " + excelFilePath)
+	// // Convert request ID to integer for database storage.
+	// requestIDInt, err := strconv.Atoi(requestID)
+	// if err != nil {
+	// 	checkErr(c, http.StatusInternalServerError, err, "Unable to convert request ID to integer") // Use InternalServerError for conversion errors
+	// 	return
+	// }
+	// println("docxFilePath = " + docxFilePath + " excelFilePath = " + excelFilePath)
 
-	// Store attachment file paths in the database.
-	queryAttachment := `CALL store_attachments($1, $2, $3, $4, $5);`
-	if _, err = db.Exec(queryAttachment, requestIDInt, docxFilePath, nr.DocxFilename, excelFilePath, nr.ExcelFilename); err != nil {
-		checkErr(c, http.StatusInternalServerError, err, "Unable to store attachments filepath to db") // Use InternalServerError for DB errors
-		return
-	}
+	// // Store attachment file paths in the database.
+	// queryAttachment := `CALL store_attachments($1, $2, $3, $4, $5);`
+	// if _, err = db.Exec(queryAttachment, requestIDInt, docxFilePath, nr.DocxFilename, excelFilePath, nr.ExcelFilename); err != nil {
+	// 	checkErr(c, http.StatusInternalServerError, err, "Unable to store attachments filepath to db") // Use InternalServerError for DB errors
+	// 	return
+	// }
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",
@@ -586,73 +655,73 @@ func postNewRequest(c *gin.Context) {
 }
 
 // postReminderEmail sends a reminder email to a single recipient.
-func postReminderEmail(c *gin.Context) {
-	var recipient EmailRecipient
-	if err := c.BindJSON(&recipient); err != nil {
-		checkErr(c, http.StatusBadRequest, err, "Invalid input") // Use http.StatusBadRequest for malformed JSON
-		return
-	}
-	sendReminderEmail(c, []string{recipient.Email}, recipient.RequestState)
-}
+// func postReminderEmail(c *gin.Context) {
+// 	var recipient EmailRecipient
+// 	if err := c.BindJSON(&recipient); err != nil {
+// 		checkErr(c, http.StatusBadRequest, err, "Invalid input") // Use http.StatusBadRequest for malformed JSON
+// 		return
+// 	}
+// 	sendReminderEmail(c, []string{recipient.Email}, recipient.RequestState)
+// }
 
-// postReminderEmailToRole sends a reminder email to all users of a specific role.
-func postReminderEmailToRole(c *gin.Context) {
-	// Retrieve role ID and state name from query parameters (expecting snake_case).
-	roleIDInput := c.Query("role_id")
-	checkEmpty(c, roleIDInput)
+// // postReminderEmailToRole sends a reminder email to all users of a specific role.
+// func postReminderEmailToRole(c *gin.Context) {
+// 	// Retrieve role ID and state name from query parameters (expecting snake_case).
+// 	roleIDInput := c.Query("role_id")
+// 	checkEmpty(c, roleIDInput)
 
-	stateNameInput := c.Query("state_name")
-	checkEmpty(c, stateNameInput)
+// 	stateNameInput := c.Query("state_name")
+// 	checkEmpty(c, stateNameInput)
 
-	var recipientsJSON string
-	// Call a database function to get emails for the specified role.
-	query := `SELECT get_role_emails($1)`
-	if err := db.QueryRow(query, roleIDInput).Scan(&recipientsJSON); err != nil {
-		checkErr(c, http.StatusInternalServerError, err, "Failed to get role emails") // Use InternalServerError for DB errors
-		return
-	}
+// 	var recipientsJSON string
+// 	// Call a database function to get emails for the specified role.
+// 	query := `SELECT get_role_emails($1)`
+// 	if err := db.QueryRow(query, roleIDInput).Scan(&recipientsJSON); err != nil {
+// 		checkErr(c, http.StatusInternalServerError, err, "Failed to get role emails") // Use InternalServerError for DB errors
+// 		return
+// 	}
 
-	// Unmarshal JSON string of recipients into a Go slice.
-	var recipients []EmailRecipient
-	if err := json.Unmarshal([]byte(recipientsJSON), &recipients); err != nil {
-		checkErr(c, http.StatusInternalServerError, err, "Failed to unmarshal role emails") // Use InternalServerError for unmarshal errors
-		return
-	}
+// 	// Unmarshal JSON string of recipients into a Go slice.
+// 	var recipients []EmailRecipient
+// 	if err := json.Unmarshal([]byte(recipientsJSON), &recipients); err != nil {
+// 		checkErr(c, http.StatusInternalServerError, err, "Failed to unmarshal role emails") // Use InternalServerError for unmarshal errors
+// 		return
+// 	}
 
-	// Collect all email addresses.
-	var emails []string
-	for _, r := range recipients {
-		emails = append(emails, r.Email)
-	}
+// 	// Collect all email addresses.
+// 	var emails []string
+// 	for _, r := range recipients {
+// 		emails = append(emails, r.Email)
+// 	}
 
-	sendReminderEmail(c, emails, stateNameInput)
-	c.JSON(http.StatusOK, gin.H{"message": "Reminder successfully sent"})
-}
+// 	sendReminderEmail(c, emails, stateNameInput)
+// 	c.JSON(http.StatusOK, gin.H{"message": "Reminder successfully sent"})
+// }
 
-// sendReminderEmail constructs and sends a reminder email.
-func sendReminderEmail(c *gin.Context, emails []string, state string) {
-	m := gomail.NewMessage()
-	m.SetHeader("From", "testinggomail222@gmail.com")
-	m.SetHeader("To", emails...)
-	m.SetHeader("Subject", "StateManager request")
+// // sendReminderEmail constructs and sends a reminder email.
+// func sendReminderEmail(c *gin.Context, emails []string, state string) {
+// 	m := gomail.NewMessage()
+// 	m.SetHeader("From", "testinggomail222@gmail.com")
+// 	m.SetHeader("To", emails...)
+// 	m.SetHeader("Subject", "StateManager request")
 
-	// HTML body of the email.
-	body := fmt.Sprintf(`Selamat pagi Bapak/Ibu,<br><br>
-			Email ini dikirim secara otomatis untuk memberitahukan bahwa terdapat request yang telah memasuki status %s.<br><br>
-			Mohon dapat dilakukan tindak lanjut terhadap request tersebut.<br><br>
-			Terima kasih atas perhatian dan kerja samanya.<br><br>
-			Salam,<br>StateManager`, state)
+// 	// HTML body of the email.
+// 	body := fmt.Sprintf(`Selamat pagi Bapak/Ibu,<br><br>
+// 			Email ini dikirim secara otomatis untuk memberitahukan bahwa terdapat request yang telah memasuki status %s.<br><br>
+// 			Mohon dapat dilakukan tindak lanjut terhadap request tersebut.<br><br>
+// 			Terima kasih atas perhatian dan kerja samanya.<br><br>
+// 			Salam,<br>StateManager`, state)
 
-	m.SetBody("text/html", body)
+// 	m.SetBody("text/html", body)
 
-	// Send the email and log any errors.
-	if err := gomail.Send(dialed, m); err != nil {
-		log.Printf("Send error: %v", err)
-		checkErr(c, http.StatusInternalServerError, err, "Could not send email to "+strings.Join(emails, ", ")) // Use InternalServerError for email sending errors
-	} else {
-		println("Email sent successfully to " + strings.Join(emails, ", "))
-	}
-}
+// 	// Send the email and log any errors.
+// 	if err := gomail.Send(dialed, m); err != nil {
+// 		log.Printf("Send error: %v", err)
+// 		checkErr(c, http.StatusInternalServerError, err, "Could not send email to "+strings.Join(emails, ", ")) // Use InternalServerError for email sending errors
+// 	} else {
+// 		println("Email sent successfully to " + strings.Join(emails, ", "))
+// 	}
+// }
 
 // putUpgradeState handles upgrading the state of a request.
 func putUpgradeState(c *gin.Context) {
