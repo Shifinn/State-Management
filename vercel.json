@@ -1,18 +1,18 @@
 {
 	"builds": [
 		{
-			"src": "angular/package.json"
+			"src": "angular/package.json",
+			"use": "@vercel/angular"
 		},
 		{
 			"src": "api/**/*.go",
 			"use": "@vercel/go"
 		}
 	],
-	"trailingSlash": false,
 	"rewrites": [
 		{
-			"source": "/api(.*))",
-			"destination": "/api/test.go"
+			"source": "/api(.*)",
+			"destination": "/index.html"
 		}
 	]
 }
