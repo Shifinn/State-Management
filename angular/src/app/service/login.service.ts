@@ -11,8 +11,7 @@ export class LoginService {
 	router = inject(Router); // enables navigation using the Router
 	data_service = inject(DataProcessingService);
 	// host = "http://localhost:9090";
-	host =
-		"https://state-management-kkeu-lawbez9ec-shifinns-projects.vercel.app/api";
+	host = "https://state-management-api.vercel.app/api";
 
 	login(username: string, password: string): void {
 		const url = `${this.host}/login?user_name=${username.toLowerCase()}&password=${password}`; // Ensure http, not just Localhost
