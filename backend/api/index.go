@@ -94,6 +94,7 @@ var db *sql.DB = openDB()
 // --- Vercel's Main Handler ---
 // This function is the entry point for ALL API requests.
 func Handler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintln(w, "Hello from Go!")
 	router := gin.New()        // Use gin.New() instead of gin.Default() for more control
 	router.Use(gin.Recovery()) // Add recovery middleware
 
