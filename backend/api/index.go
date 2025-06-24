@@ -10,6 +10,7 @@ import (
 	// For sending emails
 	"github.com/gin-gonic/gin"
 	// PostgreSQL driver specific features
+	_ "github.com/lib/pq"
 )
 
 // Database connection details
