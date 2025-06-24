@@ -1,7 +1,10 @@
 package handler
 
 import (
+	"database/sql"
+	"log"
 	"net/http"
+	"os"
 	"time"
 
 	// For sending emails
@@ -81,7 +84,7 @@ type EmailRecipient struct {
 //	uploadDirectory string            = ".\\files"                                                                                   // Base directory for file uploads
 //
 // )
-// var db *sql.DB = openDB()
+var db *sql.DB = openDB()
 var app *gin.Engine
 
 func init() {
@@ -198,25 +201,25 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 // 	return db
 // }
 
-// func openDB() *sql.DB {
-// 	// Reads the database URL from an environment variable set in Vercel.
-// 	databaseUrl := os.Getenv("DATABASE_URL")
-// 	if databaseUrl == "" {
-// 		// This is a fallback for easy local testing if the variable isn't set.
-// 		databaseUrl = "postgres://postgres:12345678@localhost:5432/gudang_garam?sslmode=disable"
-// 		log.Println("INFO: DATABASE_URL not set, using local fallback.")
-// 	}
+func openDB() *sql.DB {
+	// Reads the database URL from an environment variable set in Vercel.
+	databaseUrl := os.Getenv("DATABASE_URL")
+	if databaseUrl == "" {
+		// This is a fallback for easy local testing if the variable isn't set.
+		databaseUrl = "postgres://postgres:12345678@localhost:5432/gudang_garam?sslmode=disable"
+		log.Println("INFO: DATABASE_URL not set, using local fallback.")
+	}
 
-// 	db, err := sql.Open("postgres", databaseUrl)
-// 	if err != nil {
-// 		log.Fatalf("FATAL: Error opening database: %v", err)
-// 	}
-// 	if err = db.Ping(); err != nil {
-// 		log.Fatalf("FATAL: Error pinging database: %v", err)
-// 	}
-// 	log.Println("INFO: Database connection successful.")
-// 	return db
-// }
+	db, err := sql.Open("postgres", databaseUrl)
+	if err != nil {
+		log.Fatalf("FATAL: Error opening database: %v", err)
+	}
+	if err = db.Ping(); err != nil {
+		log.Fatalf("FATAL: Error pinging database: %v", err)
+	}
+	log.Println("INFO: Database connection successful.")
+	return db
+}
 
 // // startDial attempts to connect to the SMTP server for sending emails.
 // // func startDial() gomail.SendCloser {
