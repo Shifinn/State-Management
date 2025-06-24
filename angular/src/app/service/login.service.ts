@@ -14,7 +14,7 @@ export class LoginService {
 	host = "https://state-management-api.vercel.app/api";
 
 	login(username: string, password: string): void {
-		const url = `${this.host}/login?user_name=${username.toLowerCase()}&password=${password}`; // Ensure http, not just Localhost
+		const url = `${this.host}/login?user_name=${username.toLowerCase().replace(/(\S)\s+/g, "$1")}&password=${password}`;
 
 		this.http.get<User>(url).subscribe((response: User) => {
 			console.log(

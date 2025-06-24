@@ -5,6 +5,10 @@
 	vertical-align: middle;
 	/* justify-content: space-between; */
 }
+
+.page-title.all-center {
+	flex-direction: column;
+}
 .page-title h1 {
 	vertical-align: middle;
 	text-align: center;

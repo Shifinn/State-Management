@@ -19,23 +19,6 @@ import (
 	"github.com/lib/pq"
 )
 
-// Database connection details
-// const (
-// 	user     = "postgres.jdujcnoojlthzezlgebw"
-// 	password = "Kx6rdWWKpSztKN3P"
-// 	host     = "aws-0-ap-southeast-1.pooler.supabase.com"
-// 	port     = 5432
-// 	dbName   = "postgres"
-// )
-
-// const (
-// 	user     = "postgres"
-// 	password = "12345678"
-// 	host     = "localhost"
-// 	port     = 5432
-// 	dbName   = "gudang_garam"
-// )
-
 // User represents a user for authentication purposes.
 type User struct {
 	UserName string `json:"user_name"`     // User's login name (JSON tag: snake_case for DB compatibility)
@@ -100,7 +83,7 @@ func init() {
 	config := cors.DefaultConfig()
 	// IMPORTANT: You must explicitly allow the origin of your Angular frontend app.
 	// Replace with your actual frontend URL.
-	config.AllowOrigins = []string{"https://state-management-tawny.vercel.app"}
+	config.AllowOrigins = []string{"https://state-management-tawny.vercel.app", "http://localhost:4200"}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization"}
 	app.Use(cors.New(config))
