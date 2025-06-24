@@ -5,5 +5,12 @@
 			"src": "api/*.go",
 			"use": "@vercel/go"
 		}
+	],
+	"trailingSlash": false,
+	"rewrites": [
+		{
+			"source": "/api(.*)",
+			"destination": "/api/index.go"
+		}
 	]
 }

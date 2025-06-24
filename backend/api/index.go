@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"database/sql"
@@ -12,9 +12,8 @@ import (
 	"time"
 
 	// For sending emails
-
-	"github.com/gin-gonic/gin" // Web framework
-	"github.com/lib/pq"        // PostgreSQL driver specific features
+	"github.com/gin-gonic/gin"
+	"github.com/lib/pq" // PostgreSQL driver specific features
 )
 
 // Database connection details
@@ -90,11 +89,25 @@ type EmailRecipient struct {
 //
 // )
 var db *sql.DB = openDB()
+var app *gin.Engine
+
+func init() {
+	app = gin.New()
+	r := app.Group("/api")
+	myRoute(r)
+}
+
+func myRoute(r *gin.RouterGroup) {
+	r.GET("/admin", func(c *gin.Context) {
+		c.String(http.StatusOK, "Hello from admin route!")
+	})
+}
 
 // --- Vercel's Main Handler ---
 // This function is the entry point for ALL API requests.
 func Handler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Hello from Go!")
+	app.ServeHTTP(w, r) // Let Gin handle the request
 	// router := gin.New()        // Use gin.New() instead of gin.Default() for more control
 	// router.Use(gin.Recovery()) // Add recovery middleware
 
