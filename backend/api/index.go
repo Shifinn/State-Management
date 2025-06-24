@@ -12,7 +12,9 @@ import (
 	"time"
 
 	// For sending emails
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+
 	// PostgreSQL driver specific features
 	"github.com/lib/pq"
 )
@@ -94,6 +96,14 @@ var app *gin.Engine
 
 func init() {
 	app = gin.New()
+	app.Use(gin.Recovery()) // Use Gin's recovery middleware to handle panics
+	config := cors.DefaultConfig()
+	// IMPORTANT: You must explicitly allow the origin of your Angular frontend app.
+	// Replace with your actual frontend URL.
+	config.AllowOrigins = []string{"https://state-management-tawny.vercel.app"}
+	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization"}
+	app.Use(cors.New(config))
 	r := app.Group("/api")
 	myRoute(r)
 }
