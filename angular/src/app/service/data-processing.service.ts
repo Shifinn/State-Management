@@ -26,8 +26,9 @@ import { Time } from "@angular/common";
 export class DataProcessingService {
 	http = inject(HttpClient); //enables the use of HTTP client calls for the application
 	router = inject(Router); // enables navigation using the Router
-	host = "http://localhost:9090";
-	// host = "/api";
+	// host = "http://localhost:9090";
+	host =
+		"https://state-management-kkeu-8i7vwx1ub-shifinns-projects.vercel.app/api";
 
 	storeUserInfo(u: User) {
 		localStorage.setItem("userId", u.user_id);
