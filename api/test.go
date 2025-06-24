@@ -1,5 +1,4 @@
-// File: api/test.go
-package handler
+package main
 
 import (
 	"fmt"

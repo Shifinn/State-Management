@@ -1,5 +1,4 @@
-// package main
-package handler
+package main
 
 import (
 	"database/sql"
@@ -94,26 +93,70 @@ var db *sql.DB = openDB()
 
 // --- Vercel's Main Handler ---
 // This function is the entry point for ALL API requests.
-func Handler(w http.ResponseWriter, r *http.Request) {
-	router := gin.New()        // Use gin.New() instead of gin.Default() for more control
-	router.Use(gin.Recovery()) // Add recovery middleware
+// func Handler(w http.ResponseWriter, r *http.Request) {
+// 	router := gin.New()        // Use gin.New() instead of gin.Default() for more control
+// 	router.Use(gin.Recovery()) // Add recovery middleware
 
-	// --- Your CORS Middleware ---
+// 	// --- Your CORS Middleware ---
+// 	router.Use(func(c *gin.Context) {
+// 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+// 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+// 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+// 		if c.Request.Method == "OPTIONS" {
+// 			c.AbortWithStatus(204)
+// 			return
+// 		}
+// 		c.Next()
+// 	})
+
+// 	// --- Your API Routes ---
+// 	// The path here is relative to /api/. So "/login" becomes "/api/login".
+// 	// Since we named our file index.go, we don't need an extra path segment.
+// 	// All routes will be available at /api/your-route-name
+// 	router.GET("/stateSpecificData", getStateSpecificData)
+// 	router.GET("/userRequestsData", getUserCurrentRequests)
+// 	router.GET("/todoData", getTodoData)
+// 	router.GET("/completeRequestData", getCompleteRequestData)
+// 	router.GET("/stateCountData", getStateCount)
+// 	router.GET("/fullStateHistoryData", getFullStateHistoryData)
+// 	router.GET("/questionData", getQuestionData)
+// 	router.GET("/login", checkUserCredentials)
+// 	router.GET("/answerData", getAnswerForRequest)
+// 	router.GET("/getOldestRequestTime", getOldestRequest)
+// 	router.GET("/getAttachmentFile", getAttachmentFile)
+// 	router.GET("/getFilenames", getFilenames)
+// 	router.GET("/getStateThreshold", getStateThreshold)
+// 	router.POST("/newRequest", postNewRequest)
+// 	// router.POST("/postReminderEmail", postReminderEmail)
+// 	// router.POST("/postReminderEmailToRole", postReminderEmailToRole)
+// 	router.PUT("/upgradeState", putUpgradeState)
+// 	router.PUT("/degradeState", putDegradeState)
+// 	// ... add all your other router.GET, router.POST, router.PUT lines here ...
+
+// 	// Let Gin handle the incoming request from Vercel.
+// 	router.ServeHTTP(w, r)
+// }
+
+func main() {
+	// Ensure database connection is closed when the application exits.
+	defer db.Close()
+
+	// Initialize Gin router for HTTP handling.
+	router := gin.Default()
+
+	// CORS middleware configuration to allow cross-origin requests.
 	router.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
+			c.AbortWithStatus(204) // Handle preflight requests
 			return
 		}
-		c.Next()
+		c.Next() // Continue to the next handler
 	})
 
-	// --- Your API Routes ---
-	// The path here is relative to /api/. So "/login" becomes "/api/login".
-	// Since we named our file index.go, we don't need an extra path segment.
-	// All routes will be available at /api/your-route-name
+	// Define API routes and their corresponding handlers.
 	router.GET("/stateSpecificData", getStateSpecificData)
 	router.GET("/userRequestsData", getUserCurrentRequests)
 	router.GET("/todoData", getTodoData)
@@ -132,54 +175,10 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// router.POST("/postReminderEmailToRole", postReminderEmailToRole)
 	router.PUT("/upgradeState", putUpgradeState)
 	router.PUT("/degradeState", putDegradeState)
-	// ... add all your other router.GET, router.POST, router.PUT lines here ...
 
-	// Let Gin handle the incoming request from Vercel.
-	router.ServeHTTP(w, r)
+	// Run the server on port 9090.
+	router.Run("Localhost:9090")
 }
-
-// func main() {
-// 	// Ensure database connection is closed when the application exits.
-// 	defer db.Close()
-
-// 	// Initialize Gin router for HTTP handling.
-// 	router := gin.Default()
-
-// 	// CORS middleware configuration to allow cross-origin requests.
-// 	router.Use(func(c *gin.Context) {
-// 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-// 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-// 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-// 		if c.Request.Method == "OPTIONS" {
-// 			c.AbortWithStatus(204) // Handle preflight requests
-// 			return
-// 		}
-// 		c.Next() // Continue to the next handler
-// 	})
-
-// 	// Define API routes and their corresponding handlers.
-// 	router.GET("/stateSpecificData", getStateSpecificData)
-// 	router.GET("/userRequestsData", getUserCurrentRequests)
-// 	router.GET("/todoData", getTodoData)
-// 	router.GET("/completeRequestData", getCompleteRequestData)
-// 	router.GET("/stateCountData", getStateCount)
-// 	router.GET("/fullStateHistoryData", getFullStateHistoryData)
-// 	router.GET("/questionData", getQuestionData)
-// 	router.GET("/login", checkUserCredentials)
-// 	router.GET("/answerData", getAnswerForRequest)
-// 	router.GET("/getOldestRequestTime", getOldestRequest)
-// 	router.GET("/getAttachmentFile", getAttachmentFile)
-// 	router.GET("/getFilenames", getFilenames)
-// 	router.GET("/getStateThreshold", getStateThreshold)
-// 	router.POST("/newRequest", postNewRequest)
-// 	router.POST("/postReminderEmail", postReminderEmail)
-// 	router.POST("/postReminderEmailToRole", postReminderEmailToRole)
-// 	router.PUT("/upgradeState", putUpgradeState)
-// 	router.PUT("/degradeState", putDegradeState)
-
-// 	// Run the server on port 9090.
-// 	router.Run("Localhost:9090")
-// }
 
 // openDB initializes and returns a new PostgreSQL database connection.
 // func openDB() *sql.DB {
