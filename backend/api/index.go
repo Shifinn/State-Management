@@ -10,14 +10,13 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/lib/pq"
+	"github.com/rpdg/vercel_blob"
 	"gopkg.in/gomail.v2"
 )
 
@@ -473,90 +472,83 @@ func postNewRequest(c *gin.Context) {
 	var docxFilePath string
 	var excelFilePath string
 
-	newReq.RequestTitle = c.PostForm("requestTitle")
-	newReq.RequesterName = c.PostForm("requesterName")
-	newReq.AnalysisPurpose = c.PostForm("analysisPurpose")
-	newReq.PicRequest = c.PostForm("picRequest")
-	newReq.Remark = c.PostForm("remark")
-	newReq.DocxFilename = c.PostForm("docxFilename")
-	newReq.ExcelFilename = c.PostForm("excelFilename")
+	// newReq.RequestTitle = c.PostForm("requestTitle")
+	// newReq.RequesterName = c.PostForm("requesterName")
+	// newReq.AnalysisPurpose = c.PostForm("analysisPurpose")
+	// newReq.PicRequest = c.PostForm("picRequest")
+	// newReq.Remark = c.PostForm("remark")
+	// newReq.DocxFilename = c.PostForm("docxFilename")
+	// newReq.ExcelFilename = c.PostForm("excelFilename")
 
-	newReq.UserID, _ = strconv.Atoi(c.PostForm("userId"))
-	newReq.RequirementType, _ = strconv.Atoi(c.PostForm("requirementType"))
-	newReq.Urgent, _ = strconv.ParseBool(c.PostForm("urgent"))
+	// newReq.UserID, _ = strconv.Atoi(c.PostForm("userId"))
+	// newReq.RequirementType, _ = strconv.Atoi(c.PostForm("requirementType"))
+	// newReq.Urgent, _ = strconv.ParseBool(c.PostForm("urgent"))
 
-	dateStr := c.PostForm("requestedFinishDate")
-	newReq.RequestedFinishDate, _ = time.Parse(time.RFC3339, dateStr)
+	// dateStr := c.PostForm("requestedFinishDate")
+	// newReq.RequestedFinishDate, _ = time.Parse(time.RFC3339, dateStr)
 
-	if answersJSON := c.PostForm("answers"); answersJSON != "" {
-		if err := json.Unmarshal([]byte(answersJSON), &newReq.Answers); err != nil {
-			checkErr(c, http.StatusBadRequest, err, "Invalid answers format")
+	// if answersJSON := c.PostForm("answers"); answersJSON != "" {
+	// 	if err := json.Unmarshal([]byte(answersJSON), &newReq.Answers); err != nil {
+	// 		checkErr(c, http.StatusBadRequest, err, "Invalid answers format")
+	// 		return
+	// 	}
+	// }
+
+	// query := `SELECT create_new_request($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
+	// if err := db.QueryRow(query,
+	// 	newReq.RequestTitle, newReq.UserID, newReq.RequesterName, newReq.AnalysisPurpose,
+	// 	newReq.RequestedFinishDate, newReq.PicRequest, newReq.Urgent,
+	// 	newReq.RequirementType, pq.Array(newReq.Answers), newReq.Remark,
+	// ).Scan(&requestID); err != nil {
+	// 	checkErr(c, http.StatusInternalServerError, err, "Failed to get request ID after creation")
+	// 	return
+	// }
+
+	client := vercel_blob.NewVercelBlobClient()
+	requestID = "2"
+	if docxFileHeader, err := c.FormFile("docxAttachment"); err != nil {
+		file, _ := docxFileHeader.Open()
+		defer file.Close()
+		pathname := fmt.Sprintf("https://nfalufxq6wclizlj.public.blob.vercel-storage.com/attachments/request_%s/%s", requestID, docxFileHeader.Filename)
+		log.Printf("Uploading to pathname: %s", pathname)
+
+		blobResult, err := client.Put(pathname, file, vercel_blob.PutCommandOptions{})
+		if err != nil {
+			checkErr(c, http.StatusInternalServerError, err, "Unable to upload docx file")
 			return
 		}
+		docxFilePath = blobResult.URL
+		newReq.DocxFilename = docxFileHeader.Filename
 	}
 
-	query := `SELECT create_new_request($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
-	if err := db.QueryRow(query,
-		newReq.RequestTitle, newReq.UserID, newReq.RequesterName, newReq.AnalysisPurpose,
-		newReq.RequestedFinishDate, newReq.PicRequest, newReq.Urgent,
-		newReq.RequirementType, pq.Array(newReq.Answers), newReq.Remark,
-	).Scan(&requestID); err != nil {
-		checkErr(c, http.StatusInternalServerError, err, "Failed to get request ID after creation")
-		return
-	}
+	// if excelFileHeader, err := c.FormFile("excelAttachment"); err != nil {
+	// 	file, _ := excelFileHeader.Open()
+	// 	defer file.Close()
 
-	// This file logic will only work in a local environment, not on Vercel.
-	requestDirectory := filepath.Join(uploadDirectory, "Request"+requestID)
-	if err := os.MkdirAll(requestDirectory, 0755); err != nil {
-		log.Printf("Error creating directory: %v", err)
-		checkErr(c, http.StatusInternalServerError, err, "Could not create storage directory")
-		return
-	}
+	// 	pathname := fmt.Sprintf("attachments/request_%s/%s", requestID, excelFileHeader.Filename)
+	// 	log.Printf("Uploading to pathname: %s", pathname)
 
-	if file, err := c.FormFile("docxAttachment"); err == nil {
-		safeFilename := filepath.Base(newReq.DocxFilename)
-		if safeFilename == "" || safeFilename == "." {
-			checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid docx filename"), "Invalid docx filename provided")
-			return
-		}
-		docxFilePath = filepath.Join(requestDirectory, safeFilename)
-		if err := c.SaveUploadedFile(file, docxFilePath); err != nil {
-			checkErr(c, http.StatusInternalServerError, err, "Unable to save docx file")
-			return
-		}
-	} else if err != http.ErrMissingFile {
-		checkErr(c, http.StatusInternalServerError, err, "Error processing docx attachment")
-		return
-	}
+	// 	blobResult, err := client.Put(pathname, file, vercel_blob.PutCommandOptions{})
+	// 	if err != nil {
+	// 		checkErr(c, http.StatusInternalServerError, err, "Unable to upload docx file")
+	// 		return
+	// 	}
+	// 	docxFilePath = blobResult.URL
+	// 	newReq.DocxFilename = excelFileHeader.Filename
+	// }
 
-	if file, err := c.FormFile("excelAttachment"); err == nil {
-		safeFilename := filepath.Base(newReq.ExcelFilename)
-		if safeFilename == "" || safeFilename == "." {
-			checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid excel filename"), "Invalid excel filename provided")
-			return
-		}
-		excelFilePath = filepath.Join(requestDirectory, safeFilename)
-		if err := c.SaveUploadedFile(file, excelFilePath); err != nil {
-			checkErr(c, http.StatusInternalServerError, err, "Unable to save excel file")
-			return
-		}
-	} else if err != http.ErrMissingFile {
-		checkErr(c, http.StatusInternalServerError, err, "Error processing excel attachment")
-		return
-	}
+	// requestIDInt, err := strconv.Atoi(requestID)
+	// if err != nil {
+	// 	checkErr(c, http.StatusInternalServerError, err, "Unable to convert request ID to integer")
+	// 	return
+	// }
+	// log.Printf("docxFilePath = %s, excelFilePath = %s", docxFilePath, excelFilePath)
 
-	requestIDInt, err := strconv.Atoi(requestID)
-	if err != nil {
-		checkErr(c, http.StatusInternalServerError, err, "Unable to convert request ID to integer")
-		return
-	}
-	log.Printf("docxFilePath = %s, excelFilePath = %s", docxFilePath, excelFilePath)
-
-	queryAttachment := `CALL store_attachments($1, $2, $3, $4, $5);`
-	if _, err = db.Exec(queryAttachment, requestIDInt, docxFilePath, newReq.DocxFilename, excelFilePath, newReq.ExcelFilename); err != nil {
-		checkErr(c, http.StatusInternalServerError, err, "Unable to store attachments filepath to db")
-		return
-	}
+	// queryAttachment := `CALL store_attachments($1, $2, $3, $4, $5);`
+	// if _, err = db.Exec(queryAttachment, requestIDInt, docxFilePath, newReq.DocxFilename, excelFilePath, newReq.ExcelFilename); err != nil {
+	// 	checkErr(c, http.StatusInternalServerError, err, "Unable to store attachments filepath to db")
+	// 	return
+	// }
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",

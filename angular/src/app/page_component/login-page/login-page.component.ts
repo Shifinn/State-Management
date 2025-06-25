@@ -58,7 +58,6 @@ export class LoginPageComponent {
 		if (form.invalid) {
 			return;
 		}
-
 		// Otherwise, proceed with login
 		const { username, password } = this.loginData;
 		this.login_service.login(username, password).subscribe((result) => {

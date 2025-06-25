@@ -20,9 +20,11 @@ export class LoginService {
 			this.http.get<User>(url).subscribe({
 				next: (response: User) => {
 					let success = false;
+					console.log(`role id: ${response.roleId}`);
 					if (Number(response.userId) > 0) {
 						success = true;
 						this.dataService.storeUserInfo(response);
+
 						if (Number(response.roleId) > 1) {
 							this.router.navigate(["/home", { outlets: { home: "todo" } }]);
 						} else {
