@@ -1,4 +1,4 @@
-import { Component, inject, signal } from "@angular/core";
+import { Component, HostListener, inject, signal } from "@angular/core";
 import type {
 	AttachmentFilename,
 	CompleteData,
@@ -62,7 +62,12 @@ export class DialogMoreDetailComponent {
 	router = inject(Router);
 	dialog = inject(MatDialog);
 	dialogRef = inject(MatDialogRef<DialogMoreDetailComponent>);
+	inner_width = signal<number>(9999);
 
+	@HostListener("window:resize", ["$event"])
+	onResize(event: Event) {
+		this.inner_width.set(window.innerWidth);
+	}
 	ngOnInit() {
 		this.data_service
 			.getCompleteData(this.input_data.request_id)

@@ -3,14 +3,18 @@
 	color: #ffffff;
 	padding: 0.2em 2.2em;
 	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-	height: 4em; /* Set a fixed height for consistent alignment */
+	height: 60px; /* Set a fixed height for consistent alignment */
 	display: flex;
 	justify-content: space-between;
 	align-items: center; /* Vertically center all child elements */
 }
 
+.nav-bar.smaller {
+	font-size: 0.75em;
+	padding: 0.2em 1em;
+}
 .app-title {
-	font-size: 1.8rem;
+	font-size: 1.8em;
 	font-weight: bold;
 	cursor: pointer;
 	display: flex; /* Ensure proper alignment */
@@ -32,7 +36,7 @@
 
 .navigation ul {
 	display: flex;
-	gap: 24px;
+	gap: 1.5em;
 	margin: 0;
 	padding: 0;
 	list-style: none;
@@ -43,7 +47,7 @@
 	cursor: pointer;
 	color: #ffffff;
 	font-weight: 600;
-	font-size: 1.2rem;
+	font-size: 1.2em;
 	align-items: center; /* Vertically center list items */
 	border-radius: 4px;
 	transition: background-color 0.2s, color 0.2s;

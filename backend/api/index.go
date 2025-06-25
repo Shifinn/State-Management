@@ -14,6 +14,7 @@ import (
 	// For sending emails
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"gopkg.in/gomail.v2"
 
 	// PostgreSQL driver specific features
 	"github.com/lib/pq"
@@ -638,73 +639,83 @@ func postNewRequest(c *gin.Context) {
 }
 
 // postReminderEmail sends a reminder email to a single recipient.
-// func postReminderEmail(c *gin.Context) {
-// 	var recipient EmailRecipient
-// 	if err := c.BindJSON(&recipient); err != nil {
-// 		checkErr(c, http.StatusBadRequest, err, "Invalid input") // Use http.StatusBadRequest for malformed JSON
-// 		return
-// 	}
-// 	sendReminderEmail(c, []string{recipient.Email}, recipient.RequestState)
-// }
+func postReminderEmail(c *gin.Context) {
+	var recipient EmailRecipient
+	if err := c.BindJSON(&recipient); err != nil {
+		checkErr(c, http.StatusBadRequest, err, "Invalid input") // Use http.StatusBadRequest for malformed JSON
+		return
+	}
+	sendReminderEmail(c, []string{recipient.Email}, recipient.RequestState)
+}
 
-// // postReminderEmailToRole sends a reminder email to all users of a specific role.
-// func postReminderEmailToRole(c *gin.Context) {
-// 	// Retrieve role ID and state name from query parameters (expecting snake_case).
-// 	roleIDInput := c.Query("role_id")
-// 	checkEmpty(c, roleIDInput)
+// postReminderEmailToRole sends a reminder email to all users of a specific role.
+func postReminderEmailToRole(c *gin.Context) {
+	// Retrieve role ID and state name from query parameters (expecting snake_case).
+	roleIDInput := c.Query("role_id")
+	checkEmpty(c, roleIDInput)
 
-// 	stateNameInput := c.Query("state_name")
-// 	checkEmpty(c, stateNameInput)
+	stateNameInput := c.Query("state_name")
+	checkEmpty(c, stateNameInput)
 
-// 	var recipientsJSON string
-// 	// Call a database function to get emails for the specified role.
-// 	query := `SELECT get_role_emails($1)`
-// 	if err := db.QueryRow(query, roleIDInput).Scan(&recipientsJSON); err != nil {
-// 		checkErr(c, http.StatusInternalServerError, err, "Failed to get role emails") // Use InternalServerError for DB errors
-// 		return
-// 	}
+	var recipientsJSON string
+	// Call a database function to get emails for the specified role.
+	query := `SELECT get_role_emails($1)`
+	if err := db.QueryRow(query, roleIDInput).Scan(&recipientsJSON); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to get role emails") // Use InternalServerError for DB errors
+		return
+	}
 
-// 	// Unmarshal JSON string of recipients into a Go slice.
-// 	var recipients []EmailRecipient
-// 	if err := json.Unmarshal([]byte(recipientsJSON), &recipients); err != nil {
-// 		checkErr(c, http.StatusInternalServerError, err, "Failed to unmarshal role emails") // Use InternalServerError for unmarshal errors
-// 		return
-// 	}
+	// Unmarshal JSON string of recipients into a Go slice.
+	var recipients []EmailRecipient
+	if err := json.Unmarshal([]byte(recipientsJSON), &recipients); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to unmarshal role emails") // Use InternalServerError for unmarshal errors
+		return
+	}
 
-// 	// Collect all email addresses.
-// 	var emails []string
-// 	for _, r := range recipients {
-// 		emails = append(emails, r.Email)
-// 	}
+	// Collect all email addresses.
+	var emails []string
+	for _, r := range recipients {
+		emails = append(emails, r.Email)
+	}
 
-// 	sendReminderEmail(c, emails, stateNameInput)
-// 	c.JSON(http.StatusOK, gin.H{"message": "Reminder successfully sent"})
-// }
+	sendReminderEmail(c, emails, stateNameInput)
+	c.JSON(http.StatusOK, gin.H{"message": "Reminder successfully sent"})
+}
 
-// // sendReminderEmail constructs and sends a reminder email.
-// func sendReminderEmail(c *gin.Context, emails []string, state string) {
-// 	m := gomail.NewMessage()
-// 	m.SetHeader("From", "testinggomail222@gmail.com")
-// 	m.SetHeader("To", emails...)
-// 	m.SetHeader("Subject", "StateManager request")
+// sendReminderEmail constructs and sends a reminder email.
+// This function is now designed to be run in the background.
+func sendReminderEmail(c *gin.Context, emails []string, state string) {
+	// Best Practice: Use environment variables for credentials.
+	smtpUser := os.Getenv("SMTP_USER")
+	smtpPass := os.Getenv("SMTP_PASS")
+	if smtpUser == "" || smtpPass == "" {
+		log.Println("ERROR: SMTP credentials not set, cannot send email.")
+		return
+	}
 
-// 	// HTML body of the email.
-// 	body := fmt.Sprintf(`Selamat pagi Bapak/Ibu,<br><br>
-// 			Email ini dikirim secara otomatis untuk memberitahukan bahwa terdapat request yang telah memasuki status %s.<br><br>
-// 			Mohon dapat dilakukan tindak lanjut terhadap request tersebut.<br><br>
-// 			Terima kasih atas perhatian dan kerja samanya.<br><br>
-// 			Salam,<br>StateManager`, state)
+	// Create the mailer with credentials from environment variables.
+	mailer := gomail.NewDialer("smtp.gmail.com", 587, smtpUser, smtpPass)
 
-// 	m.SetBody("text/html", body)
+	m := gomail.NewMessage()
+	m.SetHeader("From", smtpUser)
+	m.SetHeader("To", emails...)
+	m.SetHeader("Subject", "StateManager Request")
 
-// 	// Send the email and log any errors.
-// 	if err := gomail.Send(dialed, m); err != nil {
-// 		log.Printf("Send error: %v", err)
-// 		checkErr(c, http.StatusInternalServerError, err, "Could not send email to "+strings.Join(emails, ", ")) // Use InternalServerError for email sending errors
-// 	} else {
-// 		println("Email sent successfully to " + strings.Join(emails, ", "))
-// 	}
-// }
+	body := fmt.Sprintf(`Selamat pagi Bapak/Ibu,<br><br>
+			Email ini dikirim secara otomatis untuk memberitahukan bahwa terdapat request yang telah memasuki status %s.<br><br>
+			Mohon dapat dilakukan tindak lanjut terhadap request tersebut.<br><br>
+			Terima kasih atas perhatian dan kerja samanya.<br><br>
+			Salam,<br>StateManager`, state)
+	m.SetBody("text/html", body)
+
+	// DialAndSend connects, sends, and closes the connection in one efficient step.
+	if err := mailer.DialAndSend(m); err != nil {
+		// If it fails, we just log it for the developer to see. We can't tell the user.
+		log.Printf("ERROR: Could not send email to %s. Reason: %v", strings.Join(emails, ", "), err)
+	} else {
+		log.Printf("INFO: Email sent successfully to %s", strings.Join(emails, ", "))
+	}
+}
 
 // putUpgradeState handles upgrading the state of a request.
 func putUpgradeState(c *gin.Context) {

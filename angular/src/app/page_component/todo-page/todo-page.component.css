@@ -41,6 +41,11 @@ mat-option {
 	justify-content: center;
 	gap: 3em;
 }
+.todo-page-header.column .menu-selector {
+	/* flex-direction: column; */
+	font-size: 0.8em;
+	gap: 2em;
+}
 
 .menu-item {
 	font-size: 2em;

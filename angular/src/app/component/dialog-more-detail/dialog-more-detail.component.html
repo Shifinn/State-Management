@@ -1,5 +1,5 @@
 @if (data.request_id) {
-<div class="dialog-container">
+<div class="dialog-container" [class.smaller]="inner_width() < 540">
   <h2>DETAIL REQUEST #{{ data.request_id }}</h2>
 
   <div class="row">

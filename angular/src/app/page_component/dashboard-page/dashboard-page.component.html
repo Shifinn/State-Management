@@ -1,8 +1,8 @@
 <body>
     <div class="page-title" [class.all-center]="inner_width() < 600">
         <h1>My requests</h1>
-        <app-custom-square-button [button_label]="'New Request'"
-            (buttonClick)="makeNewRequest()"></app-custom-square-button>
+        <app-custom-square-button [button_label]="'New Request'" (buttonClick)="makeNewRequest()"
+            [class.center]="inner_width() < 600"></app-custom-square-button>
     </div>
 
     <div class="requests" [class.center]="inner_width() < 822">

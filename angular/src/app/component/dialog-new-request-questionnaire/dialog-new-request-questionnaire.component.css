@@ -8,7 +8,7 @@ mat-label {
 	transition: all 01s ease;
 }
 .smaller-label {
-	font-size: 0.87em !important;
+	font-size: 0.75em !important;
 }
 
 .file-name {

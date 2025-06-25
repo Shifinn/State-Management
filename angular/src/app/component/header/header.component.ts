@@ -1,4 +1,4 @@
-import { Component, signal, inject } from "@angular/core";
+import { Component, signal, inject, HostListener } from "@angular/core";
 import { RouterLink } from "@angular/router";
 import { LoginService } from "../../service/login.service";
 import { DataProcessingService } from "../../service/data-processing.service";
@@ -17,6 +17,12 @@ export class HeaderComponent {
 	user_name = signal(Number(this.data_service.getUserName())); // Signal to track the ID
 	user_role = signal<string>("1");
 	is_user_info_visible = signal<boolean>(false);
+	inner_width = signal<number>(9999);
+
+	@HostListener("window:resize", ["$event"])
+	onResize(event: Event) {
+		this.inner_width.set(window.innerWidth);
+	}
 
 	ngOnInit() {
 		this.user_role.set(this.data_service.getUserRole());
