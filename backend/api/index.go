@@ -468,6 +468,7 @@ func getStateThreshold(c *gin.Context) {
 
 // postNewRequest handles the creation of a new request, including file uploads.
 func postNewRequest(c *gin.Context) {
+	log.Println("enter new req func")
 	var newReq NewRequest
 	var requestID string
 	var docxFilePath string
@@ -509,6 +510,7 @@ func postNewRequest(c *gin.Context) {
 	client := vercel_blob.NewVercelBlobClient()
 	// 4. Handle DOCX Upload using the requestID as a key/folder
 	if docxFileHeader, err := c.FormFile("docxAttachment"); err != nil {
+		log.Println("enter after get docs")
 		file, _ := docxFileHeader.Open()
 		defer file.Close()
 
@@ -526,7 +528,7 @@ func postNewRequest(c *gin.Context) {
 		docxFilePath = blobResult.URL
 		newReq.DocxFilename = docxFileHeader.Filename
 	}
-	println("docxfile: " + docxFilePath)
+	log.Println("docxfile: " + docxFilePath)
 	// This file logic will only work in a local environment, not on Vercel.
 	// requestDirectory := filepath.Join(uploadDirectory, "Request"+requestID)
 	// if err := os.MkdirAll(requestDirectory, 0755); err != nil {
