@@ -4,20 +4,26 @@ package handler
 // package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
-	"github.com/rpdg/vercel_blob"
 	"gopkg.in/gomail.v2"
 )
 
@@ -69,16 +75,18 @@ type EmailRecipient struct {
 
 // Global variables for the database connection and the Gin engine.
 var (
-	db              *sql.DB
-	app             *gin.Engine
-	uploadDirectory string = ".\\files" // Base directory for file uploads (for local dev)
+	db                 *sql.DB
+	app                *gin.Engine
+	filebaseUploader   *manager.Uploader
+	filebaseDownloader *manager.Downloader
+	filebaseBucketName string
 )
 
 // init runs once when the serverless function starts, setting up the router.
 func init() {
 	db = openDB() // Initialize the database connection
 	app = gin.Default()
-
+	initFilebase()
 	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{"https://state-management-1.vercel.app", "http://localhost:4200"}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
@@ -87,8 +95,6 @@ func init() {
 
 	apiGroup := app.Group("/api")
 	registerRoutes(apiGroup)
-	log.Println("---handler invoked ---")
-
 }
 
 // registerRoutes defines all the API endpoints for the application.
@@ -142,6 +148,38 @@ func openDB() *sql.DB {
 	}
 	log.Println("INFO: Database connection successful.")
 	return db
+}
+func initFilebase() {
+
+	accessKey := os.Getenv("FILEBASE_ACCESS_KEY")
+	secretKey := os.Getenv("FILEBASE_SECRET_KEY")
+	bucketName := os.Getenv("FILEBASE_BUCKET_NAME") // Add your bucket name to.env.local
+
+	if accessKey == "" || secretKey == "" || bucketName == "" {
+		log.Fatal("FILEBASE_ACCESS_KEY, FILEBASE_SECRET_KEY, and FILEBASE_BUCKET_NAME must be set")
+	}
+
+	// Configure the AWS SDK to use the Filebase endpoint [1, 2]
+	resolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+		return aws.Endpoint{
+			URL:           "https://s3.filebase.com",
+			SigningRegion: "us-east-1",
+		}, nil
+	})
+
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithEndpointResolverWithOptions(resolver),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
+	)
+	if err != nil {
+		log.Fatalf("failed to load AWS config for Filebase: %v", err)
+	}
+
+	// Create an S3 client and initialize the global uploader
+	client := s3.NewFromConfig(cfg)
+	filebaseUploader = manager.NewUploader(client)
+	filebaseDownloader = manager.NewDownloader(client)
+	log.Println("Filebase uploader initialized successfully.")
 }
 
 // checkErr logs an error and sends an appropriate HTTP response.
@@ -470,11 +508,10 @@ func getStateThreshold(c *gin.Context) {
 
 // postNewRequest handles the creation of a new request, including file uploads.
 func postNewRequest(c *gin.Context) {
-	log.Println("enter new req func")
 	var newReq NewRequest
 	var requestID string
 	var docxFilePath string
-	// var excelFilePath string
+	var excelFilePath string
 
 	newReq.RequestTitle = c.PostForm("requestTitle")
 	newReq.RequesterName = c.PostForm("requesterName")
@@ -498,91 +535,94 @@ func postNewRequest(c *gin.Context) {
 		}
 	}
 
-	query := `SELECT ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
-	if false {
-		if err := db.QueryRow(query,
-			newReq.RequestTitle, newReq.UserID, newReq.RequesterName, newReq.AnalysisPurpose,
-			newReq.RequestedFinishDate, newReq.PicRequest, newReq.Urgent,
-			newReq.RequirementType, pq.Array(newReq.Answers), newReq.Remark,
-		).Scan(&requestID); err != nil {
-			checkErr(c, http.StatusInternalServerError, err, "Failed to get request ID after creation")
-			// return
-		}
+	query := `SELECT create_new_request($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
+	if err := db.QueryRow(query,
+		newReq.RequestTitle, newReq.UserID, newReq.RequesterName, newReq.AnalysisPurpose,
+		newReq.RequestedFinishDate, newReq.PicRequest, newReq.Urgent,
+		newReq.RequirementType, pq.Array(newReq.Answers), newReq.Remark,
+	).Scan(&requestID); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to get request ID after creation")
+		return
 	}
-	client := vercel_blob.NewVercelBlobClient()
-	// 4. Handle DOCX Upload using the requestID as a key/folder
-	if docxFileHeader, err := c.FormFile("docxAttachment"); err != nil {
-		log.Println("enter after get docs")
-		file, _ := docxFileHeader.Open()
-		defer file.Close()
 
-		// *** THIS IS THE KEY ***
-		// Construct a unique pathname that acts as the key.
-		// Format: attachments/request_[ID]/[original_filename]
-		pathname := fmt.Sprintf("attachments/request_%s/%s", requestID, docxFileHeader.Filename)
-		log.Printf("Uploading to pathname: %s", pathname)
-
-		blobResult, err := client.Put("articles/blob.txt", strings.NewReader("Hello World!"), vercel_blob.PutCommandOptions{})
-		if err != nil {
-			checkErr(c, http.StatusInternalServerError, err, "Unable to upload docx file")
+	if file, err := c.FormFile("docxAttachment"); err == nil {
+		safeFilename := filepath.Base(newReq.DocxFilename)
+		if safeFilename == "" || safeFilename == "." {
+			checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid docx filename"), "Invalid docx filename provided")
 			return
 		}
-		docxFilePath = blobResult.URL
-		newReq.DocxFilename = docxFileHeader.Filename
+		objectKey := fmt.Sprintf("request%s/%s", requestID, safeFilename)
+
+		openedFile, err := file.Open()
+		if err != nil {
+			checkErr(c, http.StatusInternalServerError, err, "failed to open uploaded file")
+			return
+		}
+		defer openedFile.Close()
+
+		result, err := filebaseUploader.Upload(context.TODO(), &s3.PutObjectInput{
+			Bucket: aws.String(filebaseBucketName),
+			Key:    aws.String(objectKey),
+			Body:   openedFile,
+		})
+
+		if err != nil {
+			checkErr(c, http.StatusInternalServerError, err, "failed to upload docx file to Filebase")
+			return
+		}
+
+		docxFilePath = result.Location
+
+	} else if err != http.ErrMissingFile {
+		checkErr(c, http.StatusInternalServerError, err, "Error processing docx attachment")
+		return
 	}
-	log.Println("docxfile: " + docxFilePath)
-	// This file logic will only work in a local environment, not on Vercel.
-	// requestDirectory := filepath.Join(uploadDirectory, "Request"+requestID)
-	// if err := os.MkdirAll(requestDirectory, 0755); err != nil {
-	// 	log.Printf("Error creating directory: %v", err)
-	// 	checkErr(c, http.StatusInternalServerError, err, "Could not create storage directory")
-	// 	return
-	// }
 
-	// if file, err := c.FormFile("docxAttachment"); err == nil {
-	// 	safeFilename := filepath.Base(newReq.DocxFilename)
-	// 	if safeFilename == "" || safeFilename == "." {
-	// 		checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid docx filename"), "Invalid docx filename provided")
-	// 		return
-	// 	}
-	// 	docxFilePath = filepath.Join(requestDirectory, safeFilename)
-	// 	if err := c.SaveUploadedFile(file, docxFilePath); err != nil {
-	// 		checkErr(c, http.StatusInternalServerError, err, "Unable to save docx file")
-	// 		return
-	// 	}
-	// } else if err != http.ErrMissingFile {
-	// 	checkErr(c, http.StatusInternalServerError, err, "Error processing docx attachment")
-	// 	return
-	// }
+	if file, err := c.FormFile("excelAttachment"); err == nil {
+		safeFilename := filepath.Base(newReq.ExcelFilename)
+		if safeFilename == "" || safeFilename == "." {
+			checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid excel filename"), "Invalid excel filename provided")
+			return
+		}
+		objectKey := fmt.Sprintf("request%s/%s", requestID, safeFilename)
 
-	// if file, err := c.FormFile("excelAttachment"); err == nil {
-	// 	safeFilename := filepath.Base(newReq.ExcelFilename)
-	// 	if safeFilename == "" || safeFilename == "." {
-	// 		checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid excel filename"), "Invalid excel filename provided")
-	// 		return
-	// 	}
-	// 	excelFilePath = filepath.Join(requestDirectory, safeFilename)
-	// 	if err := c.SaveUploadedFile(file, excelFilePath); err != nil {
-	// 		checkErr(c, http.StatusInternalServerError, err, "Unable to save excel file")
-	// 		return
-	// 	}
-	// } else if err != http.ErrMissingFile {
-	// 	checkErr(c, http.StatusInternalServerError, err, "Error processing excel attachment")
-	// 	return
-	// }
+		openedFile, err := file.Open()
+		if err != nil {
+			checkErr(c, http.StatusInternalServerError, err, "failed to open uploaded file")
+			return
+		}
+		defer openedFile.Close()
 
-	// requestIDInt, err := strconv.Atoi(requestID)
-	// if err != nil {
-	// 	checkErr(c, http.StatusInternalServerError, err, "Unable to convert request ID to integer")
-	// 	return
-	// }
-	// log.Printf("docxFilePath = %s, excelFilePath = %s", docxFilePath, excelFilePath)
+		result, err := filebaseUploader.Upload(context.TODO(), &s3.PutObjectInput{
+			Bucket: aws.String(filebaseBucketName),
+			Key:    aws.String(objectKey),
+			Body:   openedFile,
+		})
 
-	// queryAttachment := `CALL store_attachments($1, $2, $3, $4, $5);`
-	// if _, err = db.Exec(queryAttachment, requestIDInt, docxFilePath, newReq.DocxFilename, excelFilePath, newReq.ExcelFilename); err != nil {
-	// 	checkErr(c, http.StatusInternalServerError, err, "Unable to store attachments filepath to db")
-	// 	return
-	// }
+		if err != nil {
+			checkErr(c, http.StatusInternalServerError, err, "failed to upload excel file to Filebase")
+			return
+		}
+
+		excelFilePath = result.Location
+
+	} else if err != http.ErrMissingFile {
+		checkErr(c, http.StatusInternalServerError, err, "Error processing excel attachment")
+		return
+	}
+
+	requestIDInt, err := strconv.Atoi(requestID)
+	if err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Unable to convert request ID to integer")
+		return
+	}
+	log.Printf("docxFilePath = %s, excelFilePath = %s", docxFilePath, excelFilePath)
+
+	queryAttachment := `CALL store_attachments($1, $2, $3, $4, $5);`
+	if _, err = db.Exec(queryAttachment, requestIDInt, docxFilePath, newReq.DocxFilename, excelFilePath, newReq.ExcelFilename); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Unable to store attachments filepath to db")
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",
