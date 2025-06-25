@@ -1,4 +1,4 @@
-import { Component, inject, NgModule, ViewChild } from "@angular/core";
+import { Component, inject, NgModule, signal, ViewChild } from "@angular/core";
 import { MatButtonModule } from "@angular/material/button";
 import { Router } from "@angular/router";
 import { LoginService } from "../../service/login.service";
@@ -28,6 +28,7 @@ export class LoginPageComponent {
 	data_service = inject(DataProcessingService);
 	// Injecting the Router to handle navigation
 	router = inject(Router);
+	login_fail = signal<boolean>(false);
 
 	// variable to hold user's input box values
 	loginData = {
@@ -53,12 +54,21 @@ export class LoginPageComponent {
 
 	checkLogin(form: NgForm) {
 		// checks if all fields are filled, if not, return, triggers erros on each box
+
 		if (form.invalid) {
 			return;
 		}
 
 		// Otherwise, proceed with login
 		const { username, password } = this.loginData;
-		this.login_service.login(username, password);
+		this.login_service.login(username, password).subscribe((result) => {
+			if (!result) {
+				this.setLoginFail();
+			}
+		});
+	}
+
+	setLoginFail() {
+		this.login_fail.set(true);
 	}
 }

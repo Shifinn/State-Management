@@ -1,13 +1,13 @@
 <body>
-    <div class="page-title" [class.all-center]="inner_width() < 600">
+    <div class="page-title" [class.all-center]="innerWidth() < 600">
         <h1>My requests</h1>
-        <app-custom-square-button [button_label]="'New Request'" (buttonClick)="makeNewRequest()"
-            [class.center]="inner_width() < 600"></app-custom-square-button>
+        <app-custom-square-button [buttonLabel]="'New Request'" (buttonClick)="makeNewRequest()"
+            [class.center]="innerWidth() < 600"></app-custom-square-button>
     </div>
 
-    <div class="requests" [class.center]="inner_width() < 822">
-        @for (request of requests(); track request.request_id) {
-        <app-card-request [request]="request" />
+    <div class="requests" [class.center]="innerWidth() < 822">
+        @for (request of requests(); track request.requestId) {
+        <app-card-request [request]="request" (refresh)="refreshRequests()" />
         }
     </div>
 </body>

@@ -1,26 +1,26 @@
 <div class="period-picker-container">
     <div class="period-type-container">
-        @for (item of period_type; track $index) {
-        <div class="period-type-picker" [class.active]="current_period && item == current_period.period_type"
+        @for (item of periodType; track $index) {
+        <div class="period-type-picker" [class.active]="currentPeriod && item == currentPeriod.periodType"
             (click)="clickPeriodType(item)">
 
             <span>{{ item }}</span>
             <span class="arrow" (click)="
-          togglePeriodPickerVisibility(item); $event.stopPropagation()
-        ">▼</span>
+        togglePeriodPickerVisibility(item); $event.stopPropagation()
+      ">▼</span>
 
-            @if (item === period_picker_visible()) {
-            <app-pop-up-period-picker (option_selected)="updateCurrentPeriod($event)"
-                (period_picker_visible)="period_picker_visible.set($event)"
-                [available_period]="available_period().get(item) || []" [previous_menu]="current_period_menu()"
-                (store_menu)="current_period_menu.set($event)"></app-pop-up-period-picker>
+            @if (item === periodPickerVisible()) {
+            <app-pop-up-period-picker (optionSelected)="updateCurrentPeriod($event)"
+                (periodPickerVisible)="periodPickerVisible.set($event)"
+                [availablePeriod]="availablePeriod().get(item) || []" [previousMenu]="currentPeriodMenu()"
+                (storeMenu)="currentPeriodMenu.set($event)"></app-pop-up-period-picker>
             }
         </div>
 
         }
     </div>
-    @if (current_period) {
-    <div class="current-period-full-label" [matTooltip]="current_period_tooltip()">
-        {{current_period.full_label}}</div>
+    @if (currentPeriod) {
+    <div class="current-period-full-label" [matTooltip]="currentPeriodTooltip()">
+        {{currentPeriod.fullLabel}}</div>
     }
 </div>

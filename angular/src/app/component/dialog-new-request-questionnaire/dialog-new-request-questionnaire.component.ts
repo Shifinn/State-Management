@@ -48,69 +48,70 @@ import { MatIconModule } from "@angular/material/icon";
 	],
 })
 export class DialogNewRequestQuestionnaireComponent {
-	data_service = inject(DataProcessingService);
+	dataService = inject(DataProcessingService);
 	questions = signal<Array<Question>>([]);
 	dialogRef = inject(MatDialogRef<DialogNewRequestQuestionnaireComponent>);
 	@ViewChild("requestForm") requestForm!: NgForm; // Get reference to the form
 
 	today = new Date();
 	data: NewRequest = {
-		request_title: "",
-		user_id: 0,
-		requester_name: "",
-		analysis_purpose: "",
-		requested_finish_date: null,
-		pic_request: "",
+		requestTitle: "",
+		userId: 0,
+		requesterName: "",
+		analysisPurpose: "",
+		requestedFinishDate: null,
+		picRequest: "",
 		urgent: null,
-		requirement_type: null,
+		requirementType: null,
 		remark: "",
 		answers: [],
-		docx_attachment: null,
-		docx_filename: null,
-		excel_attachment: null,
-		excel_filename: null,
+		docxAttachment: null,
+		docxFilename: null,
+		excelAttachment: null,
+		excelFilename: null,
 	};
-	inner_width = signal<number>(9999);
+	innerWidth = signal<number>(9999);
 
 	@HostListener("window:resize", ["$event"])
 	onResize(event: Event) {
-		this.inner_width.set(window.innerWidth);
+		this.innerWidth.set(window.innerWidth);
 	}
 
 	ngOnInit() {
-		this.inner_width.set(window.innerWidth);
+		this.innerWidth.set(window.innerWidth);
 	}
+
 	submitRequest() {
 		this.requestForm.form.markAllAsTouched();
 		if (this.allRequirementsAnswered()) {
-			this.data.request_title = this.data.request_title
+			this.data.requestTitle = this.data.requestTitle
 				.toLowerCase()
 				.replace(/\b\w/g, (char) => char.toUpperCase());
-			this.data.pic_request = this.data.pic_request.toLowerCase();
-			this.data.user_id = Number(this.data_service.getUserId());
-			this.data.requester_name = this.data_service.getUserName();
+			this.data.picRequest = this.data.picRequest.toLowerCase();
+			this.data.userId = Number(this.dataService.getUserId());
+			this.data.requesterName = this.dataService.getUserName();
 			this.data.answers = this.questions().map((q) => q.answer);
 
-			this.data_service.postNewRequest(this.data).subscribe(() => {
+			this.dataService.postNewRequest(this.data).subscribe(() => {
 				this.dialogRef.close("1");
 			});
 		}
 	}
 
 	getQuestion() {
-		if (this.data.requirement_type != null) {
-			this.data_service
-				.getRequirementQuestion(this.data.requirement_type)
+		if (this.data.requirementType != null) {
+			this.dataService
+				.getRequirementQuestion(this.data.requirementType)
 				.subscribe((input) => {
 					this.questions.set(input);
 				});
 		}
 	}
+
 	allRequirementsAnswered(): boolean {
 		if (this.requestForm.valid == null || this.requestForm.valid === false) {
 			return false;
 		}
-
 		return true;
 	}
 
@@ -120,11 +121,11 @@ export class DialogNewRequestQuestionnaireComponent {
 		if (input.files && input.files.length > 0) {
 			const file = input.files[0];
 			if (type === "EXCEL") {
-				this.data.excel_attachment = file;
-				this.data.excel_filename = file.name;
+				this.data.excelAttachment = file;
+				this.data.excelFilename = file.name;
 			} else {
-				this.data.docx_attachment = file;
-				this.data.docx_filename = file.name;
+				this.data.docxAttachment = file;
+				this.data.docxFilename = file.name;
 			}
 		}
 	}

@@ -8,33 +8,34 @@ import { MatTooltipModule } from "@angular/material/tooltip";
 
 @Component({
 	selector: "app-card-state-data",
+	standalone: true,
 	imports: [CustomSquareButtonComponent, CommonModule, MatTooltipModule],
 	templateUrl: "./card-state-data.component.html",
 	styleUrl: "./card-state-data.component.css",
 })
 export class CardStateDataComponent {
-	@Input() state_info!: StateInfoData;
+	@Input() stateInfo!: StateInfoData;
 	dialog = inject(MatDialog);
-	box_text_variant = signal<string>("State Start Date:");
+	boxTextVariant = signal<string>("State Start Date:");
 
 	ngOnInit() {
-		if (this.state_info.current_state === 5) {
-			this.box_text_variant.set("Completed Date:");
+		if (this.stateInfo.currentState === 5) {
+			this.boxTextVariant.set("Completed Date:");
 		}
 	}
 
 	moreDetails() {
-		const dialogref = this.dialog.open(DialogMoreDetailComponent, {
+		const dialogRef = this.dialog.open(DialogMoreDetailComponent, {
 			autoFocus: false,
 			width: "90vw",
 			height: "90vh",
 			maxWidth: "90vw",
 			panelClass: "custom-dialog-container",
-			data: { request_id: this.state_info.request_id },
+			data: { requestId: this.stateInfo.requestId },
 		});
 
-		// dialogref.afterClosed().subscribe((result) => {
-		// 	this.refresh.emit();
+		// dialogRef.afterClosed().subscribe((result) => {
+		//  this.refresh.emit();
 		// });
 	}
 }

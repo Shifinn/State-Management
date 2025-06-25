@@ -1,39 +1,39 @@
 <form #requestForm="ngForm">
-  <div class="dialog-container" [class.smaller]="inner_width() < 540">
+  <div class="dialog-container" [class.smaller]="innerWidth() < 540">
     <h2>REQUEST BARU</h2>
 
     <div class="row">
       <mat-form-field appearance="outline" class="field">
-        <mat-label [class.smaller-label]="inner_width() < 600">JUDUL</mat-label>
-        <input matInput name="judul" [(ngModel)]="data.request_title" required />
-        <mat-error *ngIf="requestForm.submitted && data.request_title == ''">
+        <mat-label [class.smaller-label]="innerWidth() < 600">JUDUL</mat-label>
+        <input matInput name="judul" [(ngModel)]="data.requestTitle" required />
+        <mat-error *ngIf="requestForm.submitted && data.requestTitle == ''">
           Tolong isi judul
         </mat-error>
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="field">
-        <mat-label [class.smaller-label]="inner_width() < 600">PIC_REQUEST</mat-label>
-        <input matInput name="pic_request" [(ngModel)]="data.pic_request" required />
-        <mat-error *ngIf="requestForm.submitted && data.pic_request == ''">
-          Tolong isi PIC_request
+        <mat-label [class.smaller-label]="innerWidth() < 600">PIC REQUEST</mat-label>
+        <input matInput name="picRequest" [(ngModel)]="data.picRequest" required />
+        <mat-error *ngIf="requestForm.submitted && data.picRequest == ''">
+          Tolong isi PIC request
         </mat-error>
       </mat-form-field>
     </div>
 
     <div class="row">
       <mat-form-field appearance="outline" class="field">
-        <mat-label [class.smaller-label]="inner_width() < 600">HARAPAN SELESAI</mat-label>
-        <input matInput name="finish_date" [matDatepicker]="picker" [(ngModel)]="data.requested_finish_date"
-          [min]="today" required />
+        <mat-label [class.smaller-label]="innerWidth() < 600">HARAPAN SELESAI</mat-label>
+        <input matInput name="finishDate" [matDatepicker]="picker" [(ngModel)]="data.requestedFinishDate" [min]="today"
+          required />
         <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
         <mat-datepicker #picker></mat-datepicker>
-        <mat-error *ngIf="requestForm.submitted && !data.requested_finish_date">
+        <mat-error *ngIf="requestForm.submitted && !data.requestedFinishDate">
           Tolong isi harapan selesai
         </mat-error>
       </mat-form-field>
 
       <mat-form-field appearance="outline" class="field">
-        <mat-label [class.smaller-label]="inner_width() < 600">URGENCY</mat-label>
+        <mat-label [class.smaller-label]="innerWidth() < 600">URGENCY</mat-label>
         <mat-select name="urgency" [(ngModel)]="data.urgent" required>
           <mat-option [value]="false">REGULAR</mat-option>
           <mat-option [value]="true">URGENT</mat-option>
@@ -47,27 +47,27 @@
     <div class="row">
       <!-- DOCX Upload -->
       <mat-form-field appearance="outline" class="file-field">
-        <mat-label [class.smaller-label]="inner_width() < 600">DOCX</mat-label>
-        <input matInput name="docx_file" [class.smaller-label]="inner_width() < 600" [(ngModel)]="data.docx_filename"
+        <mat-label [class.smaller-label]="innerWidth() < 600">DOCX</mat-label>
+        <input matInput name="docxFile" [class.smaller-label]="innerWidth() < 600" [(ngModel)]="data.docxFilename"
           required readonly />
         <button mat-icon-button matSuffix type="button" (click)="docxInput.click()" aria-label="Upload file">
           <mat-icon>drive_folder_upload</mat-icon>
         </button>
         <input type="file" hidden #docxInput accept=".docx, .pdf" (change)="submitFile($event, 'DOCX')" />
-        <mat-error *ngIf="requestForm.submitted && !data.docx_attachment">
+        <mat-error *ngIf="requestForm.submitted && !data.docxAttachment">
           Tolong isi file docx
         </mat-error>
       </mat-form-field>
 
       <!-- EXCEL Upload -->
       <mat-form-field appearance="outline" class="file-field">
-        <mat-label [class.smaller-label]="inner_width() < 600">EXCEL</mat-label>
-        <input matInput name="excel_file" [(ngModel)]="data.excel_filename" required readonly />
+        <mat-label [class.smaller-label]="innerWidth() < 600">EXCEL</mat-label>
+        <input matInput name="excelFile" [(ngModel)]="data.excelFilename" required readonly />
         <button mat-icon-button matSuffix type="button" (click)="excelInput.click()" aria-label="Upload file">
           <mat-icon>drive_folder_upload</mat-icon>
         </button>
         <input type="file" hidden #excelInput accept=".xls,.xlsx" (change)="submitFile($event, 'EXCEL')" />
-        <mat-error *ngIf="requestForm.submitted && !data.excel_attachment">
+        <mat-error *ngIf="requestForm.submitted && !data.excelAttachment">
           Tolong isi file excel
         </mat-error>
       </mat-form-field>
@@ -76,14 +76,14 @@
 
     <div class="row">
       <mat-form-field appearance="outline" class="field">
-        <mat-label [class.smaller-label]="inner_width() < 600">TIPE DATA</mat-label>
-        <mat-select name="requirement_type" [(ngModel)]="data.requirement_type" (selectionChange)="getQuestion()"
+        <mat-label [class.smaller-label]="innerWidth() < 600">TIPE DATA</mat-label>
+        <mat-select name="requirementType" [(ngModel)]="data.requirementType" (selectionChange)="getQuestion()"
           required>
           <mat-option [value]="1">FFRA</mat-option>
           <mat-option [value]="2">DATASET(PENAMBAHAN COLUMN)</mat-option>
           <mat-option [value]="3">DATASET BARU</mat-option>
         </mat-select>
-        <mat-error *ngIf="requestForm.submitted && data.requirement_type == null">
+        <mat-error *ngIf="requestForm.submitted && data.requirementType == null">
           Tolong isi tipe data
         </mat-error>
       </mat-form-field>
@@ -91,8 +91,8 @@
 
     <h3>ANALYSIS PURPOSE</h3>
     <mat-form-field appearance="outline" class="wide-field">
-      <textarea matInput name="analysis_purpose" rows="3" [(ngModel)]="data.analysis_purpose" required></textarea>
-      <mat-error *ngIf="requestForm.submitted && data.analysis_purpose == ''">
+      <textarea matInput name="analysisPurpose" rows="3" [(ngModel)]="data.analysisPurpose" required></textarea>
+      <mat-error *ngIf="requestForm.submitted && data.analysisPurpose == ''">
         Tolong isi analysis purpose
       </mat-error>
     </mat-form-field>
@@ -102,25 +102,25 @@
       <textarea matInput name="remark" rows="3" [(ngModel)]="data.remark"></textarea>
     </mat-form-field>
 
-    @if (data.requirement_type != null ) {
+    @if (data.requirementType != null ) {
     <h3>REQUIREMENTS</h3>
     }
 
     <div>
-      @for (question of questions(); track question.requirement_question_id) {
+      @for (question of questions(); track question.requirementQuestionId) {
       <div class="row">
         <div class="question-text">
-          {{ question.requirement_question_id % 100 }}.
+          {{ question.requirementQuestionId % 100 }}.
         </div>
         <div class="requirement-item">
           <label class="question-text">{{
-            question.requirement_question
+            question.requirementQuestion
             }}</label>
           <mat-form-field appearance="outline" class="wide-field">
-            <input matInput name="question_{{ question.requirement_question_id }}" [(ngModel)]="question.answer"
+            <input matInput name="question_{{ question.requirementQuestionId }}" [(ngModel)]="question.answer"
               required />
             <mat-error *ngIf="requestForm.submitted && !question.answer">
-              Tolong isi pertanyaan {{ question.requirement_question_id % 100 }}
+              Tolong isi pertanyaan {{ question.requirementQuestionId % 100 }}
             </mat-error>
           </mat-form-field>
         </div>

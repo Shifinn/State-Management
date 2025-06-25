@@ -17,13 +17,13 @@ import { LoginService } from "../../service/login.service";
 	styleUrl: "./pop-up-user-info.component.css",
 })
 export class PopUpUserInfoComponent {
-	data_service = inject(DataProcessingService);
-	login_service = inject(LoginService);
+	dataService = inject(DataProcessingService);
+	loginService = inject(LoginService);
 	eref = inject(ElementRef);
 	@Output() user_data_visible = new EventEmitter<boolean>();
 
 	logOut() {
-		this.login_service.logOut();
+		this.loginService.logOut();
 	}
 
 	@HostListener("document:click", ["$event"])

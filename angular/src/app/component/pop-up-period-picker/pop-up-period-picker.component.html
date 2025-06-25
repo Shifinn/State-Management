@@ -1,22 +1,22 @@
 <div class="pop-up-container">
   <!-- Centered top buttons inside the dropdown -->
-  @if (!(period_type === "NAN" || period_type === "YEAR")) {
+  @if (!(periodType === "NAN" || periodType === "YEAR")) {
   <div class="top-bar">
     <button class="custom-button" (click)="changeYear()">
-      {{ current_menu.year }}
+      {{ currentMenu.year }}
     </button>
-    @if (period_type === "WEEK") {
+    @if (periodType === "WEEK") {
     <button class="custom-button" (click)="changeMonth()">
-      {{ monthNames[current_menu.month] }}
+      {{ monthNames[currentMenu.month] }}
     </button>
     }
   </div>
   }
 
   <!-- Grid content section -->
-  @if (current_menu.type === "PERIOD") {
+  @if (currentMenu.type === "PERIOD") {
   <div class="grid-content">
-    @for (item of visible_period(); track item.start_date) {
+    @for (item of visiblePeriod(); track item.startDate) {
     <button class="custom-button" (click)="selectOption(item)">
       {{ item.label }}
     </button>
@@ -24,9 +24,9 @@
   </div>
   }
 
-  @if (current_menu.type === "YEAR") {
+  @if (currentMenu.type === "YEAR") {
   <div class="grid-content">
-    @for (item of year_list(); track item) {
+    @for (item of yearList(); track item) {
     <button class="custom-button" (click)="selectYear(item)">
       {{ item }}
     </button>
@@ -34,9 +34,9 @@
   </div>
   }
 
-  @if (current_menu.type === "MONTH") {
+  @if (currentMenu.type === "MONTH") {
   <div class="grid-content">
-    @for (item of month_list(); track $index) {
+    @for (item of monthList(); track $index) {
     <button class="custom-button" (click)="selectMonth(item)">
       {{ item }}
     </button>

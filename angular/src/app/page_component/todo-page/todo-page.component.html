@@ -1,19 +1,19 @@
 <body>
-  <div class="todo-page-header" [class.column]="inner_width() < 1050">
+  <div class="todo-page-header" [class.column]="innerWidth() < 1050">
     <div class="menu-selector">
-      <div class="menu-item" [class.active]="current_menu === 'TODO'" (click)="setMenu('TODO')">
+      <div class="menu-item" [class.active]="currentMenu === 'TODO'" (click)="setMenu('TODO')">
         Todo
       </div>
-      <div class="menu-item" [class.active]="current_menu === 'IN PROGRESS'" (click)="setMenu('IN PROGRESS')">
+      <div class="menu-item" [class.active]="currentMenu === 'IN PROGRESS'" (click)="setMenu('IN PROGRESS')">
         In Progress
       </div>
-      <div class="menu-item" [class.active]="current_menu === 'DONE'" (click)="setMenu('DONE')">
+      <div class="menu-item" [class.active]="currentMenu === 'DONE'" (click)="setMenu('DONE')">
         Done
       </div>
     </div>
     <div>
-      <mat-form-field class="filter" appearance="outline" [class.flex]="inner_width() < 1050">
-        <mat-select name="requirement_type" [(ngModel)]="current_filter" (selectionChange)="setVisibleBasedOnFilter()">
+      <mat-form-field class="filter" appearance="outline" [class.flex]="innerWidth() < 1050">
+        <mat-select name="requirementType" [(ngModel)]="currentFilter" (selectionChange)="setVisibleBasedOnFilter()">
           <mat-option [value]="-1">ALL</mat-option>
           <mat-option [value]="1">FFRA</mat-option>
           <mat-option [value]="2">DATASET ( PENAMBAHAN COLUMN )</mat-option>
@@ -22,17 +22,16 @@
       </mat-form-field>
     </div>
   </div>
-  <div class="requests" [class.center]="inner_width() < 822">
-    @if (visible_todo().length > 0 && current_menu != 'DONE') {
-    @for (request of visible_todo(); track request.request_id) {
-    <app-card-request [reminder_tooltip]="todo_state_threshold()" [request]="request" (refresh)="getTodo()" />
+  <div class="requests" [class.center]="innerWidth() < 822">
+    @if (visibleTodo().length > 0 && currentMenu != 'DONE') {
+    @for (request of visibleTodo(); track request.requestId) {
+    <app-card-request [reminderTooltip]="todoStateThreshold()" [request]="request" (refresh)="getTodo()" />
     }
     }
-    @if (visible_todo().length > 0 && current_menu === 'DONE') {
-    @for (request of visible_todo(); track request.request_id) {
+    @if (visibleTodo().length > 0 && currentMenu === 'DONE') {
+    @for (request of visibleTodo(); track request.requestId) {
     <app-card-request [request]="request" (refresh)="getTodo()" />
     }
     }
-
   </div>
 </body>

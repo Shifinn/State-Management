@@ -22,10 +22,12 @@
           Tolong isi password
         </mat-error>
       </mat-form-field>
-      <!-- Login Button -->
       <button mat-flat-button class="button" color="primary" (click)="checkLogin(loginForm)">
         Login
       </button>
+      <mat-error class="err-message" *ngIf=" login_fail()">
+        Username atau password salah
+      </mat-error>
     </div>
   </main>
 </form>

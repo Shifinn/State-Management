@@ -19,6 +19,7 @@ import { PeriodPickerComponent } from "../../component/period-picker/period-pick
 
 @Component({
 	selector: "app-progress-page",
+	standalone: true,
 	imports: [
 		CardProgressCountComponent,
 		CardStateDataComponent,
@@ -27,10 +28,10 @@ import { PeriodPickerComponent } from "../../component/period-picker/period-pick
 	templateUrl: "./progress-page.component.html",
 	styleUrl: "./progress-page.component.css",
 })
-export class ProgressPageComponent {
-	data_service = inject(DataProcessingService);
-	progress_info = signal<Array<StatusInfo>>([]);
-	state_data: Map<StateStatus, Array<StateInfoData>> = new Map<
+export class ProgressPageComponent implements OnInit {
+	dataService = inject(DataProcessingService);
+	progressInfo = signal<Array<StatusInfo>>([]);
+	stateData: Map<StateStatus, Array<StateInfoData>> = new Map<
 		StateStatus,
 		Array<StateInfoData>
 	>([
@@ -38,67 +39,66 @@ export class ProgressPageComponent {
 		["TODO", []],
 		["DONE", []],
 	]);
-	visible_state_data = signal<Array<StateInfoData>>([]);
-	current_view_status = signal<CachedProgrestCardMemory>({
+	visibleStateData = signal<Array<StateInfoData>>([]);
+	currentViewStatus = signal<CachedProgrestCardMemory>({
 		type: "NAN",
-		state_id: -2,
+		stateId: -2,
 	});
-	current_period!: TimePeriod;
-	is_shrunk = signal<boolean>(false);
-	is_left_aligned = signal<boolean>(true);
-	inner_width = signal<number>(9999);
+	currentPeriod!: TimePeriod;
+	isShrunk = signal<boolean>(false);
+	isLeftAligned = signal<boolean>(true);
+	innerWidth = signal<number>(9999);
 
 	@HostListener("window:resize", ["$event"])
 	onResize(event: Event) {
-		this.inner_width.set(window.innerWidth);
+		this.innerWidth.set(window.innerWidth);
 	}
 
 	ngOnInit() {
-		this.inner_width.set(window.innerWidth);
+		this.innerWidth.set(window.innerWidth);
 	}
 
 	toggleShrink(input: number) {
 		if (input === 2) {
-			this.is_shrunk.set(this.is_shrunk());
+			this.isShrunk.set(this.isShrunk());
 			return;
 		}
-
-		this.is_shrunk.set(Boolean(input));
+		this.isShrunk.set(Boolean(input));
 	}
 
-	periodUpdate(new_period: TimePeriod) {
-		this.current_period = new_period;
+	periodUpdate(newPeriod: TimePeriod) {
+		this.currentPeriod = newPeriod;
 		this.clearStateData();
 		this.getNewStateCount(
-			this.current_period.start_date,
-			this.current_period.end_date,
+			this.currentPeriod.startDate,
+			this.currentPeriod.endDate,
 		);
 	}
 
 	handlePeriodTypeShift() {
-		if (this.is_shrunk() === true) {
-			this.current_view_status.set({ state_id: -2, type: "NAN" });
-			this.showStateData({ type: "TOTAL", state_id: -1 });
+		if (this.isShrunk() === true) {
+			this.currentViewStatus.set({ stateId: -2, type: "NAN" });
+			this.showStateData({ type: "TOTAL", stateId: -1 });
 		}
 	}
 
 	clearStateData() {
-		this.state_data.set("TOTAL", []);
-		this.state_data.set("TODO", []);
-		this.state_data.set("DONE", []);
-		this.visible_state_data.set([]);
+		this.stateData.set("TOTAL", []);
+		this.stateData.set("TODO", []);
+		this.stateData.set("DONE", []);
+		this.visibleStateData.set([]);
 	}
 
-	getNewStateCount(start_date: Date, end_date: Date) {
-		console.log(`start: ${start_date}, end: ${end_date}`);
-		this.data_service
-			.getStateCount(start_date.toISOString(), end_date.toISOString())
+	getNewStateCount(startDate: Date, endDate: Date) {
+		console.log(`start: ${startDate}, end: ${endDate}`);
+		this.dataService
+			.getStateCount(startDate.toISOString(), endDate.toISOString())
 			.subscribe((result) => {
-				this.progress_info.set(result);
+				this.progressInfo.set(result);
 			});
-		if (this.is_shrunk() === true) {
-			const cache = this.current_view_status();
-			this.current_view_status.set({ state_id: -2, type: "NAN" });
+		if (this.isShrunk() === true) {
+			const cache = this.currentViewStatus();
+			this.currentViewStatus.set({ stateId: -2, type: "NAN" });
 			this.showStateData(cache);
 		}
 	}
@@ -107,63 +107,58 @@ export class ProgressPageComponent {
 		console.log(`The type from card is: ${input.type}`);
 		if (!this.checkPreviousStateSelection(input)) return;
 
-		this.current_view_status.set(input);
+		this.currentViewStatus.set(input);
 
-		const currentStateId = this.visible_state_data()[0]?.state_name_id;
-		const cachedTotalData = this.state_data.get("TOTAL");
-		// If the visible data doesn't match the selected state, reset
-		if (currentStateId !== input.state_id) {
+		const currentStateId = this.visibleStateData()[0]?.stateNameId;
+		const cachedTotalData = this.stateData.get("TOTAL");
+
+		if (currentStateId !== input.stateId) {
 			this.clearStateData();
 		} else if (cachedTotalData?.length) {
 			this.setVisibleStateDataSignal(input.type);
 			return;
 		}
 
-		// Otherwise, fetch from server
-		this.data_service
+		this.dataService
 			.getStateSpecificData(
-				input.state_id,
-				this.current_period.start_date.toISOString(),
-				this.current_period.end_date.toISOString(),
+				input.stateId,
+				this.currentPeriod.startDate.toISOString(),
+				this.currentPeriod.endDate.toISOString(),
 			)
 			.subscribe((result) => {
-				this.state_data.set("TOTAL", result);
+				this.stateData.set("TOTAL", result);
 				this.setVisibleStateDataSignal(input.type);
 			});
 	}
 
-	setVisibleStateDataSignal(completion_type: StateStatus) {
-		const temp_state_array = this.state_data.get(completion_type);
-		const temp_state_array_total = this.state_data.get("TOTAL");
+	setVisibleStateDataSignal(completionType: StateStatus) {
+		const tempStateArray = this.stateData.get(completionType);
+		const tempStateArrayTotal = this.stateData.get("TOTAL");
 
 		this.toggleShrink(1);
 
-		if (temp_state_array?.length) {
-			this.visible_state_data.set(temp_state_array);
-		} else if (temp_state_array_total?.length) {
-			const temp_new_period = this.data_service.separateBasedOnCompletion(
-				completion_type,
-				temp_state_array_total,
+		if (tempStateArray?.length) {
+			this.visibleStateData.set(tempStateArray);
+		} else if (tempStateArrayTotal?.length) {
+			const tempNewPeriod = this.dataService.separateBasedOnCompletion(
+				completionType,
+				tempStateArrayTotal,
 			);
-			this.state_data.set(completion_type, temp_new_period);
-			this.visible_state_data.set(temp_new_period);
-			this.current_view_status().type = completion_type;
-		}
-
-		for (const a of this.visible_state_data()) {
-			console.log(a);
+			this.stateData.set(completionType, tempNewPeriod);
+			this.visibleStateData.set(tempNewPeriod);
+			this.currentViewStatus().type = completionType;
 		}
 	}
 
 	checkPreviousStateSelection(check: CachedProgrestCardMemory): boolean {
 		if (
-			this.current_view_status().state_id === check.state_id &&
-			this.current_view_status().type === check.type
+			this.currentViewStatus().stateId === check.stateId &&
+			this.currentViewStatus().type === check.type
 		) {
 			this.toggleShrink(0);
-			this.visible_state_data.set([]);
-			this.current_view_status.set({ state_id: -2, type: "NAN" });
-			console.log(`shrink is ${this.is_shrunk}`);
+			this.visibleStateData.set([]);
+			this.currentViewStatus.set({ stateId: -2, type: "NAN" });
+			console.log(`shrink is ${this.isShrunk}`);
 			return false;
 		}
 

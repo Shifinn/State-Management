@@ -7,32 +7,33 @@ import { MatIconModule } from "@angular/material/icon";
 
 @Component({
 	selector: "app-header",
+	standalone: true,
 	imports: [RouterLink, PopUpUserInfoComponent, MatIconModule],
 	templateUrl: "./header.component.html",
 	styleUrl: "./header.component.css",
 })
 export class HeaderComponent {
-	login_service = inject(LoginService);
-	data_service = inject(DataProcessingService);
-	user_name = signal(Number(this.data_service.getUserName())); // Signal to track the ID
-	user_role = signal<string>("1");
-	is_user_info_visible = signal<boolean>(false);
-	inner_width = signal<number>(9999);
+	loginService = inject(LoginService);
+	dataService = inject(DataProcessingService);
+	userName = signal(this.dataService.getUserName());
+	userRole = signal<string>("1");
+	isUserInfoVisible = signal<boolean>(false);
+	innerWidth = signal<number>(9999);
 
 	@HostListener("window:resize", ["$event"])
 	onResize(event: Event) {
-		this.inner_width.set(window.innerWidth);
+		this.innerWidth.set(window.innerWidth);
 	}
 
 	ngOnInit() {
-		this.user_role.set(this.data_service.getUserRole());
+		this.userRole.set(this.dataService.getUserRole());
 	}
 
 	toggleUserInfoVisibility(input: boolean) {
-		this.is_user_info_visible.set(input);
+		this.isUserInfoVisible.set(input);
 	}
 
 	logOut() {
-		this.login_service.logOut(); // Call the logout method from the servic
+		this.loginService.logOut(); // Call the logout method from the service
 	}
 }

@@ -5,20 +5,22 @@ import type {
 	StateStatus,
 	StatusInfo,
 } from "../../model/format.type";
+
 @Component({
 	selector: "app-card-progress-count",
+	standalone: true,
 	imports: [CommonModule],
 	templateUrl: "./card-progress-count.component.html",
 	styleUrl: "./card-progress-count.component.css",
 })
 export class CardProgressCountComponent {
-	@Input() progress_info!: StatusInfo;
+	@Input() progressInfo!: StatusInfo;
 	@Input() isShrunk = false;
 	@Input() isActiveCheck!: CachedProgrestCardMemory;
 	@Output() buttonClick = new EventEmitter<CachedProgrestCardMemory>();
 
 	isActive(): number {
-		if (this.isActiveCheck.state_id !== this.progress_info.state_id) return 0;
+		if (this.isActiveCheck.stateId !== this.progressInfo.stateId) return 0;
 		if (this.isActiveCheck.type === "TODO") return 1;
 		if (this.isActiveCheck.type === "DONE") return 2;
 		if (this.isActiveCheck.type === "TOTAL") return 3;
@@ -26,24 +28,24 @@ export class CardProgressCountComponent {
 		return 0;
 	}
 
-	onClick(input: StateStatus) {
+	onClick(inputType: StateStatus) {
 		const output: CachedProgrestCardMemory = {
-			type: input,
-			state_id: this.progress_info.state_id,
+			type: inputType,
+			stateId: this.progressInfo.stateId,
 		};
-		switch (input) {
+		switch (inputType) {
 			case "TOTAL":
-				if (this.progress_info.todo > 0 || this.progress_info.done > 0) {
+				if (this.progressInfo.todo > 0 || this.progressInfo.done > 0) {
 					this.buttonClick.emit(output);
 				}
 				break;
 			case "TODO":
-				if (this.progress_info.todo > 0) {
+				if (this.progressInfo.todo > 0) {
 					this.buttonClick.emit(output);
 				}
 				break;
 			case "DONE":
-				if (this.progress_info.done > 0) {
+				if (this.progressInfo.done > 0) {
 					this.buttonClick.emit(output);
 				}
 				break;

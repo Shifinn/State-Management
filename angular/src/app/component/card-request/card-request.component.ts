@@ -36,12 +36,12 @@ import { MatIconModule } from "@angular/material/icon";
 })
 export class CardRequestComponent {
 	@Input() request!: SimpleData;
-	@Input() reminder_tooltip!: StateThreshold[];
+	@Input() reminderTooltip!: StateThreshold[];
 	@Output() refresh = new EventEmitter<void>();
-	request_duration_string = signal<string>("");
-	state_duration_string = signal<string>("");
+	requestDurationString = signal<string>("");
+	stateDurationString = signal<string>("");
 
-	data_service = inject(DataProcessingService);
+	dataService = inject(DataProcessingService);
 	dialog = inject(MatDialog);
 	threshold!: number | undefined;
 	intervalForRequest!: ReturnType<typeof setInterval>;
@@ -49,10 +49,10 @@ export class CardRequestComponent {
 	test = signal<number>(8.99);
 
 	ngOnInit() {
-		if (this.reminder_tooltip) {
-			this.threshold = this.reminder_tooltip?.find(
-				(s) => s.state_name_id === 1,
-			)?.state_threshold_hour;
+		if (this.reminderTooltip) {
+			this.threshold = this.reminderTooltip?.find(
+				(s) => s.stateNameId === 1,
+			)?.stateThresholdHour;
 		}
 		this.durationForRequest();
 		this.durationForState();
@@ -69,16 +69,17 @@ export class CardRequestComponent {
 	}
 
 	moreDetails() {
-		const dialogref = this.dialog.open(DialogMoreDetailComponent, {
+		const dialogRef = this.dialog.open(DialogMoreDetailComponent, {
 			autoFocus: false,
 			width: "90vw",
 			height: "90vh",
 			maxWidth: "90vw",
+			maxHeight: "fit-content",
 			panelClass: "custom-dialog-container",
-			data: { request_id: this.request.request_id },
+			data: { requestId: this.request.requestId },
 		});
 
-		dialogref.afterClosed().subscribe((result) => {
+		dialogRef.afterClosed().subscribe((result) => {
 			this.refresh.emit();
 		});
 	}
@@ -86,39 +87,39 @@ export class CardRequestComponent {
 	durationForState() {
 		console.log("warning check");
 		if (this.threshold) {
-			const date_ref = this.request.date_start;
-			const hours = this.data_service.getTimeDifferenceInHour(date_ref);
-			let hour_till_recall!: number;
+			const dateRef = this.request.dateStart;
+			const hours = this.dataService.getTimeDifferenceInHour(dateRef);
+			let hourTillRecall!: number;
 			if (hours > this.threshold) {
 				const duration =
-					this.data_service.getTimeDifferenceInDayAndHour(date_ref);
-				hour_till_recall = 1 - (duration.hour % 1);
+					this.dataService.getTimeDifferenceInDayAndHour(dateRef);
+				hourTillRecall = 1 - (duration.hour % 1);
 
-				this.state_duration_string.set(
-					`Has been ${duration.day} days ${Math.floor(duration.hour)} hours since ${this.request.state_name} started`,
+				this.stateDurationString.set(
+					`Has been ${duration.day} days ${Math.floor(duration.hour)} hours since ${this.request.stateName} started`,
 				);
 			} else {
-				hour_till_recall = this.threshold - hours;
+				hourTillRecall = this.threshold - hours;
 			}
 
 			if (this.intervalForState) clearInterval(this.intervalForState);
 			this.intervalForState = setInterval(() => {
 				this.durationForState();
-			}, hour_till_recall * 3600000);
+			}, hourTillRecall * 3600000);
 		}
 	}
 
 	durationForRequest() {
-		const date_ref = this.request.request_date;
-		const duration = this.data_service.getTimeDifferenceInDayAndHour(date_ref);
-		const hour_till_recall = 1 - (duration.hour % 1);
+		const dateRef = this.request.requestDate;
+		const duration = this.dataService.getTimeDifferenceInDayAndHour(dateRef);
+		const hourTillRecall = 1 - (duration.hour % 1);
 
-		this.request_duration_string.set(
+		this.requestDurationString.set(
 			` ${duration.day} days ${Math.floor(duration.hour)} hours ago`,
 		);
 		if (this.intervalForRequest) clearInterval(this.intervalForRequest);
 		this.intervalForRequest = setInterval(() => {
 			this.durationForRequest();
-		}, hour_till_recall * 3600000);
+		}, hourTillRecall * 3600000);
 	}
 }

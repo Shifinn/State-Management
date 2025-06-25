@@ -11,19 +11,20 @@ import { CommonModule, DatePipe } from "@angular/common";
 
 @Component({
 	selector: "app-period-picker",
+	standalone: true,
 	imports: [PopUpPeriodPickerComponent, MatTooltipModule, CommonModule],
 	templateUrl: "./period-picker.component.html",
 	styleUrl: "./period-picker.component.css",
 	providers: [DatePipe],
 })
 export class PeriodPickerComponent {
-	data_service = inject(DataProcessingService);
-	date_pipe = inject(DatePipe);
-	@Output() new_period = new EventEmitter<TimePeriod>();
-	@Output() change_period_type = new EventEmitter();
-	current_period_tooltip = signal<string>("");
-	period_type: Array<PeriodGranularity> = ["YEAR", "QUARTER", "MONTH", "WEEK"];
-	available_period = signal<Map<PeriodGranularity, Array<TimePeriod>>>(
+	dataService = inject(DataProcessingService);
+	datePipe = inject(DatePipe);
+	@Output() newPeriod = new EventEmitter<TimePeriod>();
+	@Output() changePeriodType = new EventEmitter();
+	currentPeriodTooltip = signal<string>("");
+	periodType: Array<PeriodGranularity> = ["YEAR", "QUARTER", "MONTH", "WEEK"];
+	availablePeriod = signal<Map<PeriodGranularity, Array<TimePeriod>>>(
 		new Map<PeriodGranularity, Array<TimePeriod>>([
 			["YEAR", []],
 			["QUARTER", []],
@@ -32,73 +33,71 @@ export class PeriodPickerComponent {
 		]),
 	);
 
-	current_period!: TimePeriod;
-	period_picker_visible = signal<PeriodGranularity>("NAN");
-	current_period_menu = signal<CachedPeriodPickerMemory | undefined>(undefined);
+	currentPeriod!: TimePeriod;
+	periodPickerVisible = signal<PeriodGranularity>("NAN");
+	currentPeriodMenu = signal<CachedPeriodPickerMemory | undefined>(undefined);
 
 	ngOnInit() {
 		this.initPeriodDataFrom("WEEK");
 	}
 
 	togglePeriodPickerVisibility(input: PeriodGranularity) {
-		this.period_picker_visible.set(input);
+		this.periodPickerVisible.set(input);
 	}
 	setCachedPeriod(input: CachedPeriodPickerMemory) {
-		this.current_period_menu.set(input);
+		this.currentPeriodMenu.set(input);
 	}
 
-	clickPeriodType(period_type: PeriodGranularity) {
-		const temp_period_array = this.available_period().get(period_type);
-		if (temp_period_array?.length) {
-			const temp_period = temp_period_array[temp_period_array.length - 1];
-			if (period_type === this.current_period.period_type) {
+	clickPeriodType(periodType: PeriodGranularity) {
+		const tempPeriodArray = this.availablePeriod().get(periodType);
+		if (tempPeriodArray?.length) {
+			const tempPeriod = tempPeriodArray[tempPeriodArray.length - 1];
+			if (periodType === this.currentPeriod.periodType) {
 				console.log("same");
 				return;
 			}
-			this.updateCurrentPeriod(temp_period_array[temp_period_array.length - 1]);
+			this.updateCurrentPeriod(tempPeriodArray[tempPeriodArray.length - 1]);
 		}
-		this.change_period_type.emit();
-		// if (this.is_shrunk() === true) {
-		// 	this.current_view_status.set({ state_id: -2, type: "NAN" });
-		// 	this.showStateData({ type: "TOTAL", state_id: -1 });
+		this.changePeriodType.emit();
+		// if (this.isShrunk() === true) {
+		//  this.currentViewStatus.set({ stateId: -2, type: "NAN" });
+		//  this.showStateData({ type: "TOTAL", stateId: -1 });
 		// }
 	}
 
-	initPeriodDataFrom(period_type: PeriodGranularity) {
-		this.data_service.getAvailablePeriods(period_type).subscribe((result) => {
+	initPeriodDataFrom(periodType: PeriodGranularity) {
+		this.dataService.getAvailablePeriods(periodType).subscribe((result) => {
 			if (result.length) {
-				this.available_period().set(period_type, result);
+				this.availablePeriod().set(periodType, result);
 				this.updateCurrentPeriod(result[result.length - 1]);
 			}
 		});
-		const filteredPeriodTypes = this.period_type.filter(
-			(a) => a !== "WEEK" && a !== period_type,
+		const filteredPeriodTypes = this.periodType.filter(
+			(a) => a !== "WEEK" && a !== periodType,
 		);
 		for (const a of filteredPeriodTypes) {
-			this.data_service.getAvailablePeriods(a).subscribe((result) => {
+			this.dataService.getAvailablePeriods(a).subscribe((result) => {
 				if (result.length) {
-					this.available_period().set(a, result);
+					this.availablePeriod().set(a, result);
 				}
 			});
 		}
 	}
 
-	updateCurrentPeriod(new_period: TimePeriod) {
-		this.current_period = new_period;
+	updateCurrentPeriod(newPeriod: TimePeriod) {
+		this.currentPeriod = newPeriod;
 		this.setCurrentPeriodTooltip();
-		this.new_period.emit(new_period);
+		this.newPeriod.emit(newPeriod);
 	}
 
 	setCurrentPeriodTooltip() {
-		const start_date_string = this.date_pipe.transform(
-			this.current_period.start_date,
+		const startDateString = this.datePipe.transform(
+			this.currentPeriod.startDate,
 			"fullDate",
 		);
-		const end_date = new Date(this.current_period.end_date);
-		end_date.setDate(end_date.getDate() - 1);
-		const end_date_string = this.date_pipe.transform(end_date, "fullDate");
-		this.current_period_tooltip.set(
-			`${start_date_string} - ${end_date_string}`,
-		);
+		const endDate = new Date(this.currentPeriod.endDate);
+		endDate.setDate(endDate.getDate() - 1);
+		const endDateString = this.datePipe.transform(endDate, "fullDate");
+		this.currentPeriodTooltip.set(`${startDateString} - ${endDateString}`);
 	}
 }

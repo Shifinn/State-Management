@@ -1,25 +1,24 @@
-<div class="{{ 'card s' + progress_info.state_id }}" [class.active-card]="isActive() === 3" [class.shrink]="isShrunk"
+<div class="{{ 'card s' + progressInfo.stateId }}" [class.active-card]="isActive() === 3" [class.shrink]="isShrunk"
   (click)="onClick('TOTAL')">
   <div class="card-header">
-    <h3 class="request-title">{{ progress_info.state_name }}</h3>
+    <h3 class="request-title">{{ progressInfo.stateName }}</h3>
   </div>
   <div class="row">
-    @if (progress_info.state_id < 5) { <div class="{{ 'progress-square inner-card s' + progress_info.state_id }}"
+    @if (progressInfo.stateId < 5) { <div class="{{ 'progress-square inner-card s' + progressInfo.stateId }}"
       [class.active]="isActive() === 1" (click)="onClick('TODO'); $event.stopPropagation()">
       <div class="label">Current</div>
-      <div class="value">{{ progress_info.todo }}</div>
+      <div class="value">{{ progressInfo.todo }}</div>
   </div>
-  <div class="{{ 'progress-square inner-card s' + progress_info.state_id }}" [class.active]="isActive() === 2"
+  <div class="{{ 'progress-square inner-card s' + progressInfo.stateId }}" [class.active]="isActive() === 2"
     (click)="onClick('DONE'); $event.stopPropagation()">
     <div class="label">Done</div>
-    <div class="value">{{ progress_info.done }}</div>
+    <div class="value">{{ progressInfo.done }}</div>
   </div>
-  } @if (progress_info.state_id === 5) {
-  <div class="{{
-        'progress-square no-hover inner-card s' + progress_info.state_id
-      }}">
+  }
+  @if (progressInfo.stateId === 5) {
+  <div class="{{'progress-square no-hover inner-card s' + progressInfo.stateId}}">
     <div class="label">Done</div>
-    <div class="value">{{ progress_info.done }}</div>
+    <div class="value">{{ progressInfo.done }}</div>
   </div>
   }
 </div>

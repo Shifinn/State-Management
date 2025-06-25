@@ -3,35 +3,40 @@ import { HttpClient } from "@angular/common/http";
 import { Router } from "@angular/router";
 import type { User } from "../model/format.type";
 import { DataProcessingService } from "./data-processing.service";
+import { Observable } from "rxjs";
 @Injectable({
 	providedIn: "root",
 })
 export class LoginService {
 	http = inject(HttpClient); //enables the use of HTTP client calls for the application
 	router = inject(Router); // enables navigation using the Router
-	data_service = inject(DataProcessingService);
-	// host = "http://localhost:9090";
+	dataService = inject(DataProcessingService);
+	// host = "http://localhost:9090/api";
 	host = "https://state-management-api.vercel.app/api";
 
-	login(username: string, password: string): void {
-		const url = `${this.host}/login?user_name=${username.toLowerCase().replace(/(\S)\s+/g, "$1")}&password=${password}`;
-
-		this.http.get<User>(url).subscribe((response: User) => {
-			console.log(
-				"from service, userId:",
-				response.user_id,
-				"",
-				response.role_id,
-			);
-
-			if (response.user_id !== "0") {
-				this.data_service.storeUserInfo(response);
-				if (Number(response.role_id) > 1) {
-					this.router.navigate(["/home", { outlets: { home: "todo" } }]);
-				} else {
-					this.router.navigate(["/home"]);
-				}
-			}
+	login(username: string, password: string): Observable<boolean> {
+		const url = `${this.host}/login?userName=${username.toLowerCase().replace(/(\S)\s+/g, "$1")}&password=${password}`;
+		return new Observable<boolean>((observer) => {
+			this.http.get<User>(url).subscribe({
+				next: (response: User) => {
+					let success = false;
+					if (Number(response.userId) > 0) {
+						success = true;
+						this.dataService.storeUserInfo(response);
+						if (Number(response.roleId) > 1) {
+							this.router.navigate(["/home", { outlets: { home: "todo" } }]);
+						} else {
+							this.router.navigate(["/home"]);
+						}
+					}
+					observer.next(success);
+					observer.complete();
+				},
+				error: () => {
+					observer.next(false);
+					observer.complete();
+				},
+			});
 		});
 	}
 

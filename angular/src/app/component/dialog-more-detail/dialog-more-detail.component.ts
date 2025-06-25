@@ -18,71 +18,65 @@ import { MatButtonModule } from "@angular/material/button";
 import { Router } from "@angular/router";
 import { DialogMoreDetailsConfirmationComponent } from "../dialog-more-details-confirmation/dialog-more-details-confirmation.component";
 import { MatIconModule } from "@angular/material/icon";
-// import { UpdateState } from "../../model/format.type";
 
 @Component({
 	selector: "app-dialog-more-detail",
-	imports: [
-		CommonModule,
-		MatButtonModule,
-		MatDialogClose,
-		MatIconModule,
-		MatButtonModule,
-	],
+	standalone: true,
+	imports: [CommonModule, MatButtonModule, MatDialogClose, MatIconModule],
 	templateUrl: "./dialog-more-detail.component.html",
 	styleUrl: "./dialog-more-detail.component.css",
 })
 export class DialogMoreDetailComponent {
 	data: CompleteData = {
-		request_id: 0,
-		request_title: "",
-		user_id: -1,
-		requester_name: "",
-		analysis_purpose: "",
-		requested_completed_date: new Date(""),
-		pic_submitter: "",
+		requestId: 0,
+		requestTitle: "",
+		userId: -1,
+		requesterName: "",
+		analysisPurpose: "",
+		requestedCompletedDate: new Date(""),
+		picSubmitter: "",
 		urgent: false,
-		request_date: new Date(""),
-		user_name: "",
-		state_name: "",
-		data_type_name: "",
+		requestDate: new Date(""),
+		userName: "",
+		stateName: "",
+		dataTypeName: "",
 		remark: "",
-		state_comment: null,
+		stateComment: null,
 	};
 
-	state_update_data: UpdateState = {
-		user_id: 0,
-		request_id: 0,
+	stateUpdateData: UpdateState = {
+		userId: 0,
+		requestId: 0,
 		comment: "",
 	};
+
 	answers = signal<Array<Question>>([]);
 	filenames = signal<Array<AttachmentFilename>>([]);
-	input_data = inject(MAT_DIALOG_DATA);
-	data_service = inject(DataProcessingService);
+	inputData = inject(MAT_DIALOG_DATA);
+	dataService = inject(DataProcessingService);
 	router = inject(Router);
 	dialog = inject(MatDialog);
 	dialogRef = inject(MatDialogRef<DialogMoreDetailComponent>);
-	inner_width = signal<number>(9999);
+	innerWidth = signal<number>(9999);
 
 	@HostListener("window:resize", ["$event"])
 	onResize(event: Event) {
-		this.inner_width.set(window.innerWidth);
+		this.innerWidth.set(window.innerWidth);
 	}
+
 	ngOnInit() {
-		this.data_service
-			.getCompleteData(this.input_data.request_id)
+		this.dataService
+			.getCompleteData(this.inputData.requestId)
 			.subscribe((result) => {
 				this.data = result;
 			});
 
-		this.data_service
-			.getAnswer(this.input_data.request_id)
-			.subscribe((result) => {
-				this.answers.set(result);
-			});
+		this.dataService.getAnswer(this.inputData.requestId).subscribe((result) => {
+			this.answers.set(result);
+		});
 
-		this.data_service
-			.getAttachmentFilename(this.input_data.request_id)
+		this.dataService
+			.getAttachmentFilename(this.inputData.requestId)
 			.subscribe((result) => {
 				this.filenames.set(result);
 			});
@@ -101,30 +95,18 @@ export class DialogMoreDetailComponent {
 		);
 		dialogRef2.afterClosed().subscribe((result) => {
 			if (result || result === "") {
-				this.state_update_data.comment = result;
-				this.state_update_data.request_id = this.input_data.request_id;
-				console.log(
-					`this is before input to user_id user id:${this.data_service.getUserId()}`,
-				);
-				this.state_update_data.user_id = Number(this.data_service.getUserId());
-				console.log(
-					`this is after input to user_id user id:${this.state_update_data.user_id}`,
-				);
+				this.stateUpdateData.comment = result;
+				this.stateUpdateData.requestId = this.inputData.requestId;
+				this.stateUpdateData.userId = Number(this.dataService.getUserId());
+
 				if (change === "degrade") {
-					this.data_service
-						.degradeState(this.state_update_data)
-						.subscribe(() => {
-							this.dialogRef.close("1");
-						});
+					this.dataService.degradeState(this.stateUpdateData).subscribe(() => {
+						this.dialogRef.close("1");
+					});
 				} else {
-					console.log(
-						`this is before upgrade user id:${this.state_update_data.user_id}`,
-					);
-					this.data_service
-						.upgradeState(this.state_update_data)
-						.subscribe(() => {
-							this.dialogRef.close("1");
-						});
+					this.dataService.upgradeState(this.stateUpdateData).subscribe(() => {
+						this.dialogRef.close("1");
+					});
 				}
 			}
 		});
@@ -139,14 +121,14 @@ export class DialogMoreDetailComponent {
 	}
 
 	downloadAttachment(index: number) {
-		this.data_service.getAttachmentFileDownload(
-			this.data.request_id,
-			this.filenames()[index].attachment_filename,
+		this.dataService.getAttachmentFileDownload(
+			this.data.requestId,
+			this.filenames()[index].attachmentFilename,
 		);
 	}
 
 	isVisible(button: string): boolean {
-		const temp_state_name = this.data.state_name;
+		const tempStateName = this.data.stateName;
 
 		switch (button) {
 			case "cancel":
@@ -155,19 +137,19 @@ export class DialogMoreDetailComponent {
 				if (!this.checkPage()) {
 					return false;
 				}
-				if (this.data_service.getUserRole() === "2") {
+				if (this.dataService.getUserRole() === "2") {
 					if (
-						temp_state_name === "VALIDATED" ||
-						temp_state_name === "IN PROGRESS"
+						tempStateName === "VALIDATED" ||
+						tempStateName === "IN PROGRESS"
 					) {
 						return true;
 					}
 					return false;
 				}
-				if (this.data_service.getUserRole() === "3") {
+				if (this.dataService.getUserRole() === "3") {
 					if (
-						temp_state_name === "SUBMITTED" ||
-						temp_state_name === "WAITING FOR REVIEW"
+						tempStateName === "SUBMITTED" ||
+						tempStateName === "WAITING FOR REVIEW"
 					) {
 						return true;
 					}
@@ -179,19 +161,19 @@ export class DialogMoreDetailComponent {
 				if (!this.checkPage()) {
 					return true;
 				}
-				if (temp_state_name === "DONE") {
+				if (tempStateName === "DONE") {
 					return true;
 				}
-				if (this.data_service.getUserRole() === "2") {
-					if (temp_state_name === "WAITING FOR REVIEW") {
+				if (this.dataService.getUserRole() === "2") {
+					if (tempStateName === "WAITING FOR REVIEW") {
 						return true;
 					}
 					return false;
 				}
-				if (this.data_service.getUserRole() === "3") {
+				if (this.dataService.getUserRole() === "3") {
 					if (
-						temp_state_name === "VALIDATED" ||
-						temp_state_name === "REQUEST REJECTED"
+						tempStateName === "VALIDATED" ||
+						tempStateName === "REQUEST REJECTED"
 					) {
 						return true;
 					}

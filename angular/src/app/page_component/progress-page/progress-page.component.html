@@ -2,19 +2,19 @@
   <div class="page-title">
     <h1>Progress</h1>
   </div>
-  <app-period-picker (new_period)="periodUpdate($event)"
-    (change_period_type)="handlePeriodTypeShift()"></app-period-picker>
+  <app-period-picker (newPeriod)="periodUpdate($event)"
+    (changePeriodType)="handlePeriodTypeShift()"></app-period-picker>
 
-  <div class="requests center" [class.shrink]="is_shrunk()">
-    @for (type of progress_info(); track type.state_id) {
-    <app-card-progress-count [progress_info]="type" [isActiveCheck]="current_view_status()" [isShrunk]="is_shrunk()"
+  <div class="requests center" [class.shrink]="isShrunk()">
+    @for (type of progressInfo(); track type.stateId) {
+    <app-card-progress-count [progressInfo]="type" [isActiveCheck]="currentViewStatus()" [isShrunk]="isShrunk()"
       (buttonClick)="showStateData($event)"></app-card-progress-count>
     }
   </div>
 
-  <div class="requests" [class.center]="inner_width() < 670" [class.state-card-container]="inner_width() > 670">
-    @for (item of visible_state_data(); track item.request_id) {
-    <app-card-state-data [state_info]="item"></app-card-state-data>
+  <div class="requests" [class.center]="innerWidth() < 670" [class.state-card-container]="innerWidth() > 670">
+    @for (item of visibleStateData(); track item.requestId) {
+    <app-card-state-data [stateInfo]="item"></app-card-state-data>
     }
   </div>
 </body>

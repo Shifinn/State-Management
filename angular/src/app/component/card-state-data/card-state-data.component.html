@@ -1,40 +1,35 @@
 <div class="card">
   <div class="card-header">
-    <h3 class="card-request-title">{{ state_info.request_title }}</h3>
-    <span class="card-request-id">#{{ state_info.request_id }}</span>
+    <h3 class="card-request-title">{{ stateInfo.requestTitle }}</h3>
+    <span class="card-request-id">#{{ stateInfo.requestId }}</span>
   </div>
   <div>
-    <span class="request-date">{{state_info.request_date| date:'short'}}</span>
+    <span class="request-date">{{ stateInfo.requestDate | date:'short' }}</span>
   </div>
 
   <div class="state-info">
-    <div class="state-label">{{ box_text_variant() }}</div>
+    <div class="state-label">{{ boxTextVariant() }}</div>
     <div class="state-data">
-      <span class="date">{{ state_info.date_start | date : "medium" }}</span>
-      <span class="by-user">by {{ state_info.started_by }}</span>
+      <span class="date">{{ stateInfo.dateStart | date : "medium" }}</span>
+      <span class="by-user">by {{ stateInfo.startedBy }}</span>
     </div>
   </div>
 
-  @if (state_info.completed && state_info.state_name_id < 5) { <div class="state-info">
+  @if (stateInfo.completed && stateInfo.stateNameId < 5) { <div class="state-info">
     <div class="state-label">State End Date</div>
     <div class="state-data">
-      <span class="date">{{ state_info.date_end | date : "medium" }}</span>
-      <span class="by-user">by {{ state_info.ended_by }}</span>
+      <span class="date">{{ stateInfo.dateEnd | date : "medium" }}</span>
+      <span class="by-user">by {{ stateInfo.endedBy }}</span>
     </div>
 </div>
 }
 
-
-
 <div class="card-footer">
-
   <div class="card-status">
-    <span [matTooltip]="`Current state is ${state_info.current_state_name}`"
-      class="{{ 's' + state_info.current_state }}">{{
-      state_info.current_state_name
+    <span [matTooltip]="'Current state is ' + stateInfo.currentStateName" class="{{ 's' + stateInfo.currentState }}">{{
+      stateInfo.currentStateName
       }}</span>
   </div>
-
-  <app-custom-square-button [button_label]="'More Details'" (buttonClick)="moreDetails()"></app-custom-square-button>
+  <app-custom-square-button [buttonLabel]="'More Details'" (buttonClick)="moreDetails()"></app-custom-square-button>
 </div>
 </div>

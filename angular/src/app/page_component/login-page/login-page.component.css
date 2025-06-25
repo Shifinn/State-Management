@@ -29,3 +29,19 @@ main {
 	width: 18em; /* Adjust width as needed */
 	box-sizing: border-box; /* Ensures padding doesn't expand width */
 }
+
+.err-message {
+	/* Color: This uses the standard 'warn' color from your Angular Material theme. 
+     The #f44336 is a fallback red color. */
+	/* color: var(--mat-form-field-error-text-color, #f44336); */
+
+	/* Font Size: Makes the text the same small size as mat-error. */
+	font-size: 0.8em;
+
+	/* Spacing: Adds some space between the button and the error message. */
+	padding-left: 0.5em;
+}
+
+button {
+	margin-top: 0.5em;
+}

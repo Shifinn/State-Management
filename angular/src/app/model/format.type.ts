@@ -2,110 +2,110 @@ export type PeriodGranularity = "YEAR" | "QUARTER" | "MONTH" | "WEEK" | "NAN";
 export type StateStatus = "TOTAL" | "DONE" | "TODO" | "NAN";
 
 export type User = {
-	user_id: string;
-	user_name: string;
+	userId: string;
+	userName: string;
 	email: string;
-	role_id: string;
+	roleId: string;
 };
 
 export type SimpleData = {
-	request_id: number;
-	request_title: string;
-	state_name_id: number;
-	state_name: string;
-	user_name: string;
-	request_date: Date;
-	requirement_type_id: number;
-	data_type_name: string;
-	date_start: Date;
-	state_comment: string;
+	requestId: number;
+	requestTitle: string;
+	stateNameId: number;
+	stateName: string;
+	userName: string;
+	requestDate: Date;
+	requirementTypeId: number;
+	dataTypeName: string;
+	dateStart: Date;
+	stateComment: string;
 };
 
 export type StateInfoData = {
-	request_id: number;
-	request_title: string;
-	request_date: Date;
-	current_state: number;
-	current_state_name: string;
-	state_name_id: number;
-	state_name: string;
-	date_start: Date;
-	date_end: Date | null;
-	started_by: string;
-	ended_by: string | null;
+	requestId: number;
+	requestTitle: string;
+	requestDate: Date;
+	currentState: number;
+	currentStateName: string;
+	stateNameId: number;
+	stateName: string;
+	dateStart: Date;
+	dateEnd: Date | null;
+	startedBy: string;
+	endedBy: string | null;
 	completed: boolean;
 };
 
 export type CompleteData = {
-	request_id: number;
-	request_title: string;
-	user_id: number;
-	requester_name: string;
-	analysis_purpose: string;
-	requested_completed_date: Date;
-	pic_submitter: string;
+	requestId: number;
+	requestTitle: string;
+	userId: number;
+	requesterName: string;
+	analysisPurpose: string;
+	requestedCompletedDate: Date;
+	picSubmitter: string;
 	urgent: boolean;
-	request_date: Date;
-	user_name: string;
-	state_name: string;
-	data_type_name: string;
+	requestDate: Date;
+	userName: string;
+	stateName: string;
+	dataTypeName: string;
 	remark: string | null;
-	state_comment: string | null;
+	stateComment: string | null;
 };
 
 export type NewRequest = {
-	request_title: string;
-	user_id: number;
-	requester_name: string;
-	analysis_purpose: string;
-	requested_finish_date: Date | null;
-	pic_request: string;
+	requestTitle: string;
+	userId: number;
+	requesterName: string;
+	analysisPurpose: string;
+	requestedFinishDate: Date | null;
+	picRequest: string;
 	urgent: boolean | null;
-	requirement_type: number | null;
+	requirementType: number | null;
 	answers: string[] | null;
 	remark: string | null;
-	docx_attachment: File | null;
-	docx_filename: string | null;
-	excel_attachment: File | null;
-	excel_filename: string | null;
+	docxAttachment: File | null;
+	docxFilename: string | null;
+	excelAttachment: File | null;
+	excelFilename: string | null;
 };
 
 export type Question = {
-	requirement_question_id: number;
-	requirement_question: string;
+	requirementQuestionId: number;
+	requirementQuestion: string;
 	answer: string;
 };
 
 export type AttachmentFilename = {
-	attachment_type_id: number;
-	attachment_filename: string;
+	attachmentTypeId: number;
+	attachmentFilename: string;
 };
 
 export type UpdateState = {
-	request_id: number;
-	user_id: number;
+	requestId: number;
+	userId: number;
 	comment: string;
 };
 
 export type StatusInfo = {
-	state_id: number;
-	state_name: string;
+	stateId: number;
+	stateName: string;
 	todo: number;
 	done: number;
 };
 
 export type TimePeriod = {
 	label: string;
-	full_label: string;
+	fullLabel: string;
 	year: number;
-	start_date: Date;
-	end_date: Date;
-	period_type: PeriodGranularity;
+	startDate: Date;
+	endDate: Date;
+	periodType: PeriodGranularity;
 };
 
 export type CachedProgrestCardMemory = {
 	type: StateStatus;
-	state_id: number;
+	stateId: number;
 };
 
 export type CachedPeriodPickerMemory = {
@@ -115,8 +115,8 @@ export type CachedPeriodPickerMemory = {
 };
 
 export type StateThreshold = {
-	state_name_id: number;
-	state_threshold_hour: number;
+	stateNameId: number;
+	stateThresholdHour: number;
 };
 
 export type Duration = {
@@ -125,6 +125,6 @@ export type Duration = {
 };
 
 export type RequestType = {
-	requirement_type_id: number;
-	data_type_name: string;
+	requirementTypeId: number;
+	dataTypeName: string;
 };

@@ -17,6 +17,7 @@ import type {
 
 @Component({
 	selector: "app-pop-up-period-picker",
+	standalone: true,
 	imports: [],
 	templateUrl: "./pop-up-period-picker.component.html",
 	styleUrls: ["./pop-up-period-picker.component.css"],
@@ -24,17 +25,17 @@ import type {
 export class PopUpPeriodPickerComponent implements OnInit {
 	eref = inject(ElementRef);
 	@Input() category!: string[];
-	@Input() available_period!: TimePeriod[];
-	@Input() previous_menu?: CachedPeriodPickerMemory;
-	@Output() option_selected = new EventEmitter<TimePeriod>();
-	@Output() period_picker_visible = new EventEmitter<PeriodGranularity>();
-	@Output() store_menu = new EventEmitter<CachedPeriodPickerMemory>();
+	@Input() availablePeriod!: TimePeriod[];
+	@Input() previousMenu?: CachedPeriodPickerMemory;
+	@Output() optionSelected = new EventEmitter<TimePeriod>();
+	@Output() periodPickerVisible = new EventEmitter<PeriodGranularity>();
+	@Output() storeMenu = new EventEmitter<CachedPeriodPickerMemory>();
 
-	year_list = signal<number[]>([]);
-	month_list = signal<string[]>([]);
-	visible_period = signal<TimePeriod[]>([]);
-	current_menu!: CachedPeriodPickerMemory;
-	period_type: PeriodGranularity = "NAN";
+	yearList = signal<number[]>([]);
+	monthList = signal<string[]>([]);
+	visiblePeriod = signal<TimePeriod[]>([]);
+	currentMenu!: CachedPeriodPickerMemory;
+	periodType: PeriodGranularity = "NAN";
 
 	monthNames = [
 		"January",
@@ -52,85 +53,83 @@ export class PopUpPeriodPickerComponent implements OnInit {
 	];
 
 	ngOnInit() {
-		this.period_type = this.available_period[0]?.period_type ?? "NAN";
+		this.periodType = this.availablePeriod[0]?.periodType ?? "NAN";
 
-		if (this.previous_menu && this.period_type === "WEEK") {
-			this.current_menu = this.previous_menu;
+		if (this.previousMenu && this.periodType === "WEEK") {
+			this.currentMenu = this.previousMenu;
 		} else {
-			this.current_menu = {
+			this.currentMenu = {
 				type: "PERIOD",
 				year: new Date().getFullYear(),
 				month: new Date().getMonth(),
 			};
 		}
 
-		if (!(this.period_type === "NAN" || this.period_type === "YEAR")) {
+		if (!(this.periodType === "NAN" || this.periodType === "YEAR")) {
 			this.getYearList();
 		}
 
-		if (this.period_type === "WEEK") {
-			// const lastYear = this.year_list()[this.year_list().length - 1];
+		if (this.periodType === "WEEK") {
 			const currentYear = new Date().getFullYear();
-			this.month_list.set(this.getMonthList(2025));
+			this.monthList.set(this.getMonthList(currentYear));
 		}
 
 		this.updateVisiblePeriod();
 	}
 
 	updateVisiblePeriod() {
-		const { year, month } = this.current_menu;
+		const { year, month } = this.currentMenu;
 		let filtered: TimePeriod[];
 
-		if (this.period_type === "WEEK") {
-			filtered = this.available_period.filter(
+		if (this.periodType === "WEEK") {
+			filtered = this.availablePeriod.filter(
 				(period) =>
-					period.start_date.getFullYear() === year &&
-					period.start_date.getMonth() === month,
+					period.startDate.getFullYear() === year &&
+					period.startDate.getMonth() === month,
 			);
 		} else {
-			filtered = this.available_period.filter(
-				(period) => period.start_date.getFullYear() === year,
+			filtered = this.availablePeriod.filter(
+				(period) => period.startDate.getFullYear() === year,
 			);
 		}
 
-		this.visible_period.set(filtered);
+		this.visiblePeriod.set(filtered);
 	}
 
 	selectOption(option: TimePeriod) {
-		console.log(option.start_date.getDate());
-		this.option_selected.emit(option);
-		this.store_menu.emit(this.current_menu);
-		this.period_picker_visible.emit("NAN");
+		this.optionSelected.emit(option);
+		this.storeMenu.emit(this.currentMenu);
+		this.periodPickerVisible.emit("NAN");
 	}
 
-	selectYear(input: number) {
-		this.current_menu.year = input;
-		this.current_menu.type = "PERIOD";
+	selectYear(year: number) {
+		this.currentMenu.year = year;
+		this.currentMenu.type = "PERIOD";
 		this.updateVisiblePeriod();
-		if (this.period_type === "WEEK") {
-			this.month_list.set(this.getMonthList(input));
+		if (this.periodType === "WEEK") {
+			this.monthList.set(this.getMonthList(year));
 		}
 	}
 
-	selectMonth(input: string) {
-		const monthIndex = this.monthNames.findIndex((month) => month === input);
-		this.current_menu.month = monthIndex;
-		this.current_menu.type = "PERIOD";
+	selectMonth(month: string) {
+		const monthIndex = this.monthNames.findIndex((m) => m === month);
+		this.currentMenu.month = monthIndex;
+		this.currentMenu.type = "PERIOD";
 		this.updateVisiblePeriod();
 	}
 
 	changeYear() {
-		this.current_menu.type = "YEAR";
+		this.currentMenu.type = "YEAR";
 	}
 
 	changeMonth() {
-		this.current_menu.type = "MONTH";
+		this.currentMenu.type = "MONTH";
 	}
 
 	getOldestPeriod(): TimePeriod | undefined {
-		if (!this.available_period?.length) return;
-		return this.available_period.reduce((oldest, current) =>
-			current.start_date < oldest.start_date ? current : oldest,
+		if (!this.availablePeriod?.length) return;
+		return this.availablePeriod.reduce((oldest, current) =>
+			current.startDate < oldest.startDate ? current : oldest,
 		);
 	}
 
@@ -138,7 +137,7 @@ export class PopUpPeriodPickerComponent implements OnInit {
 		const oldest = this.getOldestPeriod();
 		if (!oldest) return;
 
-		const startYear = oldest.start_date.getFullYear();
+		const startYear = oldest.startDate.getFullYear();
 		const currentYear = new Date().getFullYear();
 		const years: number[] = [];
 
@@ -146,40 +145,37 @@ export class PopUpPeriodPickerComponent implements OnInit {
 			years.push(year);
 		}
 
-		this.year_list.set(years);
+		this.yearList.set(years);
 	}
 
-	getMonthList(input: number): string[] {
+	getMonthList(year: number): string[] {
 		const oldest = this.getOldestPeriod();
 		if (!oldest) return [];
 
-		const startYear = oldest.start_date.getFullYear();
+		const startYear = oldest.startDate.getFullYear();
 		const currentYear = new Date().getFullYear();
-
 		const currentMonth = new Date().getMonth();
 
-		if (input === currentYear && input === startYear) {
+		if (year === currentYear && year === startYear) {
 			return this.monthNames.slice(
-				oldest.start_date.getMonth(),
+				oldest.startDate.getMonth(),
 				currentMonth + 1,
 			);
 		}
-		if (input === currentYear) {
+		if (year === currentYear) {
 			return this.monthNames.slice(0, currentMonth + 1);
 		}
-
-		if (input === startYear) {
-			return this.monthNames.slice(oldest.start_date.getMonth());
+		if (year === startYear) {
+			return this.monthNames.slice(oldest.startDate.getMonth());
 		}
 
-		console.log(this.monthNames);
 		return this.monthNames;
 	}
 
 	@HostListener("document:click", ["$event"])
 	onOutsideClick(event: MouseEvent) {
 		if (!this.eref.nativeElement.contains(event.target)) {
-			this.period_picker_visible.emit("NAN");
+			this.periodPickerVisible.emit("NAN");
 		}
 	}
 }
