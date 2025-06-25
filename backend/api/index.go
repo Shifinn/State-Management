@@ -87,6 +87,8 @@ func init() {
 
 	apiGroup := app.Group("/api")
 	registerRoutes(apiGroup)
+	log.Println("---handler invoked ---")
+
 }
 
 // registerRoutes defines all the API endpoints for the application.
@@ -520,7 +522,7 @@ func postNewRequest(c *gin.Context) {
 		pathname := fmt.Sprintf("attachments/request_%s/%s", requestID, docxFileHeader.Filename)
 		log.Printf("Uploading to pathname: %s", pathname)
 
-		blobResult, err := client.Put(pathname, file, vercel_blob.PutCommandOptions{})
+		blobResult, err := client.Put("articles/blob.txt", strings.NewReader("Hello World!"), vercel_blob.PutCommandOptions{})
 		if err != nil {
 			checkErr(c, http.StatusInternalServerError, err, "Unable to upload docx file")
 			return
