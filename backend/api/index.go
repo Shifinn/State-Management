@@ -84,7 +84,7 @@ func init() {
 	config := cors.DefaultConfig()
 	// IMPORTANT: You must explicitly allow the origin of your Angular frontend app.
 	// Replace with your actual frontend URL.
-	config.AllowOrigins = []string{"https://state-management-tawny.vercel.app", "http://localhost:4200"}
+	config.AllowOrigins = []string{"https://state-management-1.vercel.app", "http://localhost:4200"}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization"}
 	app.Use(cors.New(config))
