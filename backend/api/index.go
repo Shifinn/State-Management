@@ -153,9 +153,9 @@ func initFilebase() {
 
 	accessKey := os.Getenv("FILEBASE_ACCESS_KEY")
 	secretKey := os.Getenv("FILEBASE_SECRET_KEY")
-	bucketName := os.Getenv("FILEBASE_BUCKET_NAME") // Add your bucket name to.env.local
+	filebaseBucketName = "attachment"
 
-	if accessKey == "" || secretKey == "" || bucketName == "" {
+	if accessKey == "" || secretKey == "" {
 		log.Fatal("FILEBASE_ACCESS_KEY, FILEBASE_SECRET_KEY, and FILEBASE_BUCKET_NAME must be set")
 	}
 
