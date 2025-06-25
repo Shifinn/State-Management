@@ -470,7 +470,7 @@ func postNewRequest(c *gin.Context) {
 	var newReq NewRequest
 	var requestID string
 	var docxFilePath string
-	var excelFilePath string
+	// var excelFilePath string
 
 	// newReq.RequestTitle = c.PostForm("requestTitle")
 	// newReq.RequesterName = c.PostForm("requesterName")
@@ -520,7 +520,7 @@ func postNewRequest(c *gin.Context) {
 		docxFilePath = blobResult.URL
 		newReq.DocxFilename = docxFileHeader.Filename
 	}
-
+	println("docxFilePath:" + docxFilePath)
 	// if excelFileHeader, err := c.FormFile("excelAttachment"); err != nil {
 	// 	file, _ := excelFileHeader.Open()
 	// 	defer file.Close()
