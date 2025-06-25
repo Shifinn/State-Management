@@ -496,15 +496,16 @@ func postNewRequest(c *gin.Context) {
 	}
 
 	query := `SELECT ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
-	if err := db.QueryRow(query,
-		newReq.RequestTitle, newReq.UserID, newReq.RequesterName, newReq.AnalysisPurpose,
-		newReq.RequestedFinishDate, newReq.PicRequest, newReq.Urgent,
-		newReq.RequirementType, pq.Array(newReq.Answers), newReq.Remark,
-	).Scan(&requestID); err != nil {
-		checkErr(c, http.StatusInternalServerError, err, "Failed to get request ID after creation")
-		// return
+	if false {
+		if err := db.QueryRow(query,
+			newReq.RequestTitle, newReq.UserID, newReq.RequesterName, newReq.AnalysisPurpose,
+			newReq.RequestedFinishDate, newReq.PicRequest, newReq.Urgent,
+			newReq.RequirementType, pq.Array(newReq.Answers), newReq.Remark,
+		).Scan(&requestID); err != nil {
+			checkErr(c, http.StatusInternalServerError, err, "Failed to get request ID after creation")
+			// return
+		}
 	}
-
 	client := vercel_blob.NewVercelBlobClient()
 	// 4. Handle DOCX Upload using the requestID as a key/folder
 	if docxFileHeader, err := c.FormFile("docxAttachment"); err != nil {
