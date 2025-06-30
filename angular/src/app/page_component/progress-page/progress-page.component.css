@@ -16,6 +16,10 @@
 	padding-right: 0.1em;
 }
 
+.requests.center.small-window {
+	gap: 0.8em;
+}
+
 .requests.state-card-container {
 	justify-content: center;
 	display: grid;
