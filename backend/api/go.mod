@@ -6,12 +6,10 @@ require (
 	github.com/gin-gonic/gin v1.10.1
 	github.com/lib/pq v1.10.9
 	github.com/resend/resend-go/v2 v2.20.0
+	github.com/rpdg/vercel_blob v0.1.0
 )
 
-require (
-	github.com/kr/text v0.2.0 // indirect
-	github.com/rpdg/vercel_blob v0.1.0 // indirect
-)
+require github.com/kr/text v0.2.0 // indirect
 
 require (
 	github.com/bytedance/sonic v1.13.3 // indirect
