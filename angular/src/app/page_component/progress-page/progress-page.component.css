@@ -9,7 +9,7 @@
 }
 
 .requests.center.shrink {
-	gap: 0.5em;
+	gap: 0.5em !important;
 	margin-left: 0em;
 	margin-right: 0em;
 	padding-left: 0.1em;

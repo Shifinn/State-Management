@@ -12,7 +12,8 @@
     }
   </div>
 
-  <div class="requests" [class.center]="innerWidth() < 670" [class.state-card-container]="innerWidth() > 670">
+  <div class="requests" [class.center.small-window.state-card]="innerWidth() < 670"
+    [class.small-window]="innerWidth() < 670" [class.state-card-container]="innerWidth() > 670">
     @for (item of visibleStateData(); track item.requestId) {
     <app-card-state-data [stateInfo]="item"></app-card-state-data>
     }
