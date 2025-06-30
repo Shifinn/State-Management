@@ -27,7 +27,7 @@ import { MatIconModule } from "@angular/material/icon";
 	styleUrl: "./dialog-more-detail.component.css",
 })
 export class DialogMoreDetailComponent {
-	data: CompleteData = {
+	data = signal<CompleteData>({
 		requestId: 0,
 		requestTitle: "",
 		userId: -1,
@@ -42,7 +42,9 @@ export class DialogMoreDetailComponent {
 		dataTypeName: "",
 		remark: "",
 		stateComment: null,
-	};
+		questions: [],
+		filenames: [],
+	});
 
 	stateUpdateData: UpdateState = {
 		userId: 0,
@@ -50,7 +52,7 @@ export class DialogMoreDetailComponent {
 		comment: "",
 	};
 
-	answers = signal<Array<Question>>([]);
+	// answers = signal<Array<Question>>([]);
 	filenames = signal<Array<AttachmentFilename>>([]);
 	inputData = inject(MAT_DIALOG_DATA);
 	dataService = inject(DataProcessingService);
@@ -68,12 +70,12 @@ export class DialogMoreDetailComponent {
 		this.dataService
 			.getCompleteData(this.inputData.requestId)
 			.subscribe((result) => {
-				this.data = result;
+				this.data.set(result);
 			});
 
-		this.dataService.getAnswer(this.inputData.requestId).subscribe((result) => {
-			this.answers.set(result);
-		});
+		// this.dataService.getAnswer(this.inputData.requestId).subscribe((result) => {
+		// 	this.answers.set(result);
+		// });
 
 		this.dataService
 			.getAttachmentFilename(this.inputData.requestId)
@@ -122,13 +124,13 @@ export class DialogMoreDetailComponent {
 
 	downloadAttachment(index: number) {
 		this.dataService.getAttachmentFileDownload(
-			this.data.requestId,
+			this.data().requestId,
 			this.filenames()[index].attachmentFilename,
 		);
 	}
 
 	isVisible(button: string): boolean {
-		const tempStateName = this.data.stateName;
+		const tempStateName = this.data().stateName;
 
 		switch (button) {
 			case "cancel":

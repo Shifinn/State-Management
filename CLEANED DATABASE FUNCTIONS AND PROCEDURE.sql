@@ -540,6 +540,73 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION get_complete_data_of_request_bundle(
+    request_id_input INT
+)
+RETURNS JSON AS $$
+DECLARE
+    result_json JSON;
+BEGIN
+    SELECT row_to_json(t)
+    INTO result_json
+    FROM (
+        SELECT
+            r.request_id AS "requestId",
+            r.request_title AS "requestTitle",
+            r.requester_name AS "requesterName",
+            r.user_id AS "userId",
+            r.analysis_purpose AS "analysisPurpose",
+            r.requested_completed_date AS "requestedCompletedDate",
+            r.pic_submitter AS "picSubmitter",
+            r.urgent,
+            r.request_date AS "requestDate",
+            r.remark,
+            s.state_comment AS "stateComment",
+            n.state_name AS "stateName",
+            t.data_type_name AS "dataTypeName",
+
+            -- Subquery to aggregate requirements into a JSON array
+            (
+                SELECT COALESCE(json_agg(reqs), '[]'::json)
+                FROM (
+                    SELECT
+                        re.requirement_question_id AS "requirementQuestionId",
+                        q.requirement_question AS "requirementQuestion",
+                        re.answer
+                    FROM requirement_table re
+                    JOIN requirement_question_table q ON re.requirement_question_id = q.requirement_question_id
+                    WHERE re.request_id = r.request_id
+                    ORDER BY re.requirement_question_id
+                ) AS reqs
+            ) AS "questions",
+
+            -- Subquery to aggregate filenames into a JSON array
+            (
+                SELECT COALESCE(json_agg(files), '[]'::json)
+                FROM (
+                    SELECT
+                        att.attachment_type_id AS "attachmentTypeId",
+                        att.attachment_filename AS "attachmentFilename"
+                    FROM attachment_table att
+                    WHERE att.request_id = r.request_id
+                ) AS files
+            ) AS "filenames"
+
+        FROM request_table r
+        JOIN state_table s ON r.request_id = s.request_id AND r.current_state = s.state_name_id
+        JOIN state_name_table n ON r.current_state = n.state_name_id
+        JOIN requirement_type_table t ON r.requirement_type_id = t.requirement_type_id
+        WHERE r.request_id = request_id_input
+    ) t;
+
+    -- If no request is found, return an empty object
+    IF result_json IS NULL THEN
+        result_json := '{}'::json;
+    END IF;
+
+    RETURN result_json;
+END;
+$$ LANGUAGE plpgsql;
 
 -- Fetches usernames and emails for a role, returning camelCase JSON.
 CREATE OR REPLACE FUNCTION get_role_emails(
@@ -940,3 +1007,10 @@ ORDER BY state_name_id ASC
 -- VIEW STATE_TABLE
 SELECT * FROM public.state_table
 ORDER BY state_id ASC
+
+
+-- This single function replaces the three separate functions to improve performance
+-- by reducing database round trips from three to one.
+select get_request_details_bundle(30)
+
+$$ LANGUAGE plpgsql;

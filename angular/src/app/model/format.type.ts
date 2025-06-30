@@ -51,6 +51,19 @@ export type CompleteData = {
 	dataTypeName: string;
 	remark: string | null;
 	stateComment: string | null;
+	questions: Question[];
+	filenames: AttachmentFilename[];
+};
+
+export type Question = {
+	requirementQuestionId: number;
+	requirementQuestion: string;
+	answer: string;
+};
+
+export type AttachmentFilename = {
+	attachmentTypeId: number;
+	attachmentFilename: string;
 };
 
 export type NewRequest = {
@@ -68,17 +81,6 @@ export type NewRequest = {
 	docxFilename: string | null;
 	excelAttachment: File | null;
 	excelFilename: string | null;
-};
-
-export type Question = {
-	requirementQuestionId: number;
-	requirementQuestion: string;
-	answer: string;
-};
-
-export type AttachmentFilename = {
-	attachmentTypeId: number;
-	attachmentFilename: string;
 };
 
 export type UpdateState = {

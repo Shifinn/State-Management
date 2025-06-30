@@ -1,7 +1,7 @@
 // The package must be 'handler' to be recognized by Vercel as a serverless function.
-package handler
+// package handler
 
-// package main
+package main
 
 import (
 	"database/sql"
@@ -97,6 +97,7 @@ func registerRoutes(router *gin.RouterGroup) {
 	router.GET("/userRequestsData", getUserCurrentRequests)
 	router.GET("/todoData", getTodoData)
 	router.GET("/completeRequestData", getCompleteRequestData)
+	router.GET("/completeRequestDataBundle", getCompleteRequestDataBundle)
 	router.GET("/stateCountData", getStateCount)
 	router.GET("/fullStateHistoryData", getFullStateHistoryData)
 	router.GET("/questionData", getQuestionData)
@@ -119,11 +120,11 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // main is the entry point for local development. It is ignored by Vercel.
-// func main() {
-// 	port := "9090"
-// 	log.Printf("INFO: Starting local server on http://localhost:%s\n", port)
-// 	http.ListenAndServe(":"+port, http.HandlerFunc(Handler))
-// }
+func main() {
+	port := "9090"
+	log.Printf("INFO: Starting local server on http://localhost:%s\n", port)
+	http.ListenAndServe(":"+port, http.HandlerFunc(Handler))
+}
 
 // openDB initializes and returns a new PostgreSQL database connection pool.
 func openDB() *sql.DB {
@@ -255,6 +256,24 @@ func getCompleteRequestData(c *gin.Context) {
 	checkEmpty(c, requestIdInput)
 
 	query := `SELECT get_complete_data_of_request($1)`
+	if err := db.QueryRow(query, requestIdInput).Scan(&data); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to get complete data of request")
+		return
+	}
+	if !data.Valid {
+		c.Data(http.StatusOK, "application/json", []byte("{}"))
+		return
+	}
+	c.Data(http.StatusOK, "application/json", []byte(data.String))
+}
+
+func getCompleteRequestDataBundle(c *gin.Context) {
+	var data sql.NullString
+	requestIdInput := c.Query("requestId")
+
+	checkEmpty(c, requestIdInput)
+
+	query := `SELECT get_complete_data_of_request_bundle($1)`
 	if err := db.QueryRow(query, requestIdInput).Scan(&data); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get complete data of request")
 		return

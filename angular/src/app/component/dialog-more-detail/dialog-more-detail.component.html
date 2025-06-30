@@ -1,64 +1,64 @@
-@if (data.requestId) {
+@if (data().requestId) {
 <div class="dialog-container" [class.smaller]="innerWidth() < 540">
-  <h2>DETAIL REQUEST #{{ data.requestId }}</h2>
+  <h2>DETAIL REQUEST #{{ data().requestId }}</h2>
 
   <div class="row">
-    @if (data.requestTitle) {
+    @if (data().requestTitle) {
     <div class="requirement-item">
       <label class="question-text">Judul</label>
-      <div class="readonly-field">{{ data.requestTitle }}</div>
+      <div class="readonly-field">{{ data().requestTitle }}</div>
     </div>
-    } @if (data.stateName) {
+    } @if (data().stateName) {
     <div class="requirement-item">
       <label class="question-text">Status</label>
-      <div class="readonly-field">{{ data.stateName }}</div>
+      <div class="readonly-field">{{ data().stateName }}</div>
     </div>
     }
   </div>
 
   <div class="row">
-    @if (data.requesterName) {
+    @if (data().requesterName) {
     <div class="requirement-item">
       <label class="question-text">Requester Name</label>
-      <div class="readonly-field">{{ data.requesterName }}</div>
+      <div class="readonly-field">{{ data().requesterName }}</div>
     </div>
-    } @if (data.picSubmitter) {
+    } @if (data().picSubmitter) {
     <div class="requirement-item">
       <label class="question-text">PIC Submitter</label>
-      <div class="readonly-field">{{ data.picSubmitter }}</div>
+      <div class="readonly-field">{{ data().picSubmitter }}</div>
     </div>
     }
   </div>
 
   <div class="row">
-    @if (data.dataTypeName) {
+    @if (data().dataTypeName) {
     <div class="requirement-item">
       <label class="question-text">Tipe Data</label>
-      <div class="readonly-field">{{ data.dataTypeName }}</div>
+      <div class="readonly-field">{{ data().dataTypeName }}</div>
     </div>
-    } @if (data.urgent !== null) {
+    } @if (data().urgent !== null) {
     <div class="requirement-item">
       <label class="question-text">Urgency</label>
       <div class="readonly-field">
-        {{ data.urgent ? "URGENT" : "NOT URGENT" }}
+        {{ data().urgent ? "URGENT" : "NOT URGENT" }}
       </div>
     </div>
     }
   </div>
 
   <div class="row">
-    @if (data.requestDate) {
+    @if (data().requestDate) {
     <div class="requirement-item">
       <label class="question-text">Tanggal Request</label>
       <div class="readonly-field">
-        {{ data.requestDate | date : "longDate" }}
+        {{ data().requestDate | date : "longDate" }}
       </div>
     </div>
-    } @if (data.requestedCompletedDate) {
+    } @if (data().requestedCompletedDate) {
     <div class="requirement-item">
       <label class="question-text">Harapan Selesai</label>
       <div class="readonly-field">
-        {{ data.requestedCompletedDate | date : "longDate" }}
+        {{ data().requestedCompletedDate | date : "longDate" }}
       </div>
     </div>
     }
@@ -87,35 +87,35 @@
   </div>
   }
   <div class="row">
-    @if (data.analysisPurpose) {
+    @if (data().analysisPurpose) {
     <div class="requirement-item wide">
       <label class="question-text">Analysis Purpose</label>
-      <div class="readonly-field">{{ data.analysisPurpose }}</div>
+      <div class="readonly-field">{{ data().analysisPurpose }}</div>
     </div>
     }
   </div>
 
-  @if (data.remark) {
+  @if (data().remark) {
   <div class="row">
     <div class="requirement-item wide">
       <label class="question-text">Remark</label>
-      <div class="readonly-field">{{ data.remark }}</div>
+      <div class="readonly-field">{{ data().remark }}</div>
     </div>
   </div>
   }
 
   <div class="row">
-    @if (data.stateComment && data.stateName == 'REQUEST REJECTED') {
+    @if (data().stateComment && data().stateName == 'REQUEST REJECTED') {
     <div class="requirement-item wide">
       <label class="question-text">Reason for rejection</label>
-      <div class="readonly-field">{{ data.stateComment }}</div>
+      <div class="readonly-field">{{ data().stateComment }}</div>
     </div>
     }
   </div>
 
   <div class="request-container">
     <h3 class="request-title">Pertanyaan Request</h3>
-    @for (question of answers(); track question.requirementQuestionId) {
+    @for (question of data().questions; track question.requirementQuestionId) {
     <div class="row">
       <div class="question-text">
         {{ question.requirementQuestionId % 100 }}.
@@ -132,12 +132,12 @@
     @if (isVisible("cancel")) {
     <button mat-button mat-dialog-close color="warn">Cancel</button>
     } @if (isVisible("reject")) {
-    <button mat-stroked-button color="warn" (click)="changeState('degrade')">
+    <button mat-stroked-button color="bad" (click)="changeState('degrade')">
       Reject
     </button>
     } @if (isVisible("continue")) {
     <button mat-stroked-button color="primary" (click)="changeState('upgrade')">
-      Approve to continue
+      Approve
     </button>
     } @if (isVisible("ok")) {
     <button mat-stroked-button mat-dialog-close color="primary">OK</button>
