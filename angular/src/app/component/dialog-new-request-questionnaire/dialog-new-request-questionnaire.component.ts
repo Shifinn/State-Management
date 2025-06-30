@@ -92,7 +92,12 @@ export class DialogNewRequestQuestionnaireComponent {
 			this.data.requesterName = this.dataService.getUserName();
 			this.data.answers = this.questions().map((q) => q.answer);
 
-			this.dataService.postNewRequest(this.data).subscribe(() => {
+			this.dataService.postNewRequest(this.data).subscribe((result) => {
+				console.log(`the new request id from new request is:${result}`);
+				const path = `request${result}/${this.data.docxFilename}`;
+				if (result && this.data.docxAttachment !== null) {
+					this.dataService.storeFileToBlob(path, this.data.docxAttachment);
+				}
 				this.dialogRef.close("1");
 			});
 		}

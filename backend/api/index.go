@@ -1,30 +1,23 @@
 // The package must be 'handler' to be recognized by Vercel as a serverless function.
-package handler
+// package handler
 
-// package main
+package main
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
-	"gopkg.in/gomail.v2"
+	"github.com/resend/resend-go/v2"
 )
 
 // User represents a user for authentication purposes.
@@ -75,18 +68,16 @@ type EmailRecipient struct {
 
 // Global variables for the database connection and the Gin engine.
 var (
-	db                 *sql.DB
-	app                *gin.Engine
-	filebaseUploader   *manager.Uploader
-	filebaseDownloader *manager.Downloader
-	filebaseBucketName string
+	db        *sql.DB
+	app       *gin.Engine
+	resendCli *resend.Client
 )
 
 // init runs once when the serverless function starts, setting up the router.
 func init() {
 	db = openDB() // Initialize the database connection
 	app = gin.Default()
-	initFilebase()
+	resendCli = initRebase()
 	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{"https://state-management-1.vercel.app", "http://localhost:4200"}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
@@ -125,11 +116,11 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // main is the entry point for local development. It is ignored by Vercel.
-// func main() {
-// 	port := "9090"
-// 	log.Printf("INFO: Starting local server on http://localhost:%s\n", port)
-// 	http.ListenAndServe(":"+port, http.HandlerFunc(Handler))
-// }
+func main() {
+	port := "9090"
+	log.Printf("INFO: Starting local server on http://localhost:%s\n", port)
+	http.ListenAndServe(":"+port, http.HandlerFunc(Handler))
+}
 
 // openDB initializes and returns a new PostgreSQL database connection pool.
 func openDB() *sql.DB {
@@ -149,37 +140,10 @@ func openDB() *sql.DB {
 	log.Println("INFO: Database connection successful.")
 	return db
 }
-func initFilebase() {
+func initRebase() *resend.Client {
+	apiKey := os.Getenv("REBASE_API_KEY")
 
-	accessKey := os.Getenv("FILEBASE_ACCESS_KEY")
-	secretKey := os.Getenv("FILEBASE_SECRET_KEY")
-	filebaseBucketName = "attachment"
-
-	if accessKey == "" || secretKey == "" {
-		log.Fatal("FILEBASE_ACCESS_KEY, FILEBASE_SECRET_KEY, and FILEBASE_BUCKET_NAME must be set")
-	}
-
-	// Configure the AWS SDK to use the Filebase endpoint [1, 2]
-	resolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-		return aws.Endpoint{
-			URL:           "https://s3.filebase.com",
-			SigningRegion: "us-east-1",
-		}, nil
-	})
-
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithEndpointResolverWithOptions(resolver),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKey, secretKey, "")),
-	)
-	if err != nil {
-		log.Fatalf("failed to load AWS config for Filebase: %v", err)
-	}
-
-	// Create an S3 client and initialize the global uploader
-	client := s3.NewFromConfig(cfg)
-	filebaseUploader = manager.NewUploader(client)
-	filebaseDownloader = manager.NewDownloader(client)
-	log.Println("Filebase uploader initialized successfully.")
+	return resend.NewClient(apiKey)
 }
 
 // checkErr logs an error and sends an appropriate HTTP response.
@@ -510,8 +474,8 @@ func getStateThreshold(c *gin.Context) {
 func postNewRequest(c *gin.Context) {
 	var newReq NewRequest
 	var requestID string
-	var docxFilePath string
-	var excelFilePath string
+	// var docxFilePath string
+	// var excelFilePath string
 
 	newReq.RequestTitle = c.PostForm("requestTitle")
 	newReq.RequesterName = c.PostForm("requesterName")
@@ -544,90 +508,92 @@ func postNewRequest(c *gin.Context) {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get request ID after creation")
 		return
 	}
+	c.Data(http.StatusOK, "application/json", []byte(requestID))
 
-	if file, err := c.FormFile("docxAttachment"); err == nil {
-		safeFilename := filepath.Base(newReq.DocxFilename)
-		if safeFilename == "" || safeFilename == "." {
-			checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid docx filename"), "Invalid docx filename provided")
-			return
-		}
-		objectKey := fmt.Sprintf("request%s/%s", requestID, safeFilename)
+	// if file, err := c.FormFile("docxAttachment"); err == nil {
+	// 	safeFilename := filepath.Base(newReq.DocxFilename)
+	// 	if safeFilename == "" || safeFilename == "." {
+	// 		checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid docx filename"), "Invalid docx filename provided")
+	// 		return
+	// 	}
+	// 	objectKey := fmt.Sprintf("request%s/%s", requestID, safeFilename)
 
-		openedFile, err := file.Open()
-		if err != nil {
-			checkErr(c, http.StatusInternalServerError, err, "failed to open uploaded file")
-			return
-		}
-		defer openedFile.Close()
+	// 	openedFile, err := file.Open()
+	// 	if err != nil {
+	// 		checkErr(c, http.StatusInternalServerError, err, "failed to open uploaded file")
+	// 		return
+	// 	}
+	// 	defer openedFile.Close()
 
-		result, err := filebaseUploader.Upload(context.TODO(), &s3.PutObjectInput{
-			Bucket: aws.String(filebaseBucketName),
-			Key:    aws.String(objectKey),
-			Body:   openedFile,
-		})
+	// 	result, err := filebaseUploader.Upload(context.TODO(), &s3.PutObjectInput{
+	// 		Bucket: aws.String(filebaseBucketName),
+	// 		Key:    aws.String(objectKey),
+	// 		Body:   openedFile,
+	// 	})
 
-		if err != nil {
-			checkErr(c, http.StatusInternalServerError, err, "failed to upload docx file to Filebase")
-			return
-		}
+	// 	if err != nil {
+	// 		checkErr(c, http.StatusInternalServerError, err, "failed to upload docx file to Filebase")
+	// 		return
+	// 	}
 
-		docxFilePath = result.Location
+	// 	docxFilePath = result.Location
 
-	} else if err != http.ErrMissingFile {
-		checkErr(c, http.StatusInternalServerError, err, "Error processing docx attachment")
-		return
-	}
+	// } else if err != http.ErrMissingFile {
+	// 	checkErr(c, http.StatusInternalServerError, err, "Error processing docx attachment")
+	// 	return
+	// }
 
-	if file, err := c.FormFile("excelAttachment"); err == nil {
-		safeFilename := filepath.Base(newReq.ExcelFilename)
-		if safeFilename == "" || safeFilename == "." {
-			checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid excel filename"), "Invalid excel filename provided")
-			return
-		}
-		objectKey := fmt.Sprintf("request%s/%s", requestID, safeFilename)
+	// if file, err := c.FormFile("excelAttachment"); err == nil {
+	// 	safeFilename := filepath.Base(newReq.ExcelFilename)
+	// 	if safeFilename == "" || safeFilename == "." {
+	// 		checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid excel filename"), "Invalid excel filename provided")
+	// 		return
+	// 	}
+	// 	objectKey := fmt.Sprintf("request%s/%s", requestID, safeFilename)
 
-		openedFile, err := file.Open()
-		if err != nil {
-			checkErr(c, http.StatusInternalServerError, err, "failed to open uploaded file")
-			return
-		}
-		defer openedFile.Close()
+	// 	openedFile, err := file.Open()
+	// 	if err != nil {
+	// 		checkErr(c, http.StatusInternalServerError, err, "failed to open uploaded file")
+	// 		return
+	// 	}
+	// 	defer openedFile.Close()
 
-		result, err := filebaseUploader.Upload(context.TODO(), &s3.PutObjectInput{
-			Bucket: aws.String(filebaseBucketName),
-			Key:    aws.String(objectKey),
-			Body:   openedFile,
-		})
+	// 	result, err := filebaseUploader.Upload(context.TODO(), &s3.PutObjectInput{
+	// 		Bucket: aws.String(filebaseBucketName),
+	// 		Key:    aws.String(objectKey),
+	// 		Body:   openedFile,
+	// 	})
 
-		if err != nil {
-			checkErr(c, http.StatusInternalServerError, err, "failed to upload excel file to Filebase")
-			return
-		}
+	// 	if err != nil {
+	// 		checkErr(c, http.StatusInternalServerError, err, "failed to upload excel file to Filebase")
+	// 		return
+	// 	}
 
-		excelFilePath = result.Location
+	// 	excelFilePath = result.Location
 
-	} else if err != http.ErrMissingFile {
-		checkErr(c, http.StatusInternalServerError, err, "Error processing excel attachment")
-		return
-	}
+	// } else if err != http.ErrMissingFile {
+	// 	checkErr(c, http.StatusInternalServerError, err, "Error processing excel attachment")
+	// 	return
+	// }
 
-	requestIDInt, err := strconv.Atoi(requestID)
-	if err != nil {
-		checkErr(c, http.StatusInternalServerError, err, "Unable to convert request ID to integer")
-		return
-	}
-	log.Printf("docxFilePath = %s, excelFilePath = %s", docxFilePath, excelFilePath)
+	// requestIDInt, err := strconv.Atoi(requestID)
+	// if err != nil {
+	// 	checkErr(c, http.StatusInternalServerError, err, "Unable to convert request ID to integer")
+	// 	return
+	// }
+	// log.Printf("docxFilePath = %s, excelFilePath = %s", docxFilePath, excelFilePath)
 
-	queryAttachment := `CALL store_attachments($1, $2, $3, $4, $5);`
-	if _, err = db.Exec(queryAttachment, requestIDInt, docxFilePath, newReq.DocxFilename, excelFilePath, newReq.ExcelFilename); err != nil {
-		checkErr(c, http.StatusInternalServerError, err, "Unable to store attachments filepath to db")
-		return
-	}
+	// queryAttachment := `CALL store_attachments($1, $2, $3, $4, $5);`
+	// if _, err = db.Exec(queryAttachment, requestIDInt, docxFilePath, newReq.DocxFilename, excelFilePath, newReq.ExcelFilename); err != nil {
+	// 	checkErr(c, http.StatusInternalServerError, err, "Unable to store attachments filepath to db")
+	// 	return
+	// }
 
-	c.JSON(http.StatusOK, gin.H{
-		"status":  "success",
-		"message": "Request submitted.",
-	})
+	// c.JSON(http.StatusOK, gin.H{
+	// 	"status":  "success",
+	// 	"message": "Request submitted.",
+	// })
+
 }
 
 // postReminderEmail sends a reminder email to a single recipient.
@@ -677,30 +643,40 @@ func postReminderEmailToRole(c *gin.Context) {
 
 // sendReminderEmail constructs and sends a reminder email asynchronously.
 func sendReminderEmail(c *gin.Context, emails []string, state string) {
-	smtpUser := os.Getenv("SMTP_USER")
-	smtpPass := os.Getenv("SMTP_PASS")
-	if smtpUser == "" || smtpPass == "" {
-		log.Println("ERROR: SMTP credentials not set, cannot send email.")
-		return
-	}
+	// smtpUser := os.Getenv("SMTP_USER")
+	// smtpPass := os.Getenv("SMTP_PASS")
+	// if smtpUser == "" || smtpPass == "" {
+	// 	log.Println("ERROR: SMTP credentials not set, cannot send email.")
+	// 	return
+	// }
 
-	mailer := gomail.NewDialer("smtp.gmail.com", 587, smtpUser, smtpPass)
-	msg := gomail.NewMessage()
-	msg.SetHeader("From", smtpUser)
-	msg.SetHeader("To", emails...)
-	msg.SetHeader("Subject", "StateManager Request")
+	// mailer := gomail.NewDialer("smtp.gmail.com", 587, smtpUser, smtpPass)
+	// msg := gomail.NewMessage()
+	// msg.SetHeader("From", smtpUser)
+	// msg.SetHeader("To", emails...)
+	// msg.SetHeader("Subject", "StateManager Request")
 
 	body := fmt.Sprintf(`Selamat pagi Bapak/Ibu,<br><br>
 			Email ini dikirim secara otomatis untuk memberitahukan bahwa terdapat request yang telah memasuki status %s.<br><br>
 			Mohon dapat dilakukan tindak lanjut terhadap request tersebut.<br><br>
 			Terima kasih atas perhatian dan kerja samanya.<br><br>
 			Salam,<br>StateManager`, state)
-	msg.SetBody("text/html", body)
+	// msg.SetBody("text/html", body)
 
-	if err := mailer.DialAndSend(msg); err != nil {
-		log.Printf("ERROR: Could not send email to %s. Reason: %v", strings.Join(emails, ", "), err)
-	} else {
-		log.Printf("INFO: Email sent successfully to %s", strings.Join(emails, ", "))
+	// if err := mailer.DialAndSend(msg); err != nil {
+	// 	log.Printf("ERROR: Could not send email to %s. Reason: %v", strings.Join(emails, ", "), err)
+	// } else {
+	// 	log.Printf("INFO: Email sent successfully to %s", strings.Join(emails, ", "))
+	// }
+	params := &resend.SendEmailRequest{
+		From:    "testinggomail222@gmail.com",
+		To:      emails,
+		Subject: "StateManager Request",
+		Html:    body,
+	}
+
+	if _, err := resendCli.Emails.Send(params); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to send email with rebase")
 	}
 }
 

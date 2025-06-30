@@ -11,8 +11,8 @@ export class LoginService {
 	http = inject(HttpClient); //enables the use of HTTP client calls for the application
 	router = inject(Router); // enables navigation using the Router
 	dataService = inject(DataProcessingService);
-	// host = "http://localhost:9090/api";
 	host = "https://state-management-api.vercel.app/api";
+	// host = "http://localhost:9090/api";
 
 	login(username: string, password: string): Observable<boolean> {
 		const url = `${this.host}/login?userName=${username.toLowerCase().replace(/(\S)\s+/g, "$1")}&password=${password}`;

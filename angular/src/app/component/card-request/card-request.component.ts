@@ -85,7 +85,6 @@ export class CardRequestComponent {
 	}
 
 	durationForState() {
-		console.log("warning check");
 		if (this.threshold) {
 			const dateRef = this.request.dateStart;
 			const hours = this.dataService.getTimeDifferenceInHour(dateRef);
