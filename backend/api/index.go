@@ -477,8 +477,8 @@ func getStateThreshold(c *gin.Context) {
 func postNewRequest(c *gin.Context) {
 	var newReq NewRequest
 	var requestId string
-	var docxFilePath string
-	var excelFilePath string
+	// var docxFilePath string
+	// var excelFilePath string
 
 	newReq.RequestTitle = c.PostForm("requestTitle")
 	newReq.RequesterName = c.PostForm("requesterName")
@@ -512,77 +512,77 @@ func postNewRequest(c *gin.Context) {
 		return
 	}
 
-	vercelCli := vercel_blob.NewVercelBlobClient()
+	// vercelCli := vercel_blob.NewVercelBlobClient()
 
-	if file, err := c.FormFile("docxAttachment"); err == nil {
-		safeFilename := filepath.Base(newReq.DocxFilename)
-		if safeFilename == "" || safeFilename == "." {
-			checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid docx filename"), "Invalid docx filename provided")
-			return
-		}
-		path := fmt.Sprintf("attachment/request%s/%s", requestId, safeFilename)
+	// if file, err := c.FormFile("docxAttachment"); err == nil {
+	// 	safeFilename := filepath.Base(newReq.DocxFilename)
+	// 	if safeFilename == "" || safeFilename == "." {
+	// 		checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid docx filename"), "Invalid docx filename provided")
+	// 		return
+	// 	}
+	// 	path := fmt.Sprintf("attachment/request%s/%s", requestId, safeFilename)
 
-		openedFile, err := file.Open()
-		if err != nil {
-			checkErr(c, http.StatusInternalServerError, err, "failed to open uploaded file")
-			return
-		}
-		defer openedFile.Close()
+	// 	openedFile, err := file.Open()
+	// 	if err != nil {
+	// 		checkErr(c, http.StatusInternalServerError, err, "failed to open uploaded file")
+	// 		return
+	// 	}
+	// 	defer openedFile.Close()
 
-		result, err := vercelCli.Put(path, openedFile, vercel_blob.PutCommandOptions{})
+	// 	result, err := vercelCli.Put(path, openedFile, vercel_blob.PutCommandOptions{})
 
-		if err != nil {
-			checkErr(c, http.StatusInternalServerError, err, "failed to upload docx file to Filebase")
-			return
-		}
+	// 	if err != nil {
+	// 		checkErr(c, http.StatusInternalServerError, err, "failed to upload docx file to Filebase")
+	// 		return
+	// 	}
 
-		docxFilePath = result.URL
-	} else if err != http.ErrMissingFile {
-		checkErr(c, http.StatusInternalServerError, err, "Error processing docx attachment")
-		return
-	}
+	// 	docxFilePath = result.URL
+	// } else if err != http.ErrMissingFile {
+	// 	checkErr(c, http.StatusInternalServerError, err, "Error processing docx attachment")
+	// 	return
+	// }
 
-	if file, err := c.FormFile("excelAttachment"); err == nil {
-		safeFilename := filepath.Base(newReq.ExcelFilename)
-		if safeFilename == "" || safeFilename == "." {
-			checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid excel filename"), "Invalid excel filename provided")
-			return
-		}
-		path := fmt.Sprintf("attachment/request%s/%s", requestId, safeFilename)
+	// if file, err := c.FormFile("excelAttachment"); err == nil {
+	// 	safeFilename := filepath.Base(newReq.ExcelFilename)
+	// 	if safeFilename == "" || safeFilename == "." {
+	// 		checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid excel filename"), "Invalid excel filename provided")
+	// 		return
+	// 	}
+	// 	path := fmt.Sprintf("attachment/request%s/%s", requestId, safeFilename)
 
-		openedFile, err := file.Open()
-		if err != nil {
-			checkErr(c, http.StatusInternalServerError, err, "failed to open uploaded file")
-			return
-		}
-		defer openedFile.Close()
+	// 	openedFile, err := file.Open()
+	// 	if err != nil {
+	// 		checkErr(c, http.StatusInternalServerError, err, "failed to open uploaded file")
+	// 		return
+	// 	}
+	// 	defer openedFile.Close()
 
-		result, err := vercelCli.Put(path, openedFile, vercel_blob.PutCommandOptions{})
+	// 	result, err := vercelCli.Put(path, openedFile, vercel_blob.PutCommandOptions{})
 
-		if err != nil {
-			checkErr(c, http.StatusInternalServerError, err, "failed to upload excel file to Filebase")
-			return
-		}
+	// 	if err != nil {
+	// 		checkErr(c, http.StatusInternalServerError, err, "failed to upload excel file to Filebase")
+	// 		return
+	// 	}
 
-		excelFilePath = result.URL
+	// 	excelFilePath = result.URL
 
-	} else if err != http.ErrMissingFile {
-		checkErr(c, http.StatusInternalServerError, err, "Error processing excel attachment")
-		return
-	}
+	// } else if err != http.ErrMissingFile {
+	// 	checkErr(c, http.StatusInternalServerError, err, "Error processing excel attachment")
+	// 	return
+	// }
 
-	requestIdInt, err := strconv.Atoi(requestId)
-	if err != nil {
-		checkErr(c, http.StatusInternalServerError, err, "Unable to convert request ID to integer")
-		return
-	}
-	log.Printf("docxFilePath = %s, excelFilePath = %s", docxFilePath, excelFilePath)
+	// requestIdInt, err := strconv.Atoi(requestId)
+	// if err != nil {
+	// 	checkErr(c, http.StatusInternalServerError, err, "Unable to convert request ID to integer")
+	// 	return
+	// }
+	// log.Printf("docxFilePath = %s, excelFilePath = %s", docxFilePath, excelFilePath)
 
-	queryAttachment := `CALL store_attachments($1, $2, $3, $4, $5);`
-	if _, err = db.Exec(queryAttachment, requestIdInt, docxFilePath, newReq.DocxFilename, excelFilePath, newReq.ExcelFilename); err != nil {
-		checkErr(c, http.StatusInternalServerError, err, "Unable to store attachments filepath to db")
-		return
-	}
+	// queryAttachment := `CALL store_attachments($1, $2, $3, $4, $5);`
+	// if _, err = db.Exec(queryAttachment, requestIdInt, docxFilePath, newReq.DocxFilename, excelFilePath, newReq.ExcelFilename); err != nil {
+	// 	checkErr(c, http.StatusInternalServerError, err, "Unable to store attachments filepath to db")
+	// 	return
+	// }
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",
