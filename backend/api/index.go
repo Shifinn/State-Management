@@ -477,8 +477,8 @@ func getStateThreshold(c *gin.Context) {
 func postNewRequest(c *gin.Context) {
 	var newReq NewRequest
 	var requestId string
-	// var docxFilePath string
-	// var excelFilePath string
+	var docxFilePath string
+	var excelFilePath string
 
 	newReq.RequestTitle = c.PostForm("requestTitle")
 	newReq.RequesterName = c.PostForm("requesterName")
@@ -512,6 +512,8 @@ func postNewRequest(c *gin.Context) {
 		return
 	}
 
+	docxFilePath = uploadFile(c, "docxAttachment", newReq.DocxFilename, requestId)
+	excelFilePath = uploadFile(c, "excelAttachment", newReq.ExcelFilename, requestId)
 	// vercelCli := vercel_blob.NewVercelBlobClient()
 
 	// if file, err := c.FormFile("docxAttachment"); err == nil {
@@ -571,18 +573,18 @@ func postNewRequest(c *gin.Context) {
 	// 	return
 	// }
 
-	// requestIdInt, err := strconv.Atoi(requestId)
-	// if err != nil {
-	// 	checkErr(c, http.StatusInternalServerError, err, "Unable to convert request ID to integer")
-	// 	return
-	// }
-	// log.Printf("docxFilePath = %s, excelFilePath = %s", docxFilePath, excelFilePath)
+	requestIdInt, err := strconv.Atoi(requestId)
+	if err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Unable to convert request ID to integer")
+		return
+	}
+	log.Printf("docxFilePath = %s, excelFilePath = %s", docxFilePath, excelFilePath)
 
-	// queryAttachment := `CALL store_attachments($1, $2, $3, $4, $5);`
-	// if _, err = db.Exec(queryAttachment, requestIdInt, docxFilePath, newReq.DocxFilename, excelFilePath, newReq.ExcelFilename); err != nil {
-	// 	checkErr(c, http.StatusInternalServerError, err, "Unable to store attachments filepath to db")
-	// 	return
-	// }
+	queryAttachment := `CALL store_attachments($1, $2, $3, $4, $5);`
+	if _, err = db.Exec(queryAttachment, requestIdInt, docxFilePath, newReq.DocxFilename, excelFilePath, newReq.ExcelFilename); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Unable to store attachments filepath to db")
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "success",
@@ -599,7 +601,7 @@ func uploadFile(c *gin.Context, formFileName string, filename string, requestId 
 			checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid excel filename"), "Invalid excel filename provided")
 			return ""
 		}
-		path := fmt.Sprintf("attachment/request%s/%s", requestId, safeFilename)
+		path := fmt.Sprintf("attachment - request%s - %s", requestId, safeFilename)
 
 		openedFile, err := file.Open()
 		if err != nil {
