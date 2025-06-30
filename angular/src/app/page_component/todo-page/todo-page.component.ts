@@ -34,7 +34,7 @@ export class TodoPageComponent {
 	todoStateThreshold = signal<Array<StateThreshold>>([]);
 	currentMenu: "TODO" | "IN PROGRESS" | "DONE" = "TODO";
 	currentFilter: -1 | 1 | 2 | 3 = -1; // -1 for all
-	innerWidth = signal<number>(9999);
+	innerWidth = signal<number>(window.innerWidth);
 
 	@HostListener("window:resize", ["$event"])
 	onResize(event: Event) {

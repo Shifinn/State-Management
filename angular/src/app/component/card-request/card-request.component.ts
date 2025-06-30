@@ -46,7 +46,6 @@ export class CardRequestComponent {
 	threshold!: number | undefined;
 	intervalForRequest!: ReturnType<typeof setInterval>;
 	intervalForState!: ReturnType<typeof setInterval>;
-	test = signal<number>(8.99);
 
 	ngOnInit() {
 		if (this.reminderTooltip) {

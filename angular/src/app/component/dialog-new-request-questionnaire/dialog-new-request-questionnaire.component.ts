@@ -70,7 +70,7 @@ export class DialogNewRequestQuestionnaireComponent {
 		excelAttachment: null,
 		excelFilename: null,
 	};
-	innerWidth = signal<number>(9999);
+	innerWidth = signal<number>(window.innerWidth);
 
 	@HostListener("window:resize", ["$event"])
 	onResize(event: Event) {

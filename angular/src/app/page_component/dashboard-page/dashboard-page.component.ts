@@ -23,7 +23,7 @@ export class DashboardPageComponent {
 	//init signal for the data of the user's request
 	requests = signal<Array<SimpleData>>([]);
 
-	innerWidth = signal<number>(9999);
+	innerWidth = signal<number>(window.innerWidth);
 
 	@HostListener("window:resize", ["$event"])
 	onResize(event: Event) {

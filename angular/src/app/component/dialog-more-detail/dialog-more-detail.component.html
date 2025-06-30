@@ -1,4 +1,4 @@
-@if (data().requestId) {
+@if (data() && data().requestId) {
 <div class="dialog-container" [class.smaller]="innerWidth() < 540">
   <h2>DETAIL REQUEST #{{ data().requestId }}</h2>
 

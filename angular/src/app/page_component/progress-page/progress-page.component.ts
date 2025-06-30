@@ -47,7 +47,7 @@ export class ProgressPageComponent implements OnInit {
 	currentPeriod!: TimePeriod;
 	isShrunk = signal<boolean>(false);
 	isLeftAligned = signal<boolean>(true);
-	innerWidth = signal<number>(9999);
+	innerWidth = signal<number>(window.innerWidth);
 
 	@HostListener("window:resize", ["$event"])
 	onResize(event: Event) {
