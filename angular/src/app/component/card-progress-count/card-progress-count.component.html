@@ -1,5 +1,5 @@
 <div class="{{ 'card s' + progressInfo.stateId }}" [class.active-card]="isActive() === 3" [class.shrink]="isShrunk"
-  (click)="onClick('TOTAL')">
+  [class.small-window]="innerWidth() < 450" (click)="onClick('TOTAL')">
   <div class="card-header">
     <h3 class="request-title">{{ progressInfo.stateName }}</h3>
   </div>

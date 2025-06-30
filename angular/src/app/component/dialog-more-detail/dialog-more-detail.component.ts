@@ -163,7 +163,7 @@ export class DialogMoreDetailComponent {
 				if (this.dataService.getUserRole() === "3") {
 					if (
 						tempStateName === "VALIDATED" ||
-						tempStateName === "REQUEST REJECTED"
+						tempStateName === "IN PROGRESS"
 					) {
 						return true;
 					}

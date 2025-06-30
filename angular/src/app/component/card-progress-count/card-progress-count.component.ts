@@ -1,4 +1,11 @@
-import { Component, EventEmitter, Input, Output } from "@angular/core";
+import {
+	Component,
+	EventEmitter,
+	HostListener,
+	Input,
+	Output,
+	signal,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 import type {
 	CachedProgrestCardMemory,
@@ -18,6 +25,12 @@ export class CardProgressCountComponent {
 	@Input() isShrunk = false;
 	@Input() isActiveCheck!: CachedProgrestCardMemory;
 	@Output() buttonClick = new EventEmitter<CachedProgrestCardMemory>();
+	innerWidth = signal<number>(window.innerWidth);
+
+	@HostListener("window:resize", ["$event"])
+	onResize(event: Event) {
+		this.innerWidth.set(window.innerWidth);
+	}
 
 	isActive(): number {
 		if (this.isActiveCheck.stateId !== this.progressInfo.stateId) return 0;

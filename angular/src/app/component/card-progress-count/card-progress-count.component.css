@@ -21,6 +21,11 @@
 	padding: 0.9em;
 }
 
+.card.shrink.small-window {
+	width: 16em;
+	font-size: 0.59rem; /* controls all size below */
+	padding: 0.7em;
+}
 .request-title {
 	font-size: 1em;
 }
