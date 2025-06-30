@@ -18,7 +18,6 @@ import type {
 	Duration,
 } from "../model/format.type";
 import { map, type Observable, of } from "rxjs";
-import { put } from "@vercel/blob";
 
 @Injectable({
 	providedIn: "root",
@@ -58,15 +57,6 @@ export class DataProcessingService {
 			return "";
 		}
 		return input;
-	}
-
-	async storeFileToBlob(path: string, file: File) {
-		const blob = await put(path, file, {
-			access: "public",
-		});
-
-		console.log(`File uploaded successfully. URL: ${blob.url}`);
-		// return blob;
 	}
 
 	getUserRequest(userIdInput: string): Observable<SimpleData[]> {

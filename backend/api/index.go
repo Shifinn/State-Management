@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 	"github.com/resend/resend-go/v2"
+	vercel_blob "github.com/rpdg/vercel_blob"
 )
 
 // User represents a user for authentication purposes.
@@ -75,6 +77,7 @@ var (
 
 // init runs once when the serverless function starts, setting up the router.
 func init() {
+
 	db = openDB() // Initialize the database connection
 	app = gin.Default()
 	resendCli = initRebase()
@@ -474,7 +477,7 @@ func getStateThreshold(c *gin.Context) {
 func postNewRequest(c *gin.Context) {
 	var newReq NewRequest
 	var requestID string
-	// var docxFilePath string
+	var docxFilePath string
 	// var excelFilePath string
 
 	newReq.RequestTitle = c.PostForm("requestTitle")
@@ -508,41 +511,37 @@ func postNewRequest(c *gin.Context) {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get request ID after creation")
 		return
 	}
-	c.Data(http.StatusOK, "application/json", []byte(requestID))
 
-	// if file, err := c.FormFile("docxAttachment"); err == nil {
-	// 	safeFilename := filepath.Base(newReq.DocxFilename)
-	// 	if safeFilename == "" || safeFilename == "." {
-	// 		checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid docx filename"), "Invalid docx filename provided")
-	// 		return
-	// 	}
-	// 	objectKey := fmt.Sprintf("request%s/%s", requestID, safeFilename)
+	vercelCli := vercel_blob.NewVercelBlobClient()
 
-	// 	openedFile, err := file.Open()
-	// 	if err != nil {
-	// 		checkErr(c, http.StatusInternalServerError, err, "failed to open uploaded file")
-	// 		return
-	// 	}
-	// 	defer openedFile.Close()
+	if file, err := c.FormFile("docxAttachment"); err == nil {
+		safeFilename := filepath.Base(newReq.DocxFilename)
+		if safeFilename == "" || safeFilename == "." {
+			checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid docx filename"), "Invalid docx filename provided")
+			return
+		}
+		path := fmt.Sprintf("request%s/%s", requestID, safeFilename)
 
-	// 	result, err := filebaseUploader.Upload(context.TODO(), &s3.PutObjectInput{
-	// 		Bucket: aws.String(filebaseBucketName),
-	// 		Key:    aws.String(objectKey),
-	// 		Body:   openedFile,
-	// 	})
+		openedFile, err := file.Open()
+		if err != nil {
+			checkErr(c, http.StatusInternalServerError, err, "failed to open uploaded file")
+			return
+		}
+		defer openedFile.Close()
 
-	// 	if err != nil {
-	// 		checkErr(c, http.StatusInternalServerError, err, "failed to upload docx file to Filebase")
-	// 		return
-	// 	}
+		result, err := vercelCli.Put(path, openedFile, vercel_blob.PutCommandOptions{})
 
-	// 	docxFilePath = result.Location
+		if err != nil {
+			checkErr(c, http.StatusInternalServerError, err, "failed to upload docx file to Filebase")
+			return
+		}
 
-	// } else if err != http.ErrMissingFile {
-	// 	checkErr(c, http.StatusInternalServerError, err, "Error processing docx attachment")
-	// 	return
-	// }
-
+		docxFilePath = result.URL
+	} else if err != http.ErrMissingFile {
+		checkErr(c, http.StatusInternalServerError, err, "Error processing docx attachment")
+		return
+	}
+	c.Data(http.StatusOK, "application/json", []byte(docxFilePath))
 	// if file, err := c.FormFile("excelAttachment"); err == nil {
 	// 	safeFilename := filepath.Base(newReq.ExcelFilename)
 	// 	if safeFilename == "" || safeFilename == "." {
