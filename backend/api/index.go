@@ -56,7 +56,7 @@ type NewRequest struct {
 
 // UpdateState represents data for changing a request's state.
 type UpdateState struct {
-	RequestID int    `json:"requestId"`
+	RequestId int    `json:"requestId"`
 	UserID    int    `json:"userId"`
 	Comment   string `json:"comment"`
 }
@@ -326,12 +326,12 @@ func getStateCount(c *gin.Context) {
 // getFullStateHistoryData retrieves and sends the full state history for a specific request.
 func getFullStateHistoryData(c *gin.Context) {
 	var data sql.NullString
-	requestIDInput := c.Query("requestId")
+	requestIdInput := c.Query("requestId")
 
-	checkEmpty(c, requestIDInput)
+	checkEmpty(c, requestIdInput)
 
 	query := `SELECT get_full_state_history($1)`
-	if err := db.QueryRow(query, requestIDInput).Scan(&data); err != nil {
+	if err := db.QueryRow(query, requestIdInput).Scan(&data); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get full state history")
 		return
 	}
@@ -364,12 +364,12 @@ func getQuestionData(c *gin.Context) {
 // getAnswerForRequest retrieves and sends answers for a specific request.
 func getAnswerForRequest(c *gin.Context) {
 	var data sql.NullString
-	requestIDInput := c.Query("requestId")
+	requestIdInput := c.Query("requestId")
 
-	checkEmpty(c, requestIDInput)
+	checkEmpty(c, requestIdInput)
 
 	query := `SELECT get_request_requirement_answer($1)`
-	if err := db.QueryRow(query, requestIDInput).Scan(&data); err != nil {
+	if err := db.QueryRow(query, requestIdInput).Scan(&data); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get request answers")
 		return
 	}
@@ -397,10 +397,10 @@ func getAttachmentFile(c *gin.Context) {
 	var data []byte
 	var attachmentType int
 
-	requestIDInput := c.Query("requestId")
+	requestIdInput := c.Query("requestId")
 	filenameInput := c.Query("filename")
 
-	checkEmpty(c, requestIDInput)
+	checkEmpty(c, requestIdInput)
 	checkEmpty(c, filenameInput)
 
 	var contentType string
@@ -419,7 +419,7 @@ func getAttachmentFile(c *gin.Context) {
 	}
 
 	query := `SELECT get_attachment_filepath($1, $2)`
-	if err := db.QueryRow(query, requestIDInput, attachmentType).Scan(&data); err != nil {
+	if err := db.QueryRow(query, requestIdInput, attachmentType).Scan(&data); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get attachment")
 		return
 	}
@@ -444,11 +444,11 @@ func getAttachmentFile(c *gin.Context) {
 // getFilenames retrieves and sends filenames associated with a request.
 func getFilenames(c *gin.Context) {
 	var data sql.NullString
-	requestIDInput := c.Query("requestId")
-	checkEmpty(c, requestIDInput)
+	requestIdInput := c.Query("requestId")
+	checkEmpty(c, requestIdInput)
 
 	query := `SELECT get_filenames($1)`
-	if err := db.QueryRow(query, requestIDInput).Scan(&data); err != nil {
+	if err := db.QueryRow(query, requestIdInput).Scan(&data); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get filename")
 		return
 	}
@@ -476,9 +476,9 @@ func getStateThreshold(c *gin.Context) {
 // postNewRequest handles the creation of a new request, including file uploads.
 func postNewRequest(c *gin.Context) {
 	var newReq NewRequest
-	var requestID string
+	var requestId string
 	var docxFilePath string
-	// var excelFilePath string
+	var excelFilePath string
 
 	newReq.RequestTitle = c.PostForm("requestTitle")
 	newReq.RequesterName = c.PostForm("requesterName")
@@ -507,7 +507,7 @@ func postNewRequest(c *gin.Context) {
 		newReq.RequestTitle, newReq.UserID, newReq.RequesterName, newReq.AnalysisPurpose,
 		newReq.RequestedFinishDate, newReq.PicRequest, newReq.Urgent,
 		newReq.RequirementType, pq.Array(newReq.Answers), newReq.Remark,
-	).Scan(&requestID); err != nil {
+	).Scan(&requestId); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get request ID after creation")
 		return
 	}
@@ -520,7 +520,7 @@ func postNewRequest(c *gin.Context) {
 			checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid docx filename"), "Invalid docx filename provided")
 			return
 		}
-		path := fmt.Sprintf("request%s/%s", requestID, safeFilename)
+		path := fmt.Sprintf("attachment/request%s/%s", requestId, safeFilename)
 
 		openedFile, err := file.Open()
 		if err != nil {
@@ -541,58 +541,87 @@ func postNewRequest(c *gin.Context) {
 		checkErr(c, http.StatusInternalServerError, err, "Error processing docx attachment")
 		return
 	}
-	c.Data(http.StatusOK, "application/json", []byte(docxFilePath))
-	// if file, err := c.FormFile("excelAttachment"); err == nil {
-	// 	safeFilename := filepath.Base(newReq.ExcelFilename)
-	// 	if safeFilename == "" || safeFilename == "." {
-	// 		checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid excel filename"), "Invalid excel filename provided")
-	// 		return
-	// 	}
-	// 	objectKey := fmt.Sprintf("request%s/%s", requestID, safeFilename)
 
-	// 	openedFile, err := file.Open()
-	// 	if err != nil {
-	// 		checkErr(c, http.StatusInternalServerError, err, "failed to open uploaded file")
-	// 		return
-	// 	}
-	// 	defer openedFile.Close()
+	if file, err := c.FormFile("excelAttachment"); err == nil {
+		safeFilename := filepath.Base(newReq.ExcelFilename)
+		if safeFilename == "" || safeFilename == "." {
+			checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid excel filename"), "Invalid excel filename provided")
+			return
+		}
+		path := fmt.Sprintf("attachment/request%s/%s", requestId, safeFilename)
 
-	// 	result, err := filebaseUploader.Upload(context.TODO(), &s3.PutObjectInput{
-	// 		Bucket: aws.String(filebaseBucketName),
-	// 		Key:    aws.String(objectKey),
-	// 		Body:   openedFile,
-	// 	})
+		openedFile, err := file.Open()
+		if err != nil {
+			checkErr(c, http.StatusInternalServerError, err, "failed to open uploaded file")
+			return
+		}
+		defer openedFile.Close()
 
-	// 	if err != nil {
-	// 		checkErr(c, http.StatusInternalServerError, err, "failed to upload excel file to Filebase")
-	// 		return
-	// 	}
+		result, err := vercelCli.Put(path, openedFile, vercel_blob.PutCommandOptions{})
 
-	// 	excelFilePath = result.Location
+		if err != nil {
+			checkErr(c, http.StatusInternalServerError, err, "failed to upload excel file to Filebase")
+			return
+		}
 
-	// } else if err != http.ErrMissingFile {
-	// 	checkErr(c, http.StatusInternalServerError, err, "Error processing excel attachment")
-	// 	return
-	// }
+		excelFilePath = result.URL
 
-	// requestIDInt, err := strconv.Atoi(requestID)
-	// if err != nil {
-	// 	checkErr(c, http.StatusInternalServerError, err, "Unable to convert request ID to integer")
-	// 	return
-	// }
-	// log.Printf("docxFilePath = %s, excelFilePath = %s", docxFilePath, excelFilePath)
+	} else if err != http.ErrMissingFile {
+		checkErr(c, http.StatusInternalServerError, err, "Error processing excel attachment")
+		return
+	}
 
-	// queryAttachment := `CALL store_attachments($1, $2, $3, $4, $5);`
-	// if _, err = db.Exec(queryAttachment, requestIDInt, docxFilePath, newReq.DocxFilename, excelFilePath, newReq.ExcelFilename); err != nil {
-	// 	checkErr(c, http.StatusInternalServerError, err, "Unable to store attachments filepath to db")
-	// 	return
-	// }
+	requestIdInt, err := strconv.Atoi(requestId)
+	if err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Unable to convert request ID to integer")
+		return
+	}
+	log.Printf("docxFilePath = %s, excelFilePath = %s", docxFilePath, excelFilePath)
 
-	// c.JSON(http.StatusOK, gin.H{
-	// 	"status":  "success",
-	// 	"message": "Request submitted.",
-	// })
+	queryAttachment := `CALL store_attachments($1, $2, $3, $4, $5);`
+	if _, err = db.Exec(queryAttachment, requestIdInt, docxFilePath, newReq.DocxFilename, excelFilePath, newReq.ExcelFilename); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Unable to store attachments filepath to db")
+		return
+	}
 
+	c.JSON(http.StatusOK, gin.H{
+		"status":  "success",
+		"message": "Request submitted.",
+	})
+
+}
+
+func uploadFile(c *gin.Context, formFileName string, filename string, requestId string) string {
+	vercelCli := vercel_blob.NewVercelBlobClient()
+	if file, err := c.FormFile(formFileName); err == nil {
+		safeFilename := filepath.Base(filename)
+		if safeFilename == "" || safeFilename == "." {
+			checkErr(c, http.StatusBadRequest, fmt.Errorf("invalid excel filename"), "Invalid excel filename provided")
+			return ""
+		}
+		path := fmt.Sprintf("attachment/request%s/%s", requestId, safeFilename)
+
+		openedFile, err := file.Open()
+		if err != nil {
+			checkErr(c, http.StatusInternalServerError, err, "failed to open uploaded file")
+			return ""
+		}
+		defer openedFile.Close()
+
+		result, err := vercelCli.Put(path, openedFile, vercel_blob.PutCommandOptions{})
+
+		if err != nil {
+			checkErr(c, http.StatusInternalServerError, err, "failed to upload excel file to Filebase")
+			return ""
+		}
+
+		return result.URL
+
+	} else if err != http.ErrMissingFile {
+		checkErr(c, http.StatusInternalServerError, err, "Error processing excel attachment")
+		return ""
+	}
+	return ""
 }
 
 // postReminderEmail sends a reminder email to a single recipient.
@@ -687,17 +716,17 @@ func putUpgradeState(c *gin.Context) {
 		return
 	}
 
-	log.Printf("INFO: Upgrading state for requestId %d by userId %d", updateData.RequestID, updateData.UserID)
+	log.Printf("INFO: Upgrading state for requestId %d by userId %d", updateData.RequestId, updateData.UserID)
 
 	if updateData.Comment == "" {
 		query := `CALL upgrade_state($1, $2)`
-		if _, err := db.Exec(query, updateData.RequestID, updateData.UserID); err != nil {
+		if _, err := db.Exec(query, updateData.RequestId, updateData.UserID); err != nil {
 			checkErr(c, http.StatusInternalServerError, err, "Failed to upgrade state")
 			return
 		}
 	} else {
 		query := `CALL upgrade_state($1, $2, $3)`
-		if _, err := db.Exec(query, updateData.RequestID, updateData.UserID, updateData.Comment); err != nil {
+		if _, err := db.Exec(query, updateData.RequestId, updateData.UserID, updateData.Comment); err != nil {
 			checkErr(c, http.StatusInternalServerError, err, "Failed to upgrade state")
 			return
 		}
@@ -715,7 +744,7 @@ func putDegradeState(c *gin.Context) {
 	}
 
 	query := `CALL degrade_state($1, $2, $3)`
-	if _, err := db.Exec(query, updateData.RequestID, updateData.UserID, updateData.Comment); err != nil {
+	if _, err := db.Exec(query, updateData.RequestId, updateData.UserID, updateData.Comment); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to degrade state")
 		return
 	}
