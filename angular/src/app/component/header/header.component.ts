@@ -16,7 +16,7 @@ export class HeaderComponent {
 	loginService = inject(LoginService);
 	dataService = inject(DataProcessingService);
 	userName = signal(this.dataService.getUserName());
-	userRole = signal<string>("1");
+	userRole = signal<string>(this.dataService.getUserRole());
 	isUserInfoVisible = signal<boolean>(false);
 	innerWidth = signal<number>(window.innerWidth);
 
