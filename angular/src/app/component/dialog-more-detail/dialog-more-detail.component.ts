@@ -52,8 +52,6 @@ export class DialogMoreDetailComponent {
 		comment: "",
 	};
 
-	// answers = signal<Array<Question>>([]);
-	filenames = signal<Array<AttachmentFilename>>([]);
 	inputData = inject(MAT_DIALOG_DATA);
 	dataService = inject(DataProcessingService);
 	router = inject(Router);
@@ -71,16 +69,6 @@ export class DialogMoreDetailComponent {
 			.getCompleteData(this.inputData.requestId)
 			.subscribe((result) => {
 				this.data.set(result);
-			});
-
-		// this.dataService.getAnswer(this.inputData.requestId).subscribe((result) => {
-		// 	this.answers.set(result);
-		// });
-
-		this.dataService
-			.getAttachmentFilename(this.inputData.requestId)
-			.subscribe((result) => {
-				this.filenames.set(result);
 			});
 	}
 
@@ -125,7 +113,7 @@ export class DialogMoreDetailComponent {
 	downloadAttachment(index: number) {
 		this.dataService.getAttachmentFileDownload(
 			this.data().requestId,
-			this.filenames()[index].attachmentFilename,
+			this.data().filenames[index].attachmentFilename,
 		);
 	}
 

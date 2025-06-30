@@ -101,7 +101,8 @@ export class TodoPageComponent {
 				"DONE",
 				this.dataService.separateDone(this.todoComplete),
 			);
-			this.visibleTodo.set(this.todoMap().get("TODO") ?? []);
+			// this.visibleTodo.set(this.todoMap().get("TODO") ?? []);
+			this.setVisibleBasedOnFilter();
 		});
 	}
 }

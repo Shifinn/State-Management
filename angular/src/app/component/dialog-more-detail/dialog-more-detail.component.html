@@ -63,12 +63,12 @@
     </div>
     }
   </div>
-  @if (filenames().length ) {
+  @if (data().filenames.length ) {
   <div class="row">
     <div class="requirement-item">
       <label class="question-text">Docx File</label>
       <div class="readonly-field file-field">
-        {{ filenames()[0].attachmentFilename }}
+        {{ data().filenames[0].attachmentFilename }}
         <button mat-icon-button class="download-icon-button" (click)="downloadAttachment(0)">
           <mat-icon class="download-icon">download</mat-icon>
         </button>
@@ -78,7 +78,7 @@
     <div class="requirement-item">
       <label class="question-text">Excel File</label>
       <div class="readonly-field file-field">
-        {{ filenames()[1].attachmentFilename }}
+        {{ data().filenames[1].attachmentFilename }}
         <button mat-icon-button class="download-icon-button" (click)="downloadAttachment(1)">
           <mat-icon class="download-icon">download</mat-icon>
         </button>
