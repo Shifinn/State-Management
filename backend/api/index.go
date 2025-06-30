@@ -1,7 +1,7 @@
 // The package must be 'handler' to be recognized by Vercel as a serverless function.
-// package handler
+package handler
 
-package main
+// package main
 
 import (
 	"database/sql"

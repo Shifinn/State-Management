@@ -26,8 +26,8 @@ export class DataProcessingService {
 	http = inject(HttpClient);
 	router = inject(Router);
 	// Use a relative path for the API host to work in both local and deployed environments.
-	// host = "https://state-management-api.vercel.app/api";
-	host = "http://localhost:9090/api";
+	host = "https://state-management-api.vercel.app/api";
+	// host = "http://localhost:9090/api";
 
 	storeUserInfo(u: User) {
 		localStorage.setItem("userId", u.userId);
