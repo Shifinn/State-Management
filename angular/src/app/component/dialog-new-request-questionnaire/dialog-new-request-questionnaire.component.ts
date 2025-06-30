@@ -96,6 +96,7 @@ export class DialogNewRequestQuestionnaireComponent {
 				console.log(`the new request id from new request is:${result}`);
 				const path = `request${result}/${this.data.docxFilename}`;
 				if (result && this.data.docxAttachment !== null) {
+					console.log("enter file store if clause");
 					this.dataService.storeFileToBlob(path, this.data.docxAttachment);
 				}
 				this.dialogRef.close("1");

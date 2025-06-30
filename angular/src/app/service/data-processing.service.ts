@@ -61,10 +61,12 @@ export class DataProcessingService {
 	}
 
 	async storeFileToBlob(path: string, file: File) {
-		const { url } = await put(path, file, {
+		const blob = await put(path, file, {
 			access: "public",
 		});
-		console.log(`the url:${url}`);
+
+		console.log(`File uploaded successfully. URL: ${blob.url}`);
+		// return blob;
 	}
 
 	getUserRequest(userIdInput: string): Observable<SimpleData[]> {
