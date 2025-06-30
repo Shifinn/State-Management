@@ -35,7 +35,6 @@ export class DashboardPageComponent {
 			this.router.navigate(["/home", { outlets: { home: "todo" } }]);
 		}
 		this.refreshRequests();
-		this.innerWidth.set(window.innerWidth);
 	}
 
 	makeNewRequest() {

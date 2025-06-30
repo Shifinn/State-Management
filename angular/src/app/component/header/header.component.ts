@@ -18,15 +18,11 @@ export class HeaderComponent {
 	userName = signal(this.dataService.getUserName());
 	userRole = signal<string>("1");
 	isUserInfoVisible = signal<boolean>(false);
-	innerWidth = signal<number>(9999);
+	innerWidth = signal<number>(window.innerWidth);
 
 	@HostListener("window:resize", ["$event"])
 	onResize(event: Event) {
 		this.innerWidth.set(window.innerWidth);
-	}
-
-	ngOnInit() {
-		this.userRole.set(this.dataService.getUserRole());
 	}
 
 	toggleUserInfoVisibility(input: boolean) {

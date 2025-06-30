@@ -28,7 +28,7 @@ import { PeriodPickerComponent } from "../../component/period-picker/period-pick
 	templateUrl: "./progress-page.component.html",
 	styleUrl: "./progress-page.component.css",
 })
-export class ProgressPageComponent implements OnInit {
+export class ProgressPageComponent {
 	dataService = inject(DataProcessingService);
 	progressInfo = signal<Array<StatusInfo>>([]);
 	stateData: Map<StateStatus, Array<StateInfoData>> = new Map<
@@ -51,10 +51,6 @@ export class ProgressPageComponent implements OnInit {
 
 	@HostListener("window:resize", ["$event"])
 	onResize(event: Event) {
-		this.innerWidth.set(window.innerWidth);
-	}
-
-	ngOnInit() {
 		this.innerWidth.set(window.innerWidth);
 	}
 

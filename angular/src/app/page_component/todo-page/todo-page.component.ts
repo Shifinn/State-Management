@@ -43,7 +43,6 @@ export class TodoPageComponent {
 
 	ngOnInit(): void {
 		this.getTodo();
-		this.innerWidth.set(window.innerWidth);
 
 		this.dataService.getStateThreshold().subscribe((result) => {
 			this.todoStateThreshold.set(result);

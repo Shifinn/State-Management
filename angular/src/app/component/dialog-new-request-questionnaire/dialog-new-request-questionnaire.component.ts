@@ -77,10 +77,6 @@ export class DialogNewRequestQuestionnaireComponent {
 		this.innerWidth.set(window.innerWidth);
 	}
 
-	ngOnInit() {
-		this.innerWidth.set(window.innerWidth);
-	}
-
 	submitRequest() {
 		this.requestForm.form.markAllAsTouched();
 		if (this.allRequirementsAnswered()) {
