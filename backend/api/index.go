@@ -1,7 +1,7 @@
 // The package must be 'handler' to be recognized by Vercel as a serverless function.
-// package handler
+package handler
 
-package main
+// package main
 
 import (
 	"database/sql"
@@ -116,11 +116,11 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // main is the entry point for local development. It is ignored by Vercel.
-func main() {
-	port := "9090"
-	log.Printf("INFO: Starting local server on http://localhost:%s\n", port)
-	http.ListenAndServe(":"+port, http.HandlerFunc(Handler))
-}
+// func main() {
+// 	port := "9090"
+// 	log.Printf("INFO: Starting local server on http://localhost:%s\n", port)
+// 	http.ListenAndServe(":"+port, http.HandlerFunc(Handler))
+// }
 
 // openDB initializes and returns a new PostgreSQL database connection pool.
 func openDB() *sql.DB {
