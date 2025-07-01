@@ -1,7 +1,6 @@
 // The package must be 'handler' to be recognized by Vercel as a serverless function.
-package handler
-
-// package main
+// package handler
+package main
 
 import (
 	"database/sql"
@@ -119,11 +118,11 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // main is the entry point for local development. It is ignored by Vercel.
-// func main() {
-// 	port := "9090"
-// 	log.Printf("INFO: Starting local server on http://localhost:%s\n", port)
-// 	http.ListenAndServe(":"+port, http.HandlerFunc(Handler))
-// }
+func main() {
+	port := "9090"
+	log.Printf("INFO: Starting local server on http://localhost:%s\n", port)
+	http.ListenAndServe(":"+port, http.HandlerFunc(Handler))
+}
 
 // openDB initializes and returns a new PostgreSQL database connection pool.
 func openDB() *sql.DB {
@@ -579,7 +578,7 @@ func postReminderEmail(c *gin.Context) {
 		checkErr(c, http.StatusBadRequest, err, "Invalid input")
 		return
 	}
-	go sendReminderEmail(c.Copy(), []string{recipient.Email}, recipient.RequestState)
+	sendReminderEmail(c.Copy(), []string{recipient.Email}, recipient.RequestState)
 	c.JSON(http.StatusOK, gin.H{"message": "Reminder email dispatched."})
 }
 
@@ -613,14 +612,17 @@ func postReminderEmailToRole(c *gin.Context) {
 		emails = append(emails, r.Email)
 	}
 
-	go sendReminderEmail(c.Copy(), emails, stateNameInput)
+	sendReminderEmail(c.Copy(), emails, stateNameInput)
+	c.JSON(http.StatusOK, gin.H{"message": "Reminder successfully dispatched to " + strings.Join(emails, ", ")})
 
 }
 
 // sendReminderEmail constructs and sends a reminder email asynchronously.
 func sendReminderEmail(c *gin.Context, emails []string, state string) {
-	smtpUser := os.Getenv("SMTP_USER")
-	smtpPass := os.Getenv("SMTP_PASS")
+	// smtpUser := os.Getenv("SMTP_USER")
+	smtpUser := "testinggomail222@gmail.com"
+	// smtpPass := os.Getenv("SMTP_PASS")
+	smtpPass := "nlef zdjv kfac shox"
 	if smtpUser == "" || smtpPass == "" {
 		log.Println("ERROR: SMTP credentials not set, cannot send email.")
 		return
@@ -644,17 +646,6 @@ func sendReminderEmail(c *gin.Context, emails []string, state string) {
 	} else {
 		log.Printf("INFO: Email sent successfully to %s", strings.Join(emails, ", "))
 	}
-	// params := &resend.SendEmailRequest{
-	// 	From:    "testinggomail222@gmail.com",
-	// 	To:      emails,
-	// 	Subject: "StateManager Request",
-	// 	Html:    body,
-	// }
-
-	// if _, err := resendCli.Emails.Send(params); err != nil {
-	// 	checkErr(c, http.StatusInternalServerError, err, "Failed to send email with rebase")
-	// }
-	c.JSON(http.StatusOK, gin.H{"message": "Reminder successfully dispatched to " + strings.Join(emails, ", ")})
 }
 
 // putUpgradeState handles upgrading the state of a request.
