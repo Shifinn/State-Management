@@ -24,6 +24,7 @@ import type { NewRequest, Question } from "../../model/format.type";
 import { DataProcessingService } from "../../service/data-processing.service";
 import { NgIf } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
+import { HttpEventType } from "@angular/common/http";
 
 @Component({
 	selector: "app-dialog-new-request-questionnaire",
@@ -71,12 +72,12 @@ export class DialogNewRequestQuestionnaireComponent {
 		excelFilename: null,
 	};
 	innerWidth = signal<number>(window.innerWidth);
-
+	isUploading = signal(false);
+	uploadProgress = signal(0);
 	@HostListener("window:resize", ["$event"])
 	onResize(event: Event) {
 		this.innerWidth.set(window.innerWidth);
 	}
-
 	submitRequest() {
 		this.requestForm.form.markAllAsTouched();
 		if (this.allRequirementsAnswered()) {
@@ -88,34 +89,45 @@ export class DialogNewRequestQuestionnaireComponent {
 			this.data.requesterName = this.dataService.getUserName();
 			this.data.answers = this.questions().map((q) => q.answer);
 
-			this.dataService.postNewRequest(this.data).subscribe((result) => {
-				console.log(`the new request id from new request is:${result}`);
-				this.dialogRef.close("1");
+			this.isUploading.set(true);
+			this.uploadProgress.set(0);
+			this.resizeForUploadProgress();
+			this.dataService.postNewRequest(this.data).subscribe({
+				next: (event) => {
+					// We check the type of event
+					if (event.type === HttpEventType.UploadProgress) {
+						// This event gives us the loaded and total bytes
+						if (event.total) {
+							const progress = Math.round(100 * (event.loaded / event.total));
+							this.uploadProgress.set(progress); // Update the signal
+						}
+					} else if (event.type === HttpEventType.Response) {
+						// This event means the upload is complete and we have a server response
+						console.log("Upload successful!", event.body);
+						this.isUploading.set(false);
+						this.dialogRef.close("1"); // Close the dialog on success
+					}
+				},
+				error: (err) => {
+					// Handle any upload errors
+					console.error("Upload failed:", err);
+					this.isUploading.set(false);
+					this.uploadProgress.set(0);
+					this.resizeForUploadProgress();
+				},
 			});
-			// .subscribe({
-			// 	next: (event) => {
-			// 		// We check the type of event
-			// 		if (event.type === HttpEventType.UploadProgress) {
-			// 			// This event gives us the loaded and total bytes
-			// 			if (event.total) {
-			// 				const progress = Math.round(100 * (event.loaded / event.total));
-			// 				this.uploadProgress.set(progress); // Update the signal
-			// 			}
-			// 		} else if (event.type === HttpEventType.Response) {
-			// 			// This event means the upload is complete and we have a server response
-			// 			console.log("Upload successful!", event.body);
-			// 			this.isUploading.set(false);
-			// 			this.dialogRef.close("1"); // Close the dialog on success
-			// 		}
-			// 	},
-			// 	error: (err) => {
-			// 		// Handle any upload errors
-			// 		console.error("Upload failed:", err);
-			// 		this.isUploading.set(false);
-			// 		this.uploadProgress.set(0);
-			// 		// Optionally show an error message to the user
-			// 	},
+			// .subscribe((result) => {
+			// 	console.log(`the new request id from new request is:${result}`);
+			// 	this.dialogRef.close("1");
 			// });
+		}
+	}
+
+	resizeForUploadProgress() {
+		if (this.isUploading()) {
+			this.dialogRef.updateSize("");
+		} else {
+			this.dialogRef.updateSize("90vw");
 		}
 	}
 

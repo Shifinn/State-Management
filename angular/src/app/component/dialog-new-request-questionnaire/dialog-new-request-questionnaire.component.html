@@ -1,3 +1,4 @@
+@if (!isUploading()) {
 <form #requestForm="ngForm">
   <div class="dialog-container" [class.smaller]="innerWidth() < 540">
     <h2>REQUEST BARU</h2>
@@ -73,7 +74,6 @@
       </mat-form-field>
     </div>
 
-
     <div class="row">
       <mat-form-field appearance="outline" class="field">
         <mat-label [class.smaller-label]="innerWidth() < 600">TIPE DATA</mat-label>
@@ -136,7 +136,13 @@
     </div>
   </div>
 </form>
+} @if (isUploading()) {
+<div class="upload-box">
+  <div>Uploading File...</div>
+  <div>{{ uploadProgress() }}%</div>
+  <div class="progress-bar">
+    <div class="progress-fill" [style.width.%]="uploadProgress()"></div>
+  </div>
+</div>
 
-<!-- @if (isUploading()) {
-<div>progress: {{uploadProgress()}}</div>
-} -->
+}

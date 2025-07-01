@@ -228,11 +228,11 @@ export class DataProcessingService {
 		if (request.excelAttachment)
 			formData.append("excelAttachment", request.excelAttachment);
 
-		return this.http.post(url, formData);
-		// 		return this.http.post(url, formData, {
-		// 	reportProgress: true,
-		// 	observe: "events",
-		// });
+		// return this.http.post(url, formData);
+		return this.http.post(url, formData, {
+			reportProgress: true,
+			observe: "events",
+		});
 	}
 
 	upgradeState(stateUpdateData: UpdateState) {
