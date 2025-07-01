@@ -58,6 +58,9 @@
         <mat-error *ngIf="requestForm.submitted && !data.docxAttachment">
           Tolong isi file docx
         </mat-error>
+        <mat-error *ngIf="docxUploadSizewarning() !== null">
+          {{docxUploadSizewarning()}}
+        </mat-error>
       </mat-form-field>
 
       <!-- EXCEL Upload -->
@@ -70,6 +73,9 @@
         <input type="file" hidden #excelInput accept=".xls,.xlsx" (change)="submitFile($event, 'EXCEL')" />
         <mat-error *ngIf="requestForm.submitted && !data.excelAttachment">
           Tolong isi file excel
+        </mat-error>
+        <mat-error *ngIf="excelUploadSizewarning() !== null">
+          {{excelUploadSizewarning()}}
         </mat-error>
       </mat-form-field>
     </div>

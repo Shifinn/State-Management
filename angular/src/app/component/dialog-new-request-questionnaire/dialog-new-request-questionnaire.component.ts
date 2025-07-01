@@ -74,6 +74,9 @@ export class DialogNewRequestQuestionnaireComponent {
 	innerWidth = signal<number>(window.innerWidth);
 	isUploading = signal(false);
 	uploadProgress = signal(0);
+	docxUploadSizewarning = signal<string | null>(null);
+	excelUploadSizewarning = signal<string | null>(null);
+
 	@HostListener("window:resize", ["$event"])
 	onResize(event: Event) {
 		this.innerWidth.set(window.innerWidth);
@@ -103,8 +106,6 @@ export class DialogNewRequestQuestionnaireComponent {
 						}
 					} else if (event.type === HttpEventType.Response) {
 						// This event means the upload is complete and we have a server response
-						console.log("Upload successful!", event.body);
-						this.isUploading.set(false);
 						this.dialogRef.close("1"); // Close the dialog on success
 					}
 				},
@@ -151,12 +152,27 @@ export class DialogNewRequestQuestionnaireComponent {
 	submitFile(event: Event, type: "EXCEL" | "DOCX") {
 		console.log("submit file trigger");
 		const input = event.target as HTMLInputElement;
+
 		if (input.files && input.files.length > 0) {
 			const file = input.files[0];
+			if (file.size > 4.5 * 1024 * 1024) {
+				if (type === "EXCEL") {
+					this.excelUploadSizewarning.set("Excel file lebih dari 4.5MB");
+					this.data.excelAttachment = null;
+					this.data.excelFilename = null;
+				} else {
+					this.docxUploadSizewarning.set("file lebih dari 4.5MB");
+					this.data.docxAttachment = null;
+					this.data.docxFilename = null;
+				}
+				return;
+			}
 			if (type === "EXCEL") {
+				this.excelUploadSizewarning.set(null);
 				this.data.excelAttachment = file;
 				this.data.excelFilename = file.name;
 			} else {
+				this.docxUploadSizewarning.set(null);
 				this.data.docxAttachment = file;
 				this.data.docxFilename = file.name;
 			}

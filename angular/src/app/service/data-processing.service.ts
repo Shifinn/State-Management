@@ -162,18 +162,13 @@ export class DataProcessingService {
 		attachmentFileName: string,
 	) {
 		const url = `${this.host}/getAttachmentFile?requestId=${requestIdInput}&filename=${attachmentFileName}`;
-		this.http.get<string>(url).subscribe((result) => {
-			// Create a temporary anchor (<a>) element in memory
+		this.http.get<{ url: string }>(url).subscribe((result) => {
 			const downloadLink = document.createElement("a");
 
-			// Set the link's target to the file URL
-			downloadLink.href = result;
+			downloadLink.href = result.url;
 
-			// Set the "download" attribute to the desired filename
-			downloadLink.setAttribute("download", attachmentFileName);
+			downloadLink.download = attachmentFileName;
 
-			// Append the link to the document, "click" it, and then remove it
-			document.body.appendChild(downloadLink);
 			downloadLink.click();
 			document.body.removeChild(downloadLink);
 		});
