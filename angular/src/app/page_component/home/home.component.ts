@@ -10,11 +10,12 @@ import { DataProcessingService } from "../../service/data-processing.service";
 	styleUrls: ["./home.component.css"],
 })
 export class HomeComponent {
-	data_service = inject(DataProcessingService);
+	dataService = inject(DataProcessingService);
 	router = inject(Router);
 
 	ngOnInit() {
-		if (Number(this.data_service.getUserId()) === 0) {
+		this.dataService.rerouteHome();
+		if (Number(this.dataService.getUserId()) === 0) {
 			this.router.navigate([""]);
 		}
 	}

@@ -5,9 +5,9 @@
             [class.center]="innerWidth() < 600"></app-custom-square-button>
     </div>
 
-    <div class="requests" [class.center]="innerWidth() < 822">
+    <div class="requests" [class.center]="innerWidth() < 822" [class.small-window]="innerWidth() < 550">
         @for (request of requests(); track request.requestId) {
-        <app-card-request [request]="request" (refresh)="refreshRequests()" />
+        <app-card-request [request]=" request" (refresh)="refreshRequests()" />
         }
     </div>
 </body>

@@ -31,9 +31,6 @@ export class DashboardPageComponent {
 	}
 
 	ngOnInit(): void {
-		if (Number(this.dataService.getUserRole()) > 1) {
-			this.router.navigate(["/home", { outlets: { home: "todo" } }]);
-		}
 		this.refreshRequests();
 	}
 

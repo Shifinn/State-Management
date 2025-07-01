@@ -1,30 +1,27 @@
 import {
 	Component,
+	computed,
 	EventEmitter,
-	HostListener,
 	inject,
 	Input,
 	Output,
-	resource,
-	signal,
+	type Signal,
 } from "@angular/core";
-import type {
-	Duration,
-	SimpleData,
-	StateThreshold,
-} from "../../model/format.type";
 import { CommonModule } from "@angular/common";
-import { CustomSquareButtonComponent } from "../custom-square-button/custom-square-button.component";
-import { DataProcessingService } from "../../service/data-processing.service";
 import { MatDialog } from "@angular/material/dialog";
-import { DialogMoreDetailComponent } from "../dialog-more-detail/dialog-more-detail.component";
-import { DateAdapter } from "@angular/material/core";
-import { MatTooltipModule } from "@angular/material/tooltip";
-import { delay } from "rxjs";
 import { MatIconModule } from "@angular/material/icon";
+import { MatTooltipModule } from "@angular/material/tooltip";
+
+// Import your services and other dependencies
+import { TickCounterService } from "../../service/tick-counter.service"; // Use the new service
+import { DataProcessingService } from "../../service/data-processing.service";
+import { DialogMoreDetailComponent } from "../dialog-more-detail/dialog-more-detail.component";
+import { CustomSquareButtonComponent } from "../custom-square-button/custom-square-button.component";
+import type { SimpleData, StateThreshold } from "../../model/format.type";
 
 @Component({
 	selector: "app-card-request",
+	standalone: true, // This component is now standalone
 	imports: [
 		CommonModule,
 		CustomSquareButtonComponent,
@@ -35,37 +32,45 @@ import { MatIconModule } from "@angular/material/icon";
 	styleUrl: "./card-request.component.css",
 })
 export class CardRequestComponent {
+	private dataService = inject(DataProcessingService);
+	private tickCounter = inject(TickCounterService);
+	private dialog = inject(MatDialog);
+
 	@Input() request!: SimpleData;
 	@Input() reminderTooltip!: StateThreshold[];
 	@Output() refresh = new EventEmitter<void>();
-	requestDurationString = signal<string>("");
-	stateDurationString = signal<string>("");
 
-	dataService = inject(DataProcessingService);
-	dialog = inject(MatDialog);
-	threshold!: number | undefined;
-	intervalForRequest!: ReturnType<typeof setInterval>;
-	intervalForState!: ReturnType<typeof setInterval>;
+	// This signal automatically recalculates whenever the timer service emits a new time.
+	public readonly requestDurationString: Signal<string> = computed(() => {
+		const now = this.tickCounter.currentTime(); // Get the current time from the service
+		const dateRef = this.request.requestDate;
+		// Assume dataService methods are updated to accept 'now'
+		const duration = this.dataService.getTimeDifferenceInDayAndHour(dateRef);
+		return ` ${duration.day} days ${Math.floor(duration.hour)} hours ago`;
+	});
 
-	ngOnInit() {
-		if (this.reminderTooltip) {
-			this.threshold = this.reminderTooltip?.find(
-				(s) => s.stateNameId === 1,
-			)?.stateThresholdHour;
-		}
-		this.durationForRequest();
-		this.durationForState();
-	}
+	// This signal also updates automatically based on the shared timer.
+	public readonly stateDurationString: Signal<string> = computed(() => {
+		const now = this.tickCounter.currentTime(); // Get current time
+		const threshold = this.reminderTooltip?.find(
+			(s) => s.stateNameId === this.request.stateNameId,
+		)?.stateThresholdHour;
 
-	ngOnDestroy(): void {
-		if (this.intervalForRequest) {
-			clearInterval(this.intervalForRequest); // cleanup
+		if (!threshold) {
+			return ""; // No threshold, no string to display
 		}
 
-		if (this.intervalForState) {
-			clearInterval(this.intervalForState); // cleanup
+		const dateRef = this.request.dateStart;
+		const hours = this.dataService.getTimeDifferenceInHour(dateRef);
+
+		if (hours > threshold) {
+			const duration = this.dataService.getTimeDifferenceInDayAndHour(dateRef);
+			return `Has been ${duration.day} days ${Math.floor(
+				duration.hour,
+			)} hours since ${this.request.stateName} started`;
 		}
-	}
+		return "";
+	});
 
 	moreDetails() {
 		const dialogRef = this.dialog.open(DialogMoreDetailComponent, {
@@ -79,45 +84,9 @@ export class CardRequestComponent {
 		});
 
 		dialogRef.afterClosed().subscribe((result) => {
-			this.refresh.emit();
-		});
-	}
-
-	durationForState() {
-		if (this.threshold) {
-			const dateRef = this.request.dateStart;
-			const hours = this.dataService.getTimeDifferenceInHour(dateRef);
-			let hourTillRecall!: number;
-			if (hours > this.threshold) {
-				const duration =
-					this.dataService.getTimeDifferenceInDayAndHour(dateRef);
-				hourTillRecall = 1 - (duration.hour % 1);
-
-				this.stateDurationString.set(
-					`Has been ${duration.day} days ${Math.floor(duration.hour)} hours since ${this.request.stateName} started`,
-				);
-			} else {
-				hourTillRecall = this.threshold - hours;
+			if (result) {
+				this.refresh.emit();
 			}
-
-			if (this.intervalForState) clearInterval(this.intervalForState);
-			this.intervalForState = setInterval(() => {
-				this.durationForState();
-			}, hourTillRecall * 3600000);
-		}
-	}
-
-	durationForRequest() {
-		const dateRef = this.request.requestDate;
-		const duration = this.dataService.getTimeDifferenceInDayAndHour(dateRef);
-		const hourTillRecall = 1 - (duration.hour % 1);
-
-		this.requestDurationString.set(
-			` ${duration.day} days ${Math.floor(duration.hour)} hours ago`,
-		);
-		if (this.intervalForRequest) clearInterval(this.intervalForRequest);
-		this.intervalForRequest = setInterval(() => {
-			this.durationForRequest();
-		}, hourTillRecall * 3600000);
+		});
 	}
 }

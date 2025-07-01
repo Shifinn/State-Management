@@ -13,7 +13,6 @@ import type {
 	StateInfoData,
 	StateStatus,
 	PeriodGranularity,
-	AttachmentFilename,
 	StateThreshold,
 	Duration,
 } from "../model/format.type";
@@ -57,6 +56,21 @@ export class DataProcessingService {
 			return "";
 		}
 		return input;
+	}
+
+	rerouteHome() {
+		if (
+			this.router.url.includes("/home/(home:dashboard)") &&
+			Number(this.getUserRole()) > 1
+		) {
+			this.router.navigate(["/home", { outlets: { home: "todo" } }]);
+		} else if (
+			(this.router.url.includes("/home/(home:todo)") ||
+				this.router.url.includes("/home/(home:progress)")) &&
+			Number(this.getUserRole()) === 1
+		) {
+			this.router.navigate(["/home", { outlets: { home: "dashboard" } }]);
+		}
 	}
 
 	getUserRequest(userIdInput: string): Observable<SimpleData[]> {
@@ -146,36 +160,45 @@ export class DataProcessingService {
 	getAttachmentFileDownload(
 		requestIdInput: number,
 		attachmentFileName: string,
-	): void {
+	) {
 		const url = `${this.host}/getAttachmentFile?requestId=${requestIdInput}&filename=${attachmentFileName}`;
 		this.http.get<string>(url).subscribe((result) => {
-			// 2. Create a temporary anchor (<a>) element in memory
+			// Create a temporary anchor (<a>) element in memory
 			const downloadLink = document.createElement("a");
 
-			// 3. Set the link's target to the file URL
+			// Set the link's target to the file URL
 			downloadLink.href = result;
 
-			// 4. Set the "download" attribute to the desired filename
+			// Set the "download" attribute to the desired filename
 			downloadLink.setAttribute("download", attachmentFileName);
 
-			// 5. Append the link to the document, "click" it, and then remove it
+			// Append the link to the document, "click" it, and then remove it
 			document.body.appendChild(downloadLink);
 			downloadLink.click();
 			document.body.removeChild(downloadLink);
 		});
-		// this.http.get(url, { responseType: "blob" }).subscribe((blob) => {
-		// 	const downloadLink = document.createElement("a");
-		// 	const objectUrl = URL.createObjectURL(blob);
-		// 	downloadLink.href = objectUrl;
-		// 	downloadLink.download = attachmentFileName;
-		// 	downloadLink.click();
-		// 	URL.revokeObjectURL(objectUrl);
-		// });
 	}
 
 	getStateThreshold() {
 		const url = `${this.host}/getStateThreshold`;
-		return this.http.get<StateThreshold[]>(url);
+		const cacheStr = localStorage.getItem("stateThreshold");
+		const cacheSavedAtStr = localStorage.getItem("stateThresholdSavedAt");
+
+		if (
+			cacheStr &&
+			cacheSavedAtStr &&
+			Date.now() - new Date(cacheSavedAtStr).getTime() < 60 * 60 * 1000
+		) {
+			return of(JSON.parse(cacheStr) as StateThreshold[]);
+		}
+
+		return this.http.get<StateThreshold[]>(url).pipe(
+			map((result) => {
+				localStorage.setItem("stateThreshold", JSON.stringify(result));
+				localStorage.setItem("stateThresholdSavedAt", new Date().toISOString());
+				return result;
+			}),
+		);
 	}
 
 	postNewRequest(request: NewRequest) {

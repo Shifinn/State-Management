@@ -22,7 +22,7 @@
       </mat-form-field>
     </div>
   </div>
-  <div class="requests" [class.center]="innerWidth() < 822">
+  <div class="requests" [class.center]="innerWidth() < 822" [class.small-window]="innerWidth() < 550">
     @if (visibleTodo().length > 0 && currentMenu != 'DONE') {
     @for (request of visibleTodo(); track request.requestId) {
     <app-card-request [reminderTooltip]="todoStateThreshold()" [request]="request" (refresh)="getTodo()" />
