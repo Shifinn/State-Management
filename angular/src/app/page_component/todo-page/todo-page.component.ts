@@ -63,6 +63,7 @@ export class TodoPageComponent {
 				?.filter((todo) => todo.requirementTypeId === this.currentFilter);
 			this.visibleTodo.set(filteredTodos ?? []);
 		}
+		console.log("todos should be visible");
 	}
 
 	sortVisibleData(input: string) {

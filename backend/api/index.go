@@ -18,8 +18,8 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
-	"github.com/resend/resend-go/v2"
 	vercel_blob "github.com/rpdg/vercel_blob"
+	"gopkg.in/gomail.v2"
 )
 
 // User represents a user for authentication purposes.
@@ -70,9 +70,8 @@ type EmailRecipient struct {
 
 // Global variables for the database connection and the Gin engine.
 var (
-	db        *sql.DB
-	app       *gin.Engine
-	resendCli *resend.Client
+	db  *sql.DB
+	app *gin.Engine
 )
 
 // init runs once when the serverless function starts, setting up the router.
@@ -80,7 +79,7 @@ func init() {
 
 	db = openDB() // Initialize the database connection
 	app = gin.Default()
-	resendCli = initRebase()
+
 	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{"https://state-management-1.vercel.app", "http://localhost:4200"}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
@@ -144,11 +143,12 @@ func openDB() *sql.DB {
 	log.Println("INFO: Database connection successful.")
 	return db
 }
-func initRebase() *resend.Client {
-	apiKey := os.Getenv("REBASE_API_KEY")
 
-	return resend.NewClient(apiKey)
-}
+// func initRebase() *resend.Client {
+// 	apiKey := os.Getenv("REBASE_API_KEY")
+
+// 	return resend.NewClient(apiKey)
+// }
 
 // checkErr logs an error and sends an appropriate HTTP response.
 func checkErr(c *gin.Context, errType int, err error, errMsg string) {
@@ -614,46 +614,47 @@ func postReminderEmailToRole(c *gin.Context) {
 	}
 
 	go sendReminderEmail(c.Copy(), emails, stateNameInput)
-	c.JSON(http.StatusOK, gin.H{"message": "Reminder successfully dispatched to role."})
+
 }
 
 // sendReminderEmail constructs and sends a reminder email asynchronously.
 func sendReminderEmail(c *gin.Context, emails []string, state string) {
-	// smtpUser := os.Getenv("SMTP_USER")
-	// smtpPass := os.Getenv("SMTP_PASS")
-	// if smtpUser == "" || smtpPass == "" {
-	// 	log.Println("ERROR: SMTP credentials not set, cannot send email.")
-	// 	return
-	// }
+	smtpUser := os.Getenv("SMTP_USER")
+	smtpPass := os.Getenv("SMTP_PASS")
+	if smtpUser == "" || smtpPass == "" {
+		log.Println("ERROR: SMTP credentials not set, cannot send email.")
+		return
+	}
 
-	// mailer := gomail.NewDialer("smtp.gmail.com", 587, smtpUser, smtpPass)
-	// msg := gomail.NewMessage()
-	// msg.SetHeader("From", smtpUser)
-	// msg.SetHeader("To", emails...)
-	// msg.SetHeader("Subject", "StateManager Request")
+	mailer := gomail.NewDialer("smtp.gmail.com", 587, smtpUser, smtpPass)
+	msg := gomail.NewMessage()
+	msg.SetHeader("From", smtpUser)
+	msg.SetHeader("To", emails...)
+	msg.SetHeader("Subject", "StateManager Request")
 
 	body := fmt.Sprintf(`Selamat pagi Bapak/Ibu,<br><br>
 			Email ini dikirim secara otomatis untuk memberitahukan bahwa terdapat request yang telah memasuki status %s.<br><br>
 			Mohon dapat dilakukan tindak lanjut terhadap request tersebut.<br><br>
 			Terima kasih atas perhatian dan kerja samanya.<br><br>
 			Salam,<br>StateManager`, state)
-	// msg.SetBody("text/html", body)
+	msg.SetBody("text/html", body)
 
-	// if err := mailer.DialAndSend(msg); err != nil {
-	// 	log.Printf("ERROR: Could not send email to %s. Reason: %v", strings.Join(emails, ", "), err)
-	// } else {
-	// 	log.Printf("INFO: Email sent successfully to %s", strings.Join(emails, ", "))
+	if err := mailer.DialAndSend(msg); err != nil {
+		log.Printf("ERROR: Could not send email to %s. Reason: %v", strings.Join(emails, ", "), err)
+	} else {
+		log.Printf("INFO: Email sent successfully to %s", strings.Join(emails, ", "))
+	}
+	// params := &resend.SendEmailRequest{
+	// 	From:    "testinggomail222@gmail.com",
+	// 	To:      emails,
+	// 	Subject: "StateManager Request",
+	// 	Html:    body,
 	// }
-	params := &resend.SendEmailRequest{
-		From:    "testinggomail222@gmail.com",
-		To:      emails,
-		Subject: "StateManager Request",
-		Html:    body,
-	}
 
-	if _, err := resendCli.Emails.Send(params); err != nil {
-		checkErr(c, http.StatusInternalServerError, err, "Failed to send email with rebase")
-	}
+	// if _, err := resendCli.Emails.Send(params); err != nil {
+	// 	checkErr(c, http.StatusInternalServerError, err, "Failed to send email with rebase")
+	// }
+	c.JSON(http.StatusOK, gin.H{"message": "Reminder successfully dispatched to " + strings.Join(emails, ", ")})
 }
 
 // putUpgradeState handles upgrading the state of a request.

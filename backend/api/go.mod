@@ -5,11 +5,14 @@ go 1.24.3
 require (
 	github.com/gin-gonic/gin v1.10.1
 	github.com/lib/pq v1.10.9
-	github.com/resend/resend-go/v2 v2.20.0
 	github.com/rpdg/vercel_blob v0.1.0
+	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 )
 
-require github.com/kr/text v0.2.0 // indirect
+require (
+	github.com/kr/text v0.2.0 // indirect
+	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
+)
 
 require (
 	github.com/bytedance/sonic v1.13.3 // indirect
