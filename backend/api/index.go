@@ -1,4 +1,3 @@
-// The package must be 'handler' to be recognized by Vercel as a serverless function.
 package handler
 
 // package main
@@ -17,7 +16,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/lib/pq"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	vercel_blob "github.com/rpdg/vercel_blob"
 	"gopkg.in/gomail.v2"
 )
@@ -101,10 +100,8 @@ func registerRoutes(router *gin.RouterGroup) {
 	router.GET("/fullStateHistoryData", getFullStateHistoryData)
 	router.GET("/questionData", getQuestionData)
 	router.GET("/login", checkUserCredentials)
-	router.GET("/answerData", getAnswerForRequest)
 	router.GET("/getOldestRequestTime", getOldestRequest)
 	router.GET("/getAttachmentFile", getAttachmentFile)
-	router.GET("/getFilenames", getFilenames)
 	router.GET("/getStateThreshold", getStateThreshold)
 	router.POST("/newRequest", postNewRequest)
 	router.POST("/postReminderEmail", postReminderEmail)
@@ -118,7 +115,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	app.ServeHTTP(w, r)
 }
 
-// main is the entry point for local development. It is ignored by Vercel.
+// // main is the entry point for local development. It is ignored by Vercel.
 // func main() {
 // 	port := "9090"
 // 	log.Printf("INFO: Starting local server on http://localhost:%s\n", port)
@@ -133,7 +130,7 @@ func openDB() *sql.DB {
 		log.Println("INFO: DATABASE_URL not set, using local fallback.")
 	}
 
-	db, err := sql.Open("postgres", databaseURL)
+	db, err := sql.Open("pgx", databaseURL)
 	if err != nil {
 		log.Fatalf("FATAL: Error opening database: %v", err)
 	}
@@ -380,25 +377,6 @@ func getQuestionData(c *gin.Context) {
 	c.Data(http.StatusOK, "application/json", []byte(data.String))
 }
 
-// getAnswerForRequest retrieves and sends answers for a specific request.
-func getAnswerForRequest(c *gin.Context) {
-	var data sql.NullString
-	requestIdInput := c.Query("requestId")
-
-	checkEmpty(c, requestIdInput)
-
-	query := `SELECT get_request_requirement_answer($1)`
-	if err := db.QueryRow(query, requestIdInput).Scan(&data); err != nil {
-		checkErr(c, http.StatusInternalServerError, err, "Failed to get request answers")
-		return
-	}
-	if !data.Valid {
-		c.Data(http.StatusOK, "application/json", []byte("[]"))
-		return
-	}
-	c.Data(http.StatusOK, "application/json", []byte(data.String))
-}
-
 // getOldestRequest retrieves and sends the timestamp of the oldest request.
 func getOldestRequest(c *gin.Context) {
 	var data time.Time
@@ -443,24 +421,6 @@ func getAttachmentFile(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"url": fileURL,
 	})
-}
-
-// getFilenames retrieves and sends filenames associated with a request.
-func getFilenames(c *gin.Context) {
-	var data sql.NullString
-	requestIdInput := c.Query("requestId")
-	checkEmpty(c, requestIdInput)
-
-	query := `SELECT get_filenames($1)`
-	if err := db.QueryRow(query, requestIdInput).Scan(&data); err != nil {
-		checkErr(c, http.StatusInternalServerError, err, "Failed to get filename")
-		return
-	}
-	if !data.Valid {
-		c.Data(http.StatusOK, "application/json", []byte("[]"))
-		return
-	}
-	c.Data(http.StatusOK, "application/json", []byte(data.String))
 }
 
 // getStateThreshold retrieves and sends the state threshold data.
@@ -509,8 +469,7 @@ func postNewRequest(c *gin.Context) {
 	query := `SELECT create_new_request($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
 	if err := db.QueryRow(query,
 		newReq.RequestTitle, newReq.UserID, newReq.RequesterName, newReq.AnalysisPurpose,
-		newReq.RequestedFinishDate, newReq.PicRequest, newReq.Urgent,
-		newReq.RequirementType, pq.Array(newReq.Answers), newReq.Remark,
+		newReq.RequirementType, newReq.Answers, newReq.Remark,
 	).Scan(&requestId); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get request ID after creation")
 		return

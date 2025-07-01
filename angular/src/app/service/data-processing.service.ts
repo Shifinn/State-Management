@@ -133,11 +133,6 @@ export class DataProcessingService {
 		return this.http.get<Question[]>(url);
 	}
 
-	// getAnswer(requestIdInput: number) {
-	// 	const url = `${this.host}/answerData?requestId=${requestIdInput}`;
-	// 	return this.http.get<Question[]>(url);
-	// }
-
 	getStateCount(startDate: string, endDate: string) {
 		const url = `${this.host}/stateCountData?startDate=${startDate}&endDate=${endDate}`;
 		return this.http.get<StatusInfo[]>(url);
@@ -147,11 +142,6 @@ export class DataProcessingService {
 		const url = `${this.host}/getOldestRequestTime`;
 		return this.http.get<Date>(url);
 	}
-
-	// getAttachmentFilename(requestIdInput: number) {
-	// 	const url = `${this.host}/getFilenames?requestId=${requestIdInput}`;
-	// 	return this.http.get<AttachmentFilename[]>(url);
-	// }
 
 	getAttachmentFileDownload(
 		requestIdInput: number,
