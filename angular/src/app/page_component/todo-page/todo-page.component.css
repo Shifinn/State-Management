@@ -22,7 +22,7 @@ mat-form-field {
 	top: 5.5em;
 	width: 21em;
 	transform: scale(0.8);
-	transition: transform 1s ease-in-out, right 1s ease-in-out;
+	/* transition: transform 1s ease-in-out; */
 }
 mat-form-field.flex {
 	position: relative;
@@ -43,7 +43,7 @@ mat-option {
 	display: flex;
 	justify-content: center;
 	gap: 3em;
-	transition: all 1s ease-in-out;
+	/* transition: all 0.3s ease-in-out; */
 }
 .todo-page-header.column .menu-selector {
 	/* flex-direction: column; */

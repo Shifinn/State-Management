@@ -229,6 +229,10 @@ export class DataProcessingService {
 			formData.append("excelAttachment", request.excelAttachment);
 
 		return this.http.post(url, formData);
+		// 		return this.http.post(url, formData, {
+		// 	reportProgress: true,
+		// 	observe: "events",
+		// });
 	}
 
 	upgradeState(stateUpdateData: UpdateState) {

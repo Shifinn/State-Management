@@ -468,8 +468,7 @@ func postNewRequest(c *gin.Context) {
 
 	query := `SELECT create_new_request($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
 	if err := db.QueryRow(query,
-		newReq.RequestTitle, newReq.UserID, newReq.RequesterName, newReq.AnalysisPurpose,
-		newReq.RequirementType, newReq.Answers, newReq.Remark,
+		newReq.RequestTitle, newReq.UserID, newReq.RequesterName, newReq.AnalysisPurpose, newReq.RequestedFinishDate, newReq.PicRequest, newReq.Urgent, newReq.RequirementType, newReq.Answers, newReq.Remark,
 	).Scan(&requestId); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get request ID after creation")
 		return

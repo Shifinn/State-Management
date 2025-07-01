@@ -92,6 +92,30 @@ export class DialogNewRequestQuestionnaireComponent {
 				console.log(`the new request id from new request is:${result}`);
 				this.dialogRef.close("1");
 			});
+			// .subscribe({
+			// 	next: (event) => {
+			// 		// We check the type of event
+			// 		if (event.type === HttpEventType.UploadProgress) {
+			// 			// This event gives us the loaded and total bytes
+			// 			if (event.total) {
+			// 				const progress = Math.round(100 * (event.loaded / event.total));
+			// 				this.uploadProgress.set(progress); // Update the signal
+			// 			}
+			// 		} else if (event.type === HttpEventType.Response) {
+			// 			// This event means the upload is complete and we have a server response
+			// 			console.log("Upload successful!", event.body);
+			// 			this.isUploading.set(false);
+			// 			this.dialogRef.close("1"); // Close the dialog on success
+			// 		}
+			// 	},
+			// 	error: (err) => {
+			// 		// Handle any upload errors
+			// 		console.error("Upload failed:", err);
+			// 		this.isUploading.set(false);
+			// 		this.uploadProgress.set(0);
+			// 		// Optionally show an error message to the user
+			// 	},
+			// });
 		}
 	}
 
