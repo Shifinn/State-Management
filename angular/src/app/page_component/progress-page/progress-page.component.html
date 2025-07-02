@@ -6,7 +6,7 @@
     (changePeriodType)="handlePeriodTypeShift()"></app-period-picker>
 
   <div class="requests center" [class.shrink]="isShrunk()" [class.small-window]="innerWidth() < 670">
-    @for (type of progressInfo(); track type.stateId) {
+    @for (type of progressService.progressInfo(); track type.stateId) {
     <app-card-progress-count [progressInfo]="type" [isActiveCheck]="currentViewStatus()" [isShrunk]="isShrunk()"
       (buttonClick)="showStateData($event)"></app-card-progress-count>
     }

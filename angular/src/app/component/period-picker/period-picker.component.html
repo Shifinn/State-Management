@@ -1,7 +1,8 @@
 <div class="period-picker-container">
     <div class="period-type-container">
         @for (item of periodType; track $index) {
-        <div class="period-type-picker" [class.active]="currentPeriod && item == currentPeriod.periodType"
+        <div class="period-type-picker"
+            [class.active]="periodPickerService.currentPeriod() && item == periodPickerService.currentPeriod()?.periodType"
             (click)="clickPeriodType(item)">
 
             <span>{{ item }}</span>
@@ -10,17 +11,16 @@
       ">▼</span>
 
             @if (item === periodPickerVisible()) {
-            <app-pop-up-period-picker (optionSelected)="updateCurrentPeriod($event)"
+            <app-pop-up-period-picker (optionSelected)="clickNewPeriod($event)"
                 (periodPickerVisible)="periodPickerVisible.set($event)"
-                [availablePeriod]="availablePeriod().get(item) || []" [previousMenu]="currentPeriodMenu()"
-                (storeMenu)="currentPeriodMenu.set($event)"></app-pop-up-period-picker>
+                [availablePeriod]="periodPickerService.availablePeriod().get(item) || []"></app-pop-up-period-picker>
             }
         </div>
 
         }
     </div>
-    @if (currentPeriod) {
-    <div class="current-period-full-label" [matTooltip]="currentPeriodTooltip()">
-        {{currentPeriod.fullLabel}}</div>
+    @if (periodPickerService.currentPeriod()) {
+    <div class="current-period-full-label" [matTooltip]="periodPickerService.currentPeriodTooltip()">
+        {{periodPickerService.currentPeriod()?.fullLabel}}</div>
     }
 </div>

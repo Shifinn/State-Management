@@ -1,21 +1,14 @@
-import {
-	Component,
-	HostListener,
-	inject,
-	signal,
-	type OnInit,
-} from "@angular/core";
+import { Component, HostListener, inject, signal } from "@angular/core";
 import { CardProgressCountComponent } from "../../component/card-progress-count/card-progress-count.component";
-import { DataProcessingService } from "../../service/data-processing.service";
 import type {
 	CachedProgrestCardMemory,
 	StateInfoData,
-	StatusInfo,
 	TimePeriod,
 	StateStatus,
 } from "../../model/format.type";
 import { CardStateDataComponent } from "../../component/card-state-data/card-state-data.component";
 import { PeriodPickerComponent } from "../../component/period-picker/period-picker.component";
+import { ProgressPageService } from "../../service/progress-page.service";
 
 @Component({
 	selector: "app-progress-page",
@@ -29,22 +22,13 @@ import { PeriodPickerComponent } from "../../component/period-picker/period-pick
 	styleUrl: "./progress-page.component.css",
 })
 export class ProgressPageComponent {
-	dataService = inject(DataProcessingService);
-	progressInfo = signal<Array<StatusInfo>>([]);
-	stateData: Map<StateStatus, Array<StateInfoData>> = new Map<
-		StateStatus,
-		Array<StateInfoData>
-	>([
-		["TOTAL", []],
-		["TODO", []],
-		["DONE", []],
-	]);
+	progressService = inject(ProgressPageService);
+
 	visibleStateData = signal<Array<StateInfoData>>([]);
 	currentViewStatus = signal<CachedProgrestCardMemory>({
 		type: "NAN",
 		stateId: -2,
 	});
-	currentPeriod!: TimePeriod;
 	isShrunk = signal<boolean>(false);
 	isLeftAligned = signal<boolean>(true);
 	innerWidth = signal<number>(window.innerWidth);
@@ -62,90 +46,64 @@ export class ProgressPageComponent {
 		this.isShrunk.set(Boolean(input));
 	}
 
+	/**
+	 * Handles the period update event from the child component.
+	 * Calls the service to update the period and fetch new data.
+	 */
 	periodUpdate(newPeriod: TimePeriod) {
-		this.currentPeriod = newPeriod;
-		this.clearStateData();
-		this.getNewStateCount(
-			this.currentPeriod.startDate,
-			this.currentPeriod.endDate,
-		);
+		console.log("periodUpdate trigger");
+		this.progressService.updatePeriodAndFetchData(newPeriod).subscribe(() => {
+			if (this.isShrunk()) {
+				const cache = this.currentViewStatus();
+				this.currentViewStatus.set({ stateId: -2, type: "NAN" });
+				this.showStateData(cache);
+			}
+		});
 	}
 
 	handlePeriodTypeShift() {
-		if (this.isShrunk() === true) {
+		if (this.isShrunk()) {
 			this.currentViewStatus.set({ stateId: -2, type: "NAN" });
 			this.showStateData({ type: "TOTAL", stateId: -1 });
 		}
 	}
 
-	clearStateData() {
-		this.stateData.set("TOTAL", []);
-		this.stateData.set("TODO", []);
-		this.stateData.set("DONE", []);
-		this.visibleStateData.set([]);
-	}
-
-	getNewStateCount(startDate: Date, endDate: Date) {
-		console.log(`start: ${startDate}, end: ${endDate}`);
-		this.dataService
-			.getStateCount(startDate.toISOString(), endDate.toISOString())
-			.subscribe((result) => {
-				this.progressInfo.set(result);
-			});
-		if (this.isShrunk() === true) {
-			const cache = this.currentViewStatus();
-			this.currentViewStatus.set({ stateId: -2, type: "NAN" });
-			this.showStateData(cache);
-		}
-	}
-
+	/**
+	 * Shows detailed data for a selected state.
+	 * Fetches data via the service if not already cached.
+	 */
 	showStateData(input: CachedProgrestCardMemory) {
-		console.log(`The type from card is: ${input.type}`);
 		if (!this.checkPreviousStateSelection(input)) return;
 
 		this.currentViewStatus.set(input);
 
 		const currentStateId = this.visibleStateData()[0]?.stateNameId;
-		const cachedTotalData = this.stateData.get("TOTAL");
+		const hasCachedTotalData =
+			(this.progressService.stateData.get("TOTAL") ?? []).length > 0;
 
-		if (currentStateId !== input.stateId) {
-			this.clearStateData();
-		} else if (cachedTotalData?.length) {
-			this.setVisibleStateDataSignal(input.type);
-			return;
-		}
-
-		this.dataService
-			.getStateSpecificData(
-				input.stateId,
-				this.currentPeriod.startDate.toISOString(),
-				this.currentPeriod.endDate.toISOString(),
-			)
-			.subscribe((result) => {
-				this.stateData.set("TOTAL", result);
+		if (currentStateId !== input.stateId || !hasCachedTotalData) {
+			this.progressService.getStateSpecificData(input.stateId).subscribe(() => {
 				this.setVisibleStateDataSignal(input.type);
 			});
-	}
-
-	setVisibleStateDataSignal(completionType: StateStatus) {
-		const tempStateArray = this.stateData.get(completionType);
-		const tempStateArrayTotal = this.stateData.get("TOTAL");
-
-		this.toggleShrink(1);
-
-		if (tempStateArray?.length) {
-			this.visibleStateData.set(tempStateArray);
-		} else if (tempStateArrayTotal?.length) {
-			const tempNewPeriod = this.dataService.separateBasedOnCompletion(
-				completionType,
-				tempStateArrayTotal,
-			);
-			this.stateData.set(completionType, tempNewPeriod);
-			this.visibleStateData.set(tempNewPeriod);
-			this.currentViewStatus().type = completionType;
+		} else {
+			this.setVisibleStateDataSignal(input.type);
 		}
 	}
 
+	/**
+	 * Sets the visible data signal based on the completion type.
+	 * Gets the processed data from the service.
+	 */
+	setVisibleStateDataSignal(completionType: StateStatus) {
+		this.toggleShrink(1);
+		const data = this.progressService.getSeparatedData(completionType);
+		this.visibleStateData.set(data);
+		this.currentViewStatus().type = completionType;
+	}
+
+	/**
+	 * Checks if the user is clicking the same card again to toggle visibility.
+	 */
 	checkPreviousStateSelection(check: CachedProgrestCardMemory): boolean {
 		if (
 			this.currentViewStatus().stateId === check.stateId &&
@@ -154,10 +112,8 @@ export class ProgressPageComponent {
 			this.toggleShrink(0);
 			this.visibleStateData.set([]);
 			this.currentViewStatus.set({ stateId: -2, type: "NAN" });
-			console.log(`shrink is ${this.isShrunk}`);
 			return false;
 		}
-
 		return true;
 	}
 }

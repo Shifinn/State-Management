@@ -1,23 +1,22 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { type ComponentFixture, TestBed } from "@angular/core/testing";
 
-import { PeriodPickerComponent } from './period-picker.component';
+import { PeriodPickerComponent } from "./period-picker.component";
 
-describe('PeriodPickerComponent', () => {
-  let component: PeriodPickerComponent;
-  let fixture: ComponentFixture<PeriodPickerComponent>;
+describe("PeriodPickerComponent", () => {
+	let component: PeriodPickerComponent;
+	let fixture: ComponentFixture<PeriodPickerComponent>;
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [PeriodPickerComponent]
-    })
-    .compileComponents();
+	beforeEach(async () => {
+		await TestBed.configureTestingModule({
+			imports: [PeriodPickerComponent],
+		}).compileComponents();
 
-    fixture = TestBed.createComponent(PeriodPickerComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-  });
+		fixture = TestBed.createComponent(PeriodPickerComponent);
+		component = fixture.componentInstance;
+		fixture.detectChanges();
+	});
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
+	it("should create", () => {
+		expect(component).toBeTruthy();
+	});
 });

@@ -25,12 +25,13 @@
   <div class="requests" [class.center]="innerWidth() < 822" [class.small-window]="innerWidth() < 550">
     @if (visibleTodo().length > 0 && currentMenu != 'DONE') {
     @for (request of visibleTodo(); track request.requestId) {
-    <app-card-request [reminderTooltip]="todoStateThreshold()" [request]="request" (refresh)="getTodo()" />
+    <app-card-request [reminderTooltip]="todoService.todoStateThreshold()" [request]="request"
+      (refresh)="refreshData()" />
     }
     }
     @if (visibleTodo().length > 0 && currentMenu === 'DONE') {
     @for (request of visibleTodo(); track request.requestId) {
-    <app-card-request [request]="request" (refresh)="getTodo()" />
+    <app-card-request [request]="request" (refresh)="refreshData()" />
     }
     }
   </div>

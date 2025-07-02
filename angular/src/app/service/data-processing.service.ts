@@ -87,37 +87,6 @@ export class DataProcessingService {
 		return of([]);
 	}
 
-	separateTodo(input: SimpleData[]): SimpleData[] {
-		if (this.getUserRole() === "3") {
-			return input.filter((x) => x.stateNameId === 1 || x.stateNameId === 4);
-		}
-
-		if (this.getUserRole() === "2") {
-			return input.filter((x) => x.stateNameId === 2);
-		}
-
-		return [];
-	}
-
-	separateInProgress(input: SimpleData[]): SimpleData[] {
-		if (this.getUserRole() === "2") {
-			return input.filter((x) => x.stateNameId === 3 || x.stateNameId === 4);
-		}
-		if (this.getUserRole() === "3") {
-			return input.filter((x) => x.stateNameId === 2 || x.stateNameId === 3);
-		}
-
-		if (this.getUserRole() === "2") {
-			return input.filter((x) => x.stateNameId === 5);
-		}
-
-		return [];
-	}
-
-	separateDone(input: SimpleData[]): SimpleData[] {
-		return input.filter((x) => x.stateNameId === 5);
-	}
-
 	getStateSpecificData(
 		stateIdInput: number,
 		startDate: string,
@@ -150,11 +119,6 @@ export class DataProcessingService {
 	getStateCount(startDate: string, endDate: string) {
 		const url = `${this.host}/stateCountData?startDate=${startDate}&endDate=${endDate}`;
 		return this.http.get<StatusInfo[]>(url);
-	}
-
-	getOldestRequestTime() {
-		const url = `${this.host}/getOldestRequestTime`;
-		return this.http.get<Date>(url);
 	}
 
 	getAttachmentFileDownload(
@@ -258,6 +222,11 @@ export class DataProcessingService {
 		};
 	}
 
+	getOldestRequestTime() {
+		const url = `${this.host}/getOldestRequestTime`;
+		return this.http.get<Date>(url);
+	}
+
 	getOldestPeriodTimeFromMemory(): Observable<Date> {
 		const oldestTimeStr = localStorage.getItem("oldestTime");
 		const oldestTimeSavedAtStr = localStorage.getItem("oldestTimeSavedAt");
@@ -277,155 +246,5 @@ export class DataProcessingService {
 				return resultDate;
 			}),
 		);
-	}
-
-	getAvailablePeriods(
-		periodType: PeriodGranularity,
-	): Observable<Array<TimePeriod>> {
-		return this.getOldestPeriodTimeFromMemory().pipe(
-			map((result) => {
-				const oldestRequest = new Date(result);
-				const oldestYear = oldestRequest.getFullYear();
-				const today = new Date();
-				const currentYear = today.getFullYear();
-				const options: Array<TimePeriod> = [];
-
-				for (let year = oldestYear; year <= currentYear; year++) {
-					const startOfYear = new Date(year, 0, 1);
-					const endOfYear = new Date(year, 11, 31);
-					switch (periodType) {
-						case "YEAR":
-							options.push({
-								label: `${year}`,
-								fullLabel: `${year}`,
-								year,
-								startDate: startOfYear,
-								endDate: endOfYear,
-								periodType,
-							});
-							break;
-
-						case "QUARTER":
-							for (let q = 1; q <= 4; q++) {
-								const startDate = new Date(year, q * 3 - 3, 1);
-								if (startDate > today) {
-									break;
-								}
-								const endDate = new Date(year, q * 3, 0);
-								if (q !== 1) {
-									startDate.setDate(
-										startDate.getDate() + this.getStartDateOffset(startDate),
-									);
-								}
-								if (q !== 4) {
-									endDate.setDate(
-										endDate.getDate() + this.getEndDateOffset(endDate),
-									);
-								}
-								options.push({
-									label: `Q${q}`,
-									fullLabel: `Q${q} ${year}`,
-									year,
-									startDate,
-									endDate,
-									periodType,
-								});
-							}
-							break;
-
-						case "MONTH":
-							for (let m = 0; m < 12; m++) {
-								const monthName = new Date(year, m, 1).toLocaleString(
-									"default",
-									{ month: "long" },
-								);
-								const startDate = new Date(year, m, 1);
-								if (startDate > today) break;
-								const endDate = new Date(year, m + 1, 0);
-
-								if (m !== 0) {
-									startDate.setDate(
-										startDate.getDate() + this.getStartDateOffset(startDate),
-									);
-								}
-								if (m !== 11) {
-									endDate.setDate(
-										endDate.getDate() + this.getEndDateOffset(endDate),
-									);
-								}
-								options.push({
-									label: `${monthName}`,
-									fullLabel: `${monthName} ${year}`,
-									year,
-									startDate,
-									endDate,
-									periodType,
-								});
-							}
-							break;
-
-						case "WEEK":
-							for (let m = 0; m < 12; m++) {
-								const monthName = new Date(year, m, 1).toLocaleString(
-									"default",
-									{ month: "long" },
-								);
-								const startOfMonth = new Date(year, m, 1);
-								const endOfMonth = new Date(year, m + 1, 0);
-								const startDate = new Date(startOfMonth);
-								startDate.setDate(
-									startDate.getDate() + this.getStartDateOffset(startDate),
-								);
-
-								let week = 1;
-								while (startDate <= endOfMonth) {
-									if (startDate > today) break;
-									const endDate = new Date(startDate);
-									endDate.setDate(endDate.getDate() + 7);
-									if (endDate > endOfMonth && endDate.getUTCDate() >= 4) {
-										break;
-									}
-									options.push({
-										label: `Week ${week}`,
-										fullLabel: `Week ${week} ${monthName} ${year}`,
-										year,
-										startDate: new Date(startDate),
-										endDate: new Date(endDate),
-										periodType,
-									});
-									week++;
-									startDate.setDate(startDate.getDate() + 7);
-								}
-							}
-							break;
-					}
-				}
-				return options;
-			}),
-		);
-	}
-
-	getStartDateOffset(startDate: Date): number {
-		const dayOfWeek = startDate.getDay();
-		let offset: number;
-
-		if (dayOfWeek >= 5 || dayOfWeek === 0) {
-			offset = (8 - dayOfWeek) % 7;
-		} else {
-			offset = -((dayOfWeek + 6) % 7);
-		}
-		return offset;
-	}
-
-	getEndDateOffset(endDate: Date): number {
-		const dayOfWeek = endDate.getDay();
-		let offset: number;
-
-		if (dayOfWeek >= 5 || dayOfWeek === 0) {
-			offset = (8 - dayOfWeek) % 7 || 7;
-		} else {
-			offset = -((dayOfWeek + 6) % 7);
-		}
-		return offset;
 	}
 }

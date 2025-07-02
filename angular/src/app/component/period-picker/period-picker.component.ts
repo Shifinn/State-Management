@@ -4,10 +4,10 @@ import type {
 	PeriodGranularity,
 	TimePeriod,
 } from "../../model/format.type";
-import { DataProcessingService } from "../../service/data-processing.service";
 import { PopUpPeriodPickerComponent } from "../pop-up-period-picker/pop-up-period-picker.component";
 import { MatTooltipModule } from "@angular/material/tooltip";
 import { CommonModule, DatePipe } from "@angular/common";
+import { PeriodPickerService } from "../../service/period-picker.service";
 
 @Component({
 	selector: "app-period-picker",
@@ -18,27 +18,18 @@ import { CommonModule, DatePipe } from "@angular/common";
 	providers: [DatePipe],
 })
 export class PeriodPickerComponent {
-	dataService = inject(DataProcessingService);
-	datePipe = inject(DatePipe);
+	periodPickerService = inject(PeriodPickerService);
+
 	@Output() newPeriod = new EventEmitter<TimePeriod>();
 	@Output() changePeriodType = new EventEmitter();
-	currentPeriodTooltip = signal<string>("");
-	periodType: Array<PeriodGranularity> = ["YEAR", "QUARTER", "MONTH", "WEEK"];
-	availablePeriod = signal<Map<PeriodGranularity, Array<TimePeriod>>>(
-		new Map<PeriodGranularity, Array<TimePeriod>>([
-			["YEAR", []],
-			["QUARTER", []],
-			["MONTH", []],
-			["WEEK", []],
-		]),
-	);
 
-	currentPeriod!: TimePeriod;
+	periodType: Array<PeriodGranularity> = ["YEAR", "QUARTER", "MONTH", "WEEK"];
+
 	periodPickerVisible = signal<PeriodGranularity>("NAN");
 	currentPeriodMenu = signal<CachedPeriodPickerMemory | undefined>(undefined);
 
 	ngOnInit() {
-		this.initPeriodDataFrom("WEEK");
+		this.clickPeriodType("WEEK");
 	}
 
 	togglePeriodPickerVisibility(input: PeriodGranularity) {
@@ -49,55 +40,24 @@ export class PeriodPickerComponent {
 	}
 
 	clickPeriodType(periodType: PeriodGranularity) {
-		const tempPeriodArray = this.availablePeriod().get(periodType);
+		const tempPeriodArray = this.periodPickerService
+			.availablePeriod()
+			.get(periodType);
 		if (tempPeriodArray?.length) {
 			const tempPeriod = tempPeriodArray[tempPeriodArray.length - 1];
-			if (periodType === this.currentPeriod.periodType) {
-				console.log("same");
+			if (periodType === this.periodPickerService.currentPeriod()?.periodType) {
 				return;
 			}
-			this.updateCurrentPeriod(tempPeriodArray[tempPeriodArray.length - 1]);
+			this.clickNewPeriod(tempPeriodArray[tempPeriodArray.length - 1]);
 		}
 		this.changePeriodType.emit();
-		// if (this.isShrunk() === true) {
-		//  this.currentViewStatus.set({ stateId: -2, type: "NAN" });
-		//  this.showStateData({ type: "TOTAL", stateId: -1 });
-		// }
 	}
 
-	initPeriodDataFrom(periodType: PeriodGranularity) {
-		this.dataService.getAvailablePeriods(periodType).subscribe((result) => {
-			if (result.length) {
-				this.availablePeriod().set(periodType, result);
-				this.updateCurrentPeriod(result[result.length - 1]);
-			}
-		});
-		const filteredPeriodTypes = this.periodType.filter(
-			(a) => a !== "WEEK" && a !== periodType,
-		);
-		for (const a of filteredPeriodTypes) {
-			this.dataService.getAvailablePeriods(a).subscribe((result) => {
-				if (result.length) {
-					this.availablePeriod().set(a, result);
-				}
-			});
+	clickNewPeriod(newPeriod: TimePeriod) {
+		const message = this.periodPickerService.updateCurrentPeriod(newPeriod);
+		if (message === "updated") {
+			console.log("updating period");
+			this.newPeriod.emit(newPeriod);
 		}
-	}
-
-	updateCurrentPeriod(newPeriod: TimePeriod) {
-		this.currentPeriod = newPeriod;
-		this.setCurrentPeriodTooltip();
-		this.newPeriod.emit(newPeriod);
-	}
-
-	setCurrentPeriodTooltip() {
-		const startDateString = this.datePipe.transform(
-			this.currentPeriod.startDate,
-			"fullDate",
-		);
-		const endDate = new Date(this.currentPeriod.endDate);
-		endDate.setDate(endDate.getDate() - 1);
-		const endDateString = this.datePipe.transform(endDate, "fullDate");
-		this.currentPeriodTooltip.set(`${startDateString} - ${endDateString}`);
 	}
 }
