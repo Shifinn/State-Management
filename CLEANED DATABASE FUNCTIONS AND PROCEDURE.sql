@@ -44,14 +44,16 @@ $$ LANGUAGE plpgsql;
 
 
 -- Advances a request to the next state, taking the request ID, the user performing the action, and an optional comment.
-CREATE OR REPLACE PROCEDURE upgrade_state(
+CREATE OR REPLACE FUNCTION upgrade_state(
     request_id_input INT,
     user_id_input    INT,
-    comment_input   TEXT DEFAULT NULL
-) AS $$
+    comment_input    TEXT DEFAULT NULL
+) 
+RETURNS JSON AS $$
 DECLARE
     temp_state_id INT;
-    is_complete  BOOLEAN;
+    new_state_name VARCHAR;
+    is_complete   BOOLEAN;
 BEGIN
     is_complete := false;
 
@@ -60,14 +62,14 @@ BEGIN
     FROM request_table
     WHERE request_id = request_id_input;
 
-    IF temp_state_id > 5 THEN
+    IF temp_state_id > 4 THEN
         RAISE EXCEPTION 'Upgrade failed: the limit has been reached';
     ELSE
         UPDATE request_table
         SET current_state = current_state + 1
         WHERE request_id = request_id_input
         RETURNING current_state INTO temp_state_id;
-
+    
         IF temp_state_id = 5 THEN
             is_complete := true;
         END IF;
@@ -83,6 +85,13 @@ BEGIN
 
     INSERT INTO state_table(state_name_id, request_id, started_by, completed)
     VALUES(temp_state_id, request_id_input, user_id_input, is_complete);
+
+    SELECT state_name
+    INTO new_state_name
+    FROM state_name_table
+    WHERE state_name_id = temp_state_id;
+
+    RETURN json_build_object('stateName', new_state_name, 'stateId', temp_state_id);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -132,6 +141,7 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
 
 
 -- Creates a new request with its initial state and answers, returning the new request's ID.

@@ -67,6 +67,11 @@ type EmailRecipient struct {
 	RequestState string `json:"requestState"`
 }
 
+type StateData struct {
+	StateName string `json:"stateName"`
+	StateId   int    `json:"stateId"`
+}
+
 // Global variables for the database connection and the Gin engine.
 var (
 	db  *sql.DB
@@ -156,6 +161,7 @@ func checkErr(c *gin.Context, errType int, err error, errMsg string) {
 		} else if errType == http.StatusBadRequest {
 			c.JSON(http.StatusBadRequest, gin.H{"error": errMsg})
 		}
+		c.Abort()
 	}
 }
 
@@ -490,11 +496,7 @@ func postNewRequest(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"status":  "success",
-		"message": "Request submitted.",
-	})
-
+	c.JSON(http.StatusOK, gin.H{"message": "Request successfully submitted."})
 }
 
 func uploadFile(c *gin.Context, formFileName string, filename string, requestId string) string {
@@ -537,7 +539,7 @@ func postReminderEmail(c *gin.Context) {
 		checkErr(c, http.StatusBadRequest, err, "Invalid input")
 		return
 	}
-	sendReminderEmail(c.Copy(), []string{recipient.Email}, recipient.RequestState)
+	sendReminderEmail([]string{recipient.Email}, recipient.RequestState)
 	c.JSON(http.StatusOK, gin.H{"message": "Reminder email dispatched."})
 }
 
@@ -549,21 +551,29 @@ func postReminderEmailToRole(c *gin.Context) {
 	stateNameInput := c.Query("stateName")
 	checkEmpty(c, stateNameInput)
 
+	var message = sendReminderEmailToRole(c, roleIDInput, stateNameInput)
+	if message == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"err": "Failed to send emails"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": message})
+}
+
+func sendReminderEmailToRole(c *gin.Context, roleIDInput string, stateNameInput string) string {
 	var recipientsJSON sql.NullString
 	query := `SELECT get_role_emails($1)`
 	if err := db.QueryRow(query, roleIDInput).Scan(&recipientsJSON); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get role emails")
-		return
+		return ""
 	}
 	if !recipientsJSON.Valid {
-		c.JSON(http.StatusOK, gin.H{"message": "No recipients found for this role."})
-		return
+		return "No recipients found for this role."
 	}
 
 	var recipients []EmailRecipient
 	if err := json.Unmarshal([]byte(recipientsJSON.String), &recipients); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to unmarshal role emails")
-		return
+		return ""
 	}
 
 	var emails []string
@@ -571,20 +581,19 @@ func postReminderEmailToRole(c *gin.Context) {
 		emails = append(emails, r.Email)
 	}
 
-	sendReminderEmail(c.Copy(), emails, stateNameInput)
-	c.JSON(http.StatusOK, gin.H{"message": "Reminder successfully dispatched to " + strings.Join(emails, ", ")})
-
+	message := sendReminderEmail(emails, stateNameInput)
+	return message
 }
 
 // sendReminderEmail constructs and sends a reminder email asynchronously.
-func sendReminderEmail(c *gin.Context, emails []string, state string) {
+func sendReminderEmail(emails []string, state string) string {
 	// smtpUser := os.Getenv("SMTP_USER")
 	smtpUser := "testinggomail222@gmail.com"
 	// smtpPass := os.Getenv("SMTP_PASS")
 	smtpPass := "nlef zdjv kfac shox"
 	if smtpUser == "" || smtpPass == "" {
 		log.Println("ERROR: SMTP credentials not set, cannot send email.")
-		return
+		return ""
 	}
 
 	mailer := gomail.NewDialer("smtp.gmail.com", 587, smtpUser, smtpPass)
@@ -602,14 +611,19 @@ func sendReminderEmail(c *gin.Context, emails []string, state string) {
 
 	if err := mailer.DialAndSend(msg); err != nil {
 		log.Printf("ERROR: Could not send email to %s. Reason: %v", strings.Join(emails, ", "), err)
+		return ""
 	} else {
-		log.Printf("INFO: Email sent successfully to %s", strings.Join(emails, ", "))
+		message := "Email sent successfully to " + strings.Join(emails, ", ")
+
+		log.Printf("%s", message)
+		return message
 	}
 }
 
 // putUpgradeState handles upgrading the state of a request.
 func putUpgradeState(c *gin.Context) {
 	var updateData UpdateState
+	var sqlNullString sql.NullString
 	if err := c.BindJSON(&updateData); err != nil {
 		checkErr(c, http.StatusBadRequest, err, "Failed to bind update state JSON")
 		return
@@ -618,20 +632,48 @@ func putUpgradeState(c *gin.Context) {
 	log.Printf("INFO: Upgrading state for requestId %d by userId %d", updateData.RequestId, updateData.UserID)
 
 	if updateData.Comment == "" {
-		query := `CALL upgrade_state($1, $2)`
-		if _, err := db.Exec(query, updateData.RequestId, updateData.UserID); err != nil {
+		query := `SELECT upgrade_state($1, $2)`
+		if err := db.QueryRow(query, updateData.RequestId, updateData.UserID).Scan(&sqlNullString); err != nil {
 			checkErr(c, http.StatusInternalServerError, err, "Failed to upgrade state")
 			return
 		}
 	} else {
-		query := `CALL upgrade_state($1, $2, $3)`
-		if _, err := db.Exec(query, updateData.RequestId, updateData.UserID, updateData.Comment); err != nil {
+		query := `SELECT upgrade_state($1, $2, $3)`
+		if err := db.QueryRow(query, updateData.RequestId, updateData.UserID, updateData.Comment).Scan(&sqlNullString); err != nil {
 			checkErr(c, http.StatusInternalServerError, err, "Failed to upgrade state")
 			return
 		}
 	}
 
-	c.IndentedJSON(http.StatusOK, gin.H{"message": "State updated successfully"})
+	var state StateData
+	var targetRole string
+	if err := json.Unmarshal([]byte(sqlNullString.String), &state); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to unmarshal count data")
+		return
+	}
+	if state.StateId == 2 || state.StateId == 3 {
+		targetRole = "2"
+	} else if state.StateId == 4 {
+		targetRole = "3"
+	} else if state.StateId == 5 {
+		targetRole = "0"
+	} else {
+		targetRole = ""
+	}
+	var message string
+	if targetRole == "" {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "State updated successfully, but email unsuccessfully sent"})
+	} else if targetRole == "0" {
+		c.IndentedJSON(http.StatusOK, gin.H{"message": "State updated successfully"})
+	} else {
+		message = sendReminderEmailToRole(c, targetRole, state.StateName)
+		if message == "" {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "State updated successfully, but email unsuccessfully sent"})
+			return
+		}
+		c.IndentedJSON(http.StatusOK, gin.H{"message": "State updated successfully, " + message})
+	}
+
 }
 
 // putDegradeState handles degrading the state of a request.
