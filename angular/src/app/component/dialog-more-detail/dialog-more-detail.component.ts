@@ -90,14 +90,11 @@ export class DialogMoreDetailComponent {
 				this.stateUpdateData.userId = Number(this.dataService.getUserId());
 
 				if (change === "degrade") {
-					this.dataService.degradeState(this.stateUpdateData).subscribe(() => {
-						this.dialogRef.close("1");
-					});
+					this.dataService.degradeState(this.stateUpdateData).subscribe();
 				} else {
-					this.dataService.upgradeState(this.stateUpdateData).subscribe(() => {
-						this.dialogRef.close("1");
-					});
+					this.dataService.upgradeState(this.stateUpdateData).subscribe();
 				}
+				this.dialogRef.close("1");
 			}
 		});
 	}

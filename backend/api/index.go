@@ -644,6 +644,7 @@ func putUpgradeState(c *gin.Context) {
 			return
 		}
 	}
+	log.Printf("State successfully updated")
 
 	var state StateData
 	var targetRole string
