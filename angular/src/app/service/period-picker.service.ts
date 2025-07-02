@@ -79,6 +79,7 @@ export class PeriodPickerService {
 			map((result) => {
 				const oldestRequest = new Date(result);
 				const oldestYear = oldestRequest.getFullYear();
+				const oldestMonth = oldestRequest.getMonth();
 				const today = new Date();
 				const currentYear = today.getFullYear();
 				const options: Array<TimePeriod> = [];
@@ -115,14 +116,16 @@ export class PeriodPickerService {
 										endDate.getDate() + this.getEndDateOffset(endDate),
 									);
 								}
-								options.push({
-									label: `Q${q}`,
-									fullLabel: `Q${q} ${year}`,
-									year,
-									startDate,
-									endDate,
-									periodType,
-								});
+								if (endDate > oldestRequest) {
+									options.push({
+										label: `Q${q}`,
+										fullLabel: `Q${q} ${year}`,
+										year,
+										startDate,
+										endDate,
+										periodType,
+									});
+								}
 							}
 							break;
 
@@ -146,14 +149,16 @@ export class PeriodPickerService {
 										endDate.getDate() + this.getEndDateOffset(endDate),
 									);
 								}
-								options.push({
-									label: `${monthName}`,
-									fullLabel: `${monthName} ${year}`,
-									year,
-									startDate,
-									endDate,
-									periodType,
-								});
+								if (endDate > oldestRequest) {
+									options.push({
+										label: `${monthName}`,
+										fullLabel: `${monthName} ${year}`,
+										year,
+										startDate,
+										endDate,
+										periodType,
+									});
+								}
 							}
 							break;
 
@@ -178,14 +183,16 @@ export class PeriodPickerService {
 									if (endDate > endOfMonth && endDate.getUTCDate() >= 4) {
 										break;
 									}
-									options.push({
-										label: `Week ${week}`,
-										fullLabel: `Week ${week} ${monthName} ${year}`,
-										year,
-										startDate: new Date(startDate),
-										endDate: new Date(endDate),
-										periodType,
-									});
+									if (endDate > oldestRequest) {
+										options.push({
+											label: `Week ${week}`,
+											fullLabel: `Week ${week} ${monthName} ${year}`,
+											year,
+											startDate: new Date(startDate),
+											endDate: new Date(endDate),
+											periodType,
+										});
+									}
 									week++;
 									startDate.setDate(startDate.getDate() + 7);
 								}
