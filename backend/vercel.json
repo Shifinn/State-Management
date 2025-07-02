@@ -2,7 +2,7 @@
 	"functions": {
 		"api/index.go": {
 			"maxDuration": 60,
-			"memory": 1024
+			"memory": 20
 		}
 	},
 	"trailingSlash": false,
