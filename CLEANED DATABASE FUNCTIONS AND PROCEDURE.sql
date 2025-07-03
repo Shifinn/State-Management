@@ -97,13 +97,14 @@ $$ LANGUAGE plpgsql;
 
 
 -- Downgrades a request to a previous state, taking the request ID, user ID, and a mandatory comment.
-CREATE OR REPLACE PROCEDURE degrade_state(
+CREATE OR REPLACE FUNCTION degrade_state(
     request_id_input INT,
     user_id_input    INT,
     comment_input   TEXT DEFAULT NULL
-) AS $$
+) RETURNS JSON AS $$
 DECLARE
     temp_state_id INT;
+	new_state_name VARCHAR;
 BEGIN
     UPDATE request_table
     SET current_state = current_state - 1
@@ -139,6 +140,13 @@ BEGIN
     ELSE
         RAISE EXCEPTION 'Degrade failed: unsupported state_id % for request_id %', temp_state_id, request_id_input;
     END IF;
+
+	SELECT state_name
+    INTO new_state_name
+    FROM state_name_table
+    WHERE state_name_id = temp_state_id;
+
+	RETURN json_build_object('stateName', new_state_name, 'stateId', temp_state_id);
 END;
 $$ LANGUAGE plpgsql;
 
@@ -376,8 +384,7 @@ BEGIN
             r.request_title AS "requestTitle", 
             r.current_state AS "currentState", 
             r.request_date AS "requestDate",
-						rt.data_type_name AS "dataTypeName",
-
+			rt.data_type_name AS "dataTypeName",
             n2.state_name AS "currentStateName", 
             u.user_name AS "userName", 
             n.state_name AS "stateName",
@@ -394,7 +401,8 @@ BEGIN
         LEFT JOIN user_table u3 ON s.ended_by = u3.user_id
         LEFT JOIN state_name_table n ON s.state_name_id = n.state_name_id
         LEFT JOIN state_name_table n2 ON r.current_state = n2.state_name_id
-        WHERE r.request_date BETWEEN start_date AND end_date
+        LEFT JOIN requirement_type_table rt ON r.requirement_type_id = rt.requirement_type_id
+		WHERE r.request_date BETWEEN start_date AND end_date
           AND s.state_name_id = r.current_state
           AND s.state_name_id = ANY(ARRAY[1, 2, 3, 4, 5])
         ORDER BY r.current_state, r.request_id

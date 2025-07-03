@@ -559,7 +559,7 @@ func postReminderEmailToRole(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": message})
 }
 
-func sendReminderEmailToRole(c *gin.Context, roleIDInput string, stateNameInput string) string {
+func sendReminderEmailToRole(c *gin.Context, roleIDInput string, stateNameInput string, body ...string) string {
 	var recipientsJSON sql.NullString
 	query := `SELECT get_role_emails($1)`
 	if err := db.QueryRow(query, roleIDInput).Scan(&recipientsJSON); err != nil {
@@ -581,12 +581,17 @@ func sendReminderEmailToRole(c *gin.Context, roleIDInput string, stateNameInput 
 		emails = append(emails, r.Email)
 	}
 
-	message := sendReminderEmail(emails, stateNameInput)
+	var message string
+	if len(body) > 0 && body[0] != "" {
+		message = sendReminderEmail(emails, stateNameInput, body...)
+	} else {
+		message = sendReminderEmail(emails, stateNameInput)
+	}
 	return message
 }
 
 // sendReminderEmail constructs and sends a reminder email asynchronously.
-func sendReminderEmail(emails []string, state string) string {
+func sendReminderEmail(emails []string, state string, body ...string) string {
 	// smtpUser := os.Getenv("SMTP_USER")
 	smtpUser := "testinggomail222@gmail.com"
 	// smtpPass := os.Getenv("SMTP_PASS")
@@ -602,19 +607,23 @@ func sendReminderEmail(emails []string, state string) string {
 	msg.SetHeader("To", emails...)
 	msg.SetHeader("Subject", "StateManager Request")
 
-	body := fmt.Sprintf(`Selamat pagi Bapak/Ibu,<br><br>
+	emailBody := ""
+	if len(body) > 0 && body[0] != "" {
+		emailBody = body[0]
+	} else {
+		emailBody = fmt.Sprintf(`Selamat pagi Bapak/Ibu,<br><br>
 			Email ini dikirim secara otomatis untuk memberitahukan bahwa terdapat request yang telah memasuki status %s.<br><br>
 			Mohon dapat dilakukan tindak lanjut terhadap request tersebut.<br><br>
 			Terima kasih atas perhatian dan kerja samanya.<br><br>
 			Salam,<br>StateManager`, state)
-	msg.SetBody("text/html", body)
+	}
+	msg.SetBody("text/html", emailBody)
 
 	if err := mailer.DialAndSend(msg); err != nil {
 		log.Printf("ERROR: Could not send email to %s. Reason: %v", strings.Join(emails, ", "), err)
 		return ""
 	} else {
 		message := "Email sent successfully to " + strings.Join(emails, ", ")
-
 		log.Printf("%s", message)
 		return message
 	}
@@ -680,15 +689,45 @@ func putUpgradeState(c *gin.Context) {
 // putDegradeState handles degrading the state of a request.
 func putDegradeState(c *gin.Context) {
 	var updateData UpdateState
+	var sqlNullString sql.NullString
 	if err := c.BindJSON(&updateData); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to bind update data JSON")
 		return
 	}
 
-	query := `CALL degrade_state($1, $2, $3)`
-	if _, err := db.Exec(query, updateData.RequestId, updateData.UserID, updateData.Comment); err != nil {
+	query := `SELECT degrade_state($1, $2, $3)`
+	if err := db.QueryRow(query, updateData.RequestId, updateData.UserID, updateData.Comment).Scan(&sqlNullString); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to degrade state")
 		return
 	}
-	c.IndentedJSON(http.StatusOK, gin.H{"message": "State downgraded successfully"})
+
+	log.Printf("State successfully updated")
+
+	var state StateData
+	var targetRole string
+	if err := json.Unmarshal([]byte(sqlNullString.String), &state); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to unmarshal count data")
+		return
+	}
+	if state.StateId == 3 {
+		targetRole = "2"
+	} else {
+		targetRole = "invalid update"
+	}
+	var message string
+	if targetRole == "invalid update" {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "State updated successfully, but email unsuccessfully sent"})
+	} else {
+		var body = fmt.Sprintf(`Selamat pagi Bapak/Ibu,<br><br>
+			Email ini dikirim secara otomatis untuk memberitahukan bahwa terdapat request yang belum mencukupi kebutuhan dan telah memasuki status %s kembali.<br><br>
+			Mohon dapat dilakukan tindak lanjut terhadap request tersebut.<br><br>
+			Terima kasih atas perhatian dan kerja samanya.<br><br>
+			Salam,<br>StateManager`, state.StateName)
+		message = sendReminderEmailToRole(c, targetRole, state.StateName, body)
+		if message == "" {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "State updated successfully, but email unsuccessfully sent"})
+			return
+		}
+		c.IndentedJSON(http.StatusOK, gin.H{"message": "State updated successfully, " + message})
+	}
 }
