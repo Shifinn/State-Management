@@ -18,6 +18,7 @@ import { MatButtonModule } from "@angular/material/button";
 import { Router } from "@angular/router";
 import { DialogMoreDetailsConfirmationComponent } from "../dialog-more-details-confirmation/dialog-more-details-confirmation.component";
 import { MatIconModule } from "@angular/material/icon";
+import { delay } from "rxjs";
 
 @Component({
 	selector: "app-dialog-more-detail",
@@ -94,6 +95,7 @@ export class DialogMoreDetailComponent {
 				} else {
 					this.dataService.upgradeState(this.stateUpdateData).subscribe();
 				}
+				delay(10);
 				this.dialogRef.close("1");
 			}
 		});

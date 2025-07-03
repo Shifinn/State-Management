@@ -1,10 +1,4 @@
 {
-	"functions": {
-		"api/index.go": {
-			"maxDuration": 60,
-			"memory": 200
-		}
-	},
 	"trailingSlash": false,
 	"rewrites": [
 		{

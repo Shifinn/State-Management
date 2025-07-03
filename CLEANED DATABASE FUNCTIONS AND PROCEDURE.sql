@@ -1,5 +1,5 @@
 -- Verifies user credentials and returns user details as a JSON object.
--- Returns user data on success or a default object with zero/string values on failure.
+-- Returns user data on success or a default object on failure.
 CREATE OR REPLACE FUNCTION get_user_id_by_credentials(
     username_input VARCHAR,
     password_input VARCHAR
@@ -8,7 +8,8 @@ RETURNS JSON AS $$
 DECLARE
     result_json JSON;
 BEGIN
-    -- Attempt to find a matching user and retrieve their details with camelCase aliases.
+    -- Find user by credentials and cast the row to a JSON object.
+    -- Aliases are in camelCase to match JSON conventions.
     SELECT
         row_to_json(t)
     INTO
@@ -28,7 +29,7 @@ BEGIN
         LIMIT 1
     ) t;
 
-    -- If no user is found, create a default JSON object with camelCase keys.
+    -- If no user was found, return a default JSON object.
     IF result_json IS NULL THEN
         result_json := json_build_object(
             'userId', 0,
@@ -43,7 +44,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Advances a request to the next state, taking the request ID, the user performing the action, and an optional comment.
+-- Advances a request to the next state.
 CREATE OR REPLACE FUNCTION upgrade_state(
     request_id_input INT,
     user_id_input    INT,
@@ -57,24 +58,29 @@ DECLARE
 BEGIN
     is_complete := false;
 
+    -- Get the request's current state ID.
     SELECT current_state
     INTO temp_state_id
     FROM request_table
     WHERE request_id = request_id_input;
 
+    -- Prevent advancing beyond the final state.
     IF temp_state_id > 4 THEN
         RAISE EXCEPTION 'Upgrade failed: the limit has been reached';
     ELSE
+        -- Increment the state and capture the new state ID.
         UPDATE request_table
         SET current_state = current_state + 1
         WHERE request_id = request_id_input
         RETURNING current_state INTO temp_state_id;
     
+        -- If the new state is the final one, mark it as complete.
         IF temp_state_id = 5 THEN
             is_complete := true;
         END IF;
     END IF;
 
+    -- Update the previous state's record to mark it as ended.
     UPDATE state_table
     SET date_end = CURRENT_TIMESTAMP,
         completed = true,
@@ -83,9 +89,11 @@ BEGIN
     WHERE request_id = request_id_input
       AND state_name_id = temp_state_id - 1;
 
+    -- Insert a new record for the current state.
     INSERT INTO state_table(state_name_id, request_id, started_by, completed)
     VALUES(temp_state_id, request_id_input, user_id_input, is_complete);
 
+    -- Retrieve the name of the new state for the response.
     SELECT state_name
     INTO new_state_name
     FROM state_name_table
@@ -96,7 +104,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Downgrades a request to a previous state, taking the request ID, user ID, and a mandatory comment.
+-- Downgrades a request to a previous state.
 CREATE OR REPLACE FUNCTION degrade_state(
     request_id_input INT,
     user_id_input    INT,
@@ -106,12 +114,14 @@ DECLARE
     temp_state_id INT;
 	new_state_name VARCHAR;
 BEGIN
+    -- Decrement the state only if it's in a reversible stage.
     UPDATE request_table
     SET current_state = current_state - 1
     WHERE request_id = request_id_input
       AND current_state = ANY(ARRAY[1,4])
     RETURNING current_state INTO temp_state_id;
 
+    -- Handle rejection from the initial state.
     IF temp_state_id = 0 THEN
         UPDATE state_table
         SET state_name_id = 0,
@@ -121,7 +131,9 @@ BEGIN
         WHERE request_id = request_id_input
           AND state_name_id = temp_state_id + 1;
 
+    -- Handle revision request from a later state.
     ELSIF temp_state_id = 3 THEN
+        -- Reopen the previous state (state 3).
         UPDATE state_table
         SET date_end = NULL,
             completed = FALSE,
@@ -130,8 +142,9 @@ BEGIN
         WHERE request_id = request_id_input
           AND state_name_id = temp_state_id;
 
+        -- Create a "rejected" record for the state that was just left (state 4).
         UPDATE state_table
-        SET state_name_id = (temp_state_id + 1) * 10 + 1,
+        SET state_name_id = (temp_state_id + 1) * 10 + 1, -- e.g., 4 becomes 41
             state_comment = 'REJECTED: ' || comment_input,
             date_end = CURRENT_TIMESTAMP,
             ended_by = user_id_input
@@ -141,6 +154,7 @@ BEGIN
         RAISE EXCEPTION 'Degrade failed: unsupported state_id % for request_id %', temp_state_id, request_id_input;
     END IF;
 
+	-- Get the new state name for the JSON response.
 	SELECT state_name
     INTO new_state_name
     FROM state_name_table
@@ -152,23 +166,24 @@ $$ LANGUAGE plpgsql;
 
 
 
--- Creates a new request with its initial state and answers, returning the new request's ID.
+-- Creates a new request and its initial state, returning the new request ID.
 CREATE OR REPLACE FUNCTION create_new_request(
-    request_title_input           VARCHAR,
-    user_id_input                 INTEGER,
-    requester_name_input          VARCHAR,
-    analysis_purpose_input        TEXT,
+    request_title_input          VARCHAR,
+    user_id_input                INTEGER,
+    requester_name_input         VARCHAR,
+    analysis_purpose_input       TEXT,
     requested_completed_date_input TIMESTAMP,
-    pic_submitter_input           VARCHAR,
-    urgent_input                  BOOLEAN,
-    requirement_type_input        INTEGER,
-    answers_input                 VARCHAR[],
-    remark_input                  TEXT DEFAULT NULL
+    pic_submitter_input          VARCHAR,
+    urgent_input                 BOOLEAN,
+    requirement_type_input       INTEGER,
+    answers_input                VARCHAR[],
+    remark_input                 TEXT DEFAULT NULL
 )
 RETURNS INTEGER AS $$
 DECLARE
     temp_request_id INTEGER;
 BEGIN
+    -- Insert the main request details and get the generated ID.
     INSERT INTO request_table (
         request_title, user_id, requester_name, analysis_purpose,
         requested_completed_date, pic_submitter, urgent,
@@ -181,9 +196,11 @@ BEGIN
     )
     RETURNING request_id INTO temp_request_id;
 
+    -- Set the request's initial state.
     INSERT INTO state_table(state_name_id, request_id, started_by)
     VALUES (1, temp_request_id, user_id_input);
 
+    -- Store the associated answers using a separate procedure.
     CALL store_answers(temp_request_id, requirement_type_input, answers_input);
 
     RETURN temp_request_id;
@@ -191,7 +208,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Stores an array of answers for a given request and requirement type.
+-- Stores an array of answers for a given request.
 CREATE OR REPLACE PROCEDURE store_answers(
     request_id_input          INT,
     requirement_type_id_input  INT,
@@ -202,11 +219,14 @@ DECLARE
     question_num INT;
     i            INT;
 BEGIN
+    -- Determine how many questions need answers for this requirement type.
     SELECT COUNT(*)
     INTO question_num
     FROM requirement_question_table
     WHERE requirement_type_id = requirement_type_id_input;
 
+    -- Loop through the answers array and insert each one.
+    -- Assumes the array index corresponds to the question number.
     FOR i IN 1..question_num LOOP
         INSERT INTO requirement_table(request_id, requirement_question_id, answer)
         VALUES (request_id_input, (requirement_type_id_input * 100 + i), answer[i]);
@@ -215,7 +235,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Retrieves all questions and their corresponding answers for a specific request. Returns a JSON array in camelCase.
+-- Retrieves all questions and answers for a request as a JSON array.
 CREATE OR REPLACE FUNCTION get_request_requirement_answer(
     request_id_input INT
 )
@@ -223,6 +243,7 @@ RETURNS JSON AS $$
 DECLARE
     result_json JSON;
 BEGIN
+    -- Aggregate question-answer pairs into a single JSON array.
     SELECT json_agg(row_to_json(t))
     INTO result_json
     FROM (
@@ -236,6 +257,7 @@ BEGIN
         ORDER BY re.requirement_question_id
     ) t;
     
+    -- Return an empty JSON array if no results are found.
     IF result_json IS NULL THEN
         result_json := '[]'::json;
     END IF;
@@ -244,7 +266,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Fetches all questions for a specific requirement type, returning a JSON array in camelCase.
+-- Fetches all questions for a requirement type as a JSON array.
 CREATE OR REPLACE FUNCTION get_questions(
     requirement_type_id_input INT
 )
@@ -252,6 +274,7 @@ RETURNS JSON AS $$
 DECLARE
     result_json JSON;
 BEGIN
+    -- Aggregate questions into a single JSON array.
     SELECT json_agg(row_to_json(t))
     INTO result_json
     FROM (
@@ -259,10 +282,12 @@ BEGIN
             requirement_question_id AS "requirementQuestionId",
             requirement_question AS "requirementQuestion"
         FROM requirement_question_table
+        -- Filter questions based on a naming convention (e.g., type 1 has IDs 101-199).
         WHERE requirement_question_id BETWEEN (requirement_type_id_input * 100 + 1) AND (requirement_type_id_input * 100 + 99)
         ORDER BY requirement_question_id
     ) t;
 
+    -- Return an empty JSON array if no results are found.
     IF result_json IS NULL THEN
         result_json := '[]'::json;
     END IF;
@@ -271,7 +296,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Inserts file paths for attachments for a given request.
+-- Inserts file paths for request attachments.
 CREATE OR REPLACE PROCEDURE store_attachments(
     request_id_input     INT,
     docx_filepath        VARCHAR,
@@ -280,11 +305,13 @@ CREATE OR REPLACE PROCEDURE store_attachments(
     excel_filename_input VARCHAR
 ) AS $$
 BEGIN
+    -- Insert DOCX attachment if provided.
     IF docx_filepath IS NOT NULL AND docx_filename_input IS NOT NULL THEN
         INSERT INTO attachment_table(request_id, attachment_type_id, attachment_filename, attachment_path)
         VALUES (request_id_input, 1, docx_filename_input, docx_filepath);
     END IF;
 
+    -- Insert Excel attachment if provided.
     IF excel_filepath IS NOT NULL AND excel_filename_input IS NOT NULL THEN
         INSERT INTO attachment_table(request_id, attachment_type_id, attachment_filename, attachment_path)
         VALUES (request_id_input, 2, excel_filename_input, excel_filepath);
@@ -293,7 +320,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Retrieves the file path for a specific attachment type and request.
+-- Retrieves the file path for a specific attachment.
 CREATE OR REPLACE FUNCTION get_attachment_filepath(
     request_id_input      INT,
     attachment_type_input INT
@@ -312,7 +339,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Fetches detailed request data for a specific state within a date range, returning camelCase JSON.
+-- Fetches detailed data for requests in a specific state and date range.
 CREATE OR REPLACE FUNCTION get_state_specific_data(
     state_name_id_input INT,
     start_date          TIMESTAMP,
@@ -322,12 +349,14 @@ RETURNS JSON AS $$
 DECLARE
     result_json JSON;
 BEGIN
+    -- A negative input fetches all active requests instead of a specific state.
     IF state_name_id_input < 0 THEN
         SELECT get_state_data_for_total(start_date, end_date)
         INTO result_json;
         RETURN result_json;
     END IF;
 
+    -- Aggregate detailed request data into a single JSON array.
     SELECT json_agg(row_to_json(t))
     INTO result_json
     FROM (
@@ -359,6 +388,7 @@ BEGIN
         ORDER BY r.current_state, r.request_id
     ) t;
 
+	-- Return an empty JSON array if no results are found.
 	IF result_json IS NULL THEN 
 		result_json := '[]'::json;
 	END IF;
@@ -367,7 +397,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Retrieves data for all active requests within a date range, returning camelCase JSON.
+-- Retrieves data for all active requests in a date range.
 CREATE OR REPLACE FUNCTION get_state_data_for_total(
     start_date TIMESTAMP,
     end_date   TIMESTAMP
@@ -376,6 +406,7 @@ RETURNS JSON AS $$
 DECLARE
     result_json JSON;
 BEGIN
+    -- Aggregate data for all active requests into a single JSON array.
     SELECT json_agg(row_to_json(t))
     INTO result_json
     FROM (
@@ -403,11 +434,13 @@ BEGIN
         LEFT JOIN state_name_table n2 ON r.current_state = n2.state_name_id
         LEFT JOIN requirement_type_table rt ON r.requirement_type_id = rt.requirement_type_id
 		WHERE r.request_date BETWEEN start_date AND end_date
+          -- This condition ensures we only get the current, active state for each request.
           AND s.state_name_id = r.current_state
           AND s.state_name_id = ANY(ARRAY[1, 2, 3, 4, 5])
         ORDER BY r.current_state, r.request_id
     ) t;
 
+	-- Return an empty JSON array if no results are found.
 	IF result_json IS NULL THEN 
 		result_json := '[]'::json;
 	END IF;
@@ -416,7 +449,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Fetches a summary of all requests for a specific user, returning camelCase JSON.
+-- Fetches a summary of all requests for a specific user.
 CREATE OR REPLACE FUNCTION get_user_request_data(
     user_id_input INT
 )
@@ -424,6 +457,7 @@ RETURNS JSON AS $$
 DECLARE
     result_json JSON;
 BEGIN
+    -- Aggregate request summaries into a single JSON array.
     SELECT json_agg(row_to_json(t))
     INTO result_json
     FROM (
@@ -441,6 +475,7 @@ BEGIN
         ORDER BY r.request_id
     ) t;
 
+    -- Return an empty JSON array if no results are found.
     IF result_json IS NULL THEN
 		result_json := '[]'::json;
 	END IF;
@@ -449,7 +484,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Retrieves the complete state transition history for a single request, returning camelCase JSON.
+-- Retrieves the complete state transition history for a request.
 CREATE OR REPLACE FUNCTION get_full_state_history(
     request_id_input INT
 )
@@ -457,6 +492,7 @@ RETURNS JSON AS $$
 DECLARE
     result_json JSON;
 BEGIN
+    -- Aggregate all historical states for the request into a JSON array.
     SELECT json_agg(row_to_json(t))
     INTO result_json
     FROM (
@@ -470,6 +506,7 @@ BEGIN
         ORDER BY s.state_id
     ) t;
 
+    -- Return an empty JSON array if no results are found.
     IF result_json IS NULL THEN
 		result_json := '[]'::json;
 	END IF;
@@ -478,7 +515,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Fetches a "to-do" list of requests for a user role, returning camelCase JSON.
+-- Fetches a "to-do" list of requests based on user role.
 CREATE OR REPLACE FUNCTION get_todo_data(
     user_role_input INT
 )
@@ -487,10 +524,12 @@ DECLARE
     result_json JSON;
     viewable   INT[];
 BEGIN
+    -- Define which states are actionable for a given role.
     IF user_role_input = 2 THEN viewable := ARRAY[2,3,4,5];
     ELSIF user_role_input = 3 THEN viewable := ARRAY[1,2,3,4,5];
     END IF;
 
+    -- Aggregate actionable requests into a single JSON array.
     SELECT json_agg(row_to_json(t))
     INTO result_json
     FROM (
@@ -511,10 +550,12 @@ BEGIN
         JOIN state_name_table n ON r.current_state = n.state_name_id
         JOIN requirement_type_table rt ON r.requirement_type_id = rt.requirement_type_id
         WHERE s.state_name_id = ANY(viewable)
+          -- Ensures we only get the current, active state.
           AND s.state_name_id = r.current_state
         ORDER BY rt.requirement_type_id, s.state_name_id ASC, r.request_id
     ) t;
 
+    -- Return an empty JSON array if no results are found.
     IF result_json IS NULL THEN
 		result_json := '[]'::json;
 	END IF;
@@ -523,7 +564,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Retrieves all details for a single request, returning camelCase JSON.
+-- Retrieves all details for a single request as a JSON object.
 CREATE OR REPLACE FUNCTION get_complete_data_of_request(
     request_id_input INT
 )
@@ -531,6 +572,7 @@ RETURNS JSON AS $$
 DECLARE
     result_json JSON;
 BEGIN
+    -- Get all data for one request and cast the row to a JSON object.
     SELECT row_to_json(t)
     INTO result_json
     FROM (
@@ -555,6 +597,7 @@ BEGIN
         WHERE r.request_id = request_id_input
     ) t;
 
+    -- Return an empty JSON object if no result is found.
     IF result_json IS NULL THEN
 		result_json := '{}'::json;
 	END IF;
@@ -562,6 +605,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Retrieves all details for a single request, bundling related items into JSON arrays.
 CREATE OR REPLACE FUNCTION get_complete_data_of_request_bundle(
     request_id_input INT
 )
@@ -587,7 +631,7 @@ BEGIN
             n.state_name AS "stateName",
             t.data_type_name AS "dataTypeName",
 
-            -- Subquery to aggregate requirements into a JSON array
+            -- Subquery aggregates all related questions and answers into a nested JSON array.
             (
                 SELECT COALESCE(json_agg(reqs), '[]'::json)
                 FROM (
@@ -602,7 +646,7 @@ BEGIN
                 ) AS reqs
             ) AS "questions",
 
-            -- Subquery to aggregate filenames into a JSON array
+            -- Subquery aggregates all attachment filenames into a nested JSON array.
             (
                 SELECT COALESCE(json_agg(files), '[]'::json)
                 FROM (
@@ -621,7 +665,7 @@ BEGIN
         WHERE r.request_id = request_id_input
     ) t;
 
-    -- If no request is found, return an empty object
+    -- If no request is found, return an empty object.
     IF result_json IS NULL THEN
         result_json := '{}'::json;
     END IF;
@@ -630,7 +674,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Fetches usernames and emails for a role, returning camelCase JSON.
+-- Fetches usernames and emails for all users in a specific role.
 CREATE OR REPLACE FUNCTION get_role_emails(
     role_id_input INT
 )
@@ -638,6 +682,7 @@ RETURNS JSON AS $$
 DECLARE
     result_json JSON;
 BEGIN
+    -- Aggregate user details into a single JSON array.
     SELECT json_agg(row_to_json(t))
     INTO result_json
     FROM (
@@ -649,6 +694,7 @@ BEGIN
         WHERE ur.role_id = role_id_input
     ) t;
 
+    -- Return an empty JSON array if no results are found.
     IF result_json IS NULL THEN
 		result_json := '[]'::json;
 	END IF;
@@ -657,7 +703,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Retrieves username and email for a user, returning camelCase JSON.
+-- Retrieves username and email for a specific user.
 CREATE OR REPLACE FUNCTION get_user_email(
     user_id_input INT
 )
@@ -665,6 +711,7 @@ RETURNS JSON AS $$
 DECLARE
     result_json JSON;
 BEGIN
+    -- Get user details and cast the row to a JSON object.
     SELECT row_to_json(t)
     INTO result_json
     FROM (
@@ -675,6 +722,7 @@ BEGIN
         WHERE user_id = user_id_input
     ) t;
 
+    -- Return an empty JSON object if no result is found.
     IF result_json IS NULL THEN
 		result_json := '{}'::json;
 	END IF;
@@ -683,12 +731,13 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Retrieves state thresholds, returning camelCase JSON.
+-- Retrieves the time threshold in hours for each state.
 CREATE OR REPLACE FUNCTION get_state_threshold()
 RETURNS JSON AS $$
 DECLARE
     result_json JSON;
 BEGIN
+    -- Aggregate state thresholds into a single JSON array.
     SELECT json_agg(row_to_json(t))
     INTO result_json
     FROM (
@@ -698,6 +747,7 @@ BEGIN
         FROM state_threshold_table
     ) t;
     
+    -- Return an empty JSON array if no results are found.
     IF result_json IS NULL THEN
 		result_json := '[]'::json;
 	END IF;
@@ -706,7 +756,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Fetches attachment filenames for a request, returning camelCase JSON.
+-- Fetches attachment filenames for a specific request.
 CREATE OR REPLACE FUNCTION get_filenames(
     request_id_input INT
 )
@@ -714,6 +764,7 @@ RETURNS JSON AS $$
 DECLARE
     result_json JSON;
 BEGIN
+    -- Aggregate attachment filenames into a single JSON array.
     SELECT json_agg(row_to_json(t))
     INTO result_json
     FROM (
@@ -724,6 +775,7 @@ BEGIN
         WHERE request_id = request_id_input
     ) t;
 
+    -- Return an empty JSON array if no results are found.
     IF result_json IS NULL THEN
 		result_json := '[]'::json;
 	END IF;
@@ -732,7 +784,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Counts active requests per state, returning camelCase JSON.
+-- Counts active requests for each state within a date range.
 CREATE OR REPLACE FUNCTION get_state_count(
     start_date TIMESTAMP,
     end_date   TIMESTAMP
@@ -741,6 +793,7 @@ RETURNS JSON AS $$
 DECLARE
     result_json JSON;
 BEGIN
+    -- Aggregate state counts into a single JSON array.
     SELECT json_agg(row_to_json(t))
     INTO result_json
     FROM (
@@ -752,10 +805,12 @@ BEGIN
         JOIN state_name_table n ON r.current_state = n.state_name_id
         WHERE n.state_name_id = ANY(ARRAY[1,2,3,4,5])
           AND r.request_date BETWEEN start_date AND end_date
+        -- Group by state to get the count for each one.
         GROUP BY ("stateId", n.state_name)
         ORDER BY "stateId"
     ) t;
 
+    -- Return an empty JSON array if no results are found.
     IF result_json IS NULL THEN
 		result_json := '[]'::json;
 	END IF;
@@ -770,6 +825,7 @@ RETURNS TIMESTAMP AS $$
 DECLARE
     oldest_time TIMESTAMP;
 BEGIN
+    -- Find the earliest request_date in the table.
     SELECT request_date
     INTO oldest_time
     FROM request_table
@@ -780,12 +836,13 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Retrieves the names of all requirement types, returning camelCase JSON.
+-- Retrieves the names of all requirement types.
 CREATE OR REPLACE FUNCTION get_requirement_names()
 RETURNS JSON AS $$
 DECLARE
     result_json JSON;
 BEGIN
+    -- Aggregate requirement type names into a single JSON array.
     SELECT json_agg(row_to_json(t))
     INTO result_json
     FROM (
@@ -795,6 +852,7 @@ BEGIN
         FROM requirement_type_table
     ) t;
 
+    -- Return an empty JSON array if no results are found.
     IF result_json IS NULL THEN
 		result_json := '[]'::json;
 	END IF;
