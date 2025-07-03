@@ -127,14 +127,17 @@ export class DataProcessingService {
 	) {
 		const url = `${this.host}/getAttachmentFile?requestId=${requestIdInput}&filename=${attachmentFileName}`;
 		this.http.get<{ url: string }>(url).subscribe((result) => {
-			const downloadLink = document.createElement("a");
+			this.http.get(result.url, { responseType: "blob" }).subscribe((blob) => {
+				const tempUrl = window.URL.createObjectURL(blob);
 
-			downloadLink.href = result.url;
+				const downloadLink = document.createElement("a");
+				downloadLink.href = tempUrl;
+				downloadLink.download = attachmentFileName;
 
-			downloadLink.download = attachmentFileName;
+				downloadLink.click();
 
-			downloadLink.click();
-			document.body.removeChild(downloadLink);
+				window.URL.revokeObjectURL(tempUrl);
+			});
 		});
 	}
 

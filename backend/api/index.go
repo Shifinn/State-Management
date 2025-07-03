@@ -657,14 +657,14 @@ func putUpgradeState(c *gin.Context) {
 	} else if state.StateId == 4 {
 		targetRole = "3"
 	} else if state.StateId == 5 {
-		targetRole = "0"
+		targetRole = "last state"
 	} else {
-		targetRole = ""
+		targetRole = "invalid update"
 	}
 	var message string
-	if targetRole == "" {
+	if targetRole == "invalid update" {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "State updated successfully, but email unsuccessfully sent"})
-	} else if targetRole == "0" {
+	} else if targetRole == "last state" {
 		c.IndentedJSON(http.StatusOK, gin.H{"message": "State updated successfully"})
 	} else {
 		message = sendReminderEmailToRole(c, targetRole, state.StateName)
