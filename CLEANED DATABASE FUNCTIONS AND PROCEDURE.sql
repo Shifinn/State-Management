@@ -1,8 +1,7 @@
 -- Verifies user credentials and returns user details as a JSON object.
 -- Returns user data on success or a default object on failure.
-CREATE OR REPLACE FUNCTION get_user_id_by_credentials(
-    username_input VARCHAR,
-    password_input VARCHAR
+CREATE OR REPLACE FUNCTION get_user_data_by_id(
+    user_id_input INT
 )
 RETURNS JSON AS $$
 DECLARE
@@ -25,8 +24,7 @@ BEGIN
         JOIN
             user_role_table ur ON u.user_id = ur.user_id
         WHERE
-            LOWER(u.user_name) = LOWER(username_input) AND u.user_password = password_input
-        LIMIT 1
+            u.user_id = user_id_input
     ) t;
 
     -- If no user was found, return a default JSON object.
@@ -43,6 +41,32 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION get_user_id_and_pass(
+    username_input VARCHAR
+)
+RETURNS JSON AS $$
+DECLARE
+    result_json JSON;
+BEGIN
+    -- Find user by credentials and cast the row to a JSON object.
+    -- Aliases are in camelCase to match JSON conventions.
+    SELECT
+        row_to_json(t)
+    INTO
+        result_json
+    FROM (
+        SELECT
+            user_id AS "userId",
+            user_hash_password AS "userHashPassword"
+        FROM
+            user_table
+        WHERE
+            LOWER(user_name) = LOWER(username_input)
+    ) t;
+
+    RETURN result_json;
+END;
+$$ LANGUAGE plpgsql;
 
 -- Advances a request to the next state.
 CREATE OR REPLACE FUNCTION upgrade_state(

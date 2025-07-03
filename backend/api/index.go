@@ -1,6 +1,6 @@
-package handler
+// package handler
 
-// package main
+package main
 
 import (
 	"database/sql"
@@ -16,20 +16,36 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/joho/godotenv"
 	vercel_blob "github.com/rpdg/vercel_blob"
+	"golang.org/x/crypto/bcrypt"
 	"gopkg.in/gomail.v2"
 )
 
 // User represents a user for authentication purposes.
-type User struct {
+type UserLogin struct {
 	UserName string `json:"userName"`
 	Password string `json:"password"`
 }
 
+type UserHashData struct {
+	UserId           int    `json:"userId"`
+	UserHashPassword string `json:"userHashPassword"`
+}
+
+type UserData struct {
+	Token    string `json:"token"`
+	UserId   int    `json:"userId"`
+	Email    string `json:"email"`
+	RoleId   int    `json:"roleId"`
+	UserName string `json:"userName"`
+}
+
 // StateCount holds the number of requests in a specific state.
 type StateCount struct {
-	StateID   int    `json:"stateId"`
+	StateId   int    `json:"stateId"`
 	StateName string `json:"stateName"`
 	Todo      int    `json:"todo"`
 	Done      int    `json:"done"`
@@ -38,7 +54,7 @@ type StateCount struct {
 // NewRequest represents the data for creating a new request.
 type NewRequest struct {
 	RequestTitle        string    `json:"requestTitle"`
-	UserID              int       `json:"userId"`
+	UserId              int       `json:"userId"`
 	RequesterName       string    `json:"requesterName"`
 	AnalysisPurpose     string    `json:"analysisPurpose"`
 	RequestedFinishDate time.Time `json:"requestedFinishDate"`
@@ -56,7 +72,7 @@ type NewRequest struct {
 // UpdateState represents data for changing a request's state.
 type UpdateState struct {
 	RequestId int    `json:"requestId"`
-	UserID    int    `json:"userId"`
+	UserId    int    `json:"userId"`
 	Comment   string `json:"comment"`
 }
 
@@ -80,7 +96,10 @@ var (
 
 // init runs once when the serverless function starts, setting up the router.
 func init() {
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using system environment variables")
 
+	}
 	db = openDB() // Initialize the database connection
 	app = gin.Default()
 
@@ -108,11 +127,13 @@ func registerRoutes(router *gin.RouterGroup) {
 	router.GET("/getOldestRequestTime", getOldestRequest)
 	router.GET("/getAttachmentFile", getAttachmentFile)
 	router.GET("/getStateThreshold", getStateThreshold)
+	router.POST("/loginHash", loginHandler)
 	router.POST("/newRequest", postNewRequest)
 	router.POST("/postReminderEmail", postReminderEmail)
 	router.POST("/postReminderEmailToRole", postReminderEmailToRole)
 	router.PUT("/upgradeState", putUpgradeState)
 	router.PUT("/degradeState", putDegradeState)
+	// router.PUT("/migrate", migratePasswords)
 }
 
 // Handler is the entry point for Vercel Serverless Functions.
@@ -120,12 +141,12 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	app.ServeHTTP(w, r)
 }
 
-// // main is the entry point for local development. It is ignored by Vercel.
-// func main() {
-// 	port := "9090"
-// 	log.Printf("INFO: Starting local server on http://localhost:%s\n", port)
-// 	http.ListenAndServe(":"+port, http.HandlerFunc(Handler))
-// }
+// main is the entry point for local development. It is ignored by Vercel.
+func main() {
+	port := "9090"
+	log.Printf("INFO: Starting local server on http://localhost:%s\n", port)
+	http.ListenAndServe(":"+port, http.HandlerFunc(Handler))
+}
 
 // openDB initializes and returns a new PostgreSQL database connection pool.
 func openDB() *sql.DB {
@@ -146,10 +167,55 @@ func openDB() *sql.DB {
 	return db
 }
 
-// func initRebase() *resend.Client {
-// 	apiKey := os.Getenv("REBASE_API_KEY")
+// func migratePasswords(c *gin.Context) {
+// 	log.Println("Starting password migration...")
 
-// 	return resend.NewClient(apiKey)
+// 	// 1. Select all users that have a plaintext password but no hash yet.
+// 	// The query now checks the new 'user_hash_password' column.
+// 	rows, err := db.Query("SELECT user_id, user_password FROM user_table WHERE user_password IS NOT NULL AND user_hash_password IS NULL")
+// 	if err != nil {
+// 		log.Printf("failed to query users for migration: %s", err)
+// 	}
+// 	defer rows.Close()
+
+// 	usersToMigrate := []User{}
+// 	for rows.Next() {
+// 		var user User
+// 		if err := rows.Scan(&user.UserId, &user.PlaintextPassword); err != nil {
+// 			log.Printf("Warning: Failed to scan user row, skipping: %v", err)
+// 			continue
+// 		}
+// 		usersToMigrate = append(usersToMigrate, user)
+// 	}
+
+// 	if len(usersToMigrate) == 0 {
+// 		log.Println("No passwords to migrate. All users seem to be up-to-date.")
+// 		return
+// 	}
+
+// 	log.Printf("Found %d users to migrate.", len(usersToMigrate))
+
+// 	// 2. Iterate through each user, hash their password, and update the DB.
+// 	for _, user := range usersToMigrate {
+// 		// Hash the password
+// 		passwordHash, err := bcrypt.GenerateFromPassword([]byte(user.PlaintextPassword), bcrypt.DefaultCost)
+// 		if err != nil {
+// 			log.Printf("Error: Could not hash password for user ID %d, skipping. Error: %v", user.UserId, err)
+// 			continue // Skip to the next user
+// 		}
+
+// 		// Update the database with the new hash in the 'user_hash_password' column
+// 		// and set the old password to NULL for security.
+// 		_, err = db.Exec("UPDATE user_table SET user_hash_password = $1 WHERE user_id = $2", string(passwordHash), user.UserId)
+// 		if err != nil {
+// 			log.Printf("Error: Failed to update user ID %d in database, skipping. Error: %v", user.UserId, err)
+// 			continue // Skip to the next user
+// 		}
+// 		log.Printf("Successfully migrated password for user ID %d.", user.UserId)
+// 	}
+
+// 	log.Println("Password migration completed successfully!")
+// 	c.JSON(http.StatusOK, gin.H{"msg": "success migrate"})
 // }
 
 // checkErr logs an error and sends an appropriate HTTP response.
@@ -175,7 +241,7 @@ func checkEmpty(c *gin.Context, str string) {
 
 // checkUserCredentials handles user login by verifying credentials against the database.
 func checkUserCredentials(c *gin.Context) {
-	var newUser User
+	var newUser UserLogin
 	var data string
 
 	newUser.UserName = c.Query("userName")
@@ -188,6 +254,74 @@ func checkUserCredentials(c *gin.Context) {
 		return
 	}
 	c.Data(http.StatusOK, "application/json", []byte(data))
+}
+
+func generateJWT(userId int) (string, error) {
+	// Load the secret key from the environment variable.
+	jwtSecretKey := os.Getenv("JWT_SECRET_KEY")
+	if jwtSecretKey == "" {
+		return "", fmt.Errorf("JWT_SECRET_KEY environment variable not set")
+	}
+
+	// Create the token claims
+	claims := jwt.MapClaims{
+		"userId": userId,
+		"exp":    time.Now().Add(time.Hour * 24).Unix(), // Token expires in 24 hours
+		"iat":    time.Now().Unix(),                     // Issued at
+	}
+
+	// Create and sign the token with the HS256 algorithm and our secret
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signedToken, err := token.SignedString([]byte(jwtSecretKey))
+	if err != nil {
+		return "", fmt.Errorf("failed to sign token: %w", err)
+	}
+
+	return signedToken, nil
+}
+
+// loginHandler processes user login requests.
+func loginHandler(c *gin.Context) {
+	var input UserLogin
+	var data string
+	// data = sqlNullString.String
+	// 1. Bind the incoming JSON to the LoginRequest struct.
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Username and password are required"})
+		return
+	}
+	log.Printf("INFO: Login attempt for user: %s", input.UserName)
+
+	var userData UserHashData
+	query := `SELECT get_user_id_and_pass($1)`
+
+	if err := db.QueryRow(query, input.UserName).Scan(&data); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+		return
+	}
+
+	// Now, unmarshal the JSON from the byte slice into your struct
+	if err := json.Unmarshal([]byte(data), &userData); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process user data"})
+		return
+	}
+
+	// 3. Securely compare the provided password with the stored hash.
+	if err := bcrypt.CompareHashAndPassword([]byte(userData.UserHashPassword), []byte(input.Password)); err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
+		return
+	}
+
+	// 4. Passwords match! Generate a JWT for the authenticated user.
+	token, err := generateJWT(userData.UserId)
+	if err != nil {
+		log.Printf("ERROR: Failed to generate JWT for user %d: %v", userData.UserId, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create session"})
+		return
+	}
+
+	// 5. Send the token back to the client.
+	c.JSON(http.StatusOK, gin.H{"token": token})
 }
 
 // getStateSpecificData retrieves and sends state-specific request data based on date range.
@@ -295,12 +429,12 @@ func getStateCount(c *gin.Context) {
 	var sqlNullString sql.NullString
 
 	result := []StateCount{
-		{StateID: 1, StateName: "SUBMITTED", Todo: 0, Done: 0},
-		{StateID: 2, StateName: "VALIDATED", Todo: 0, Done: 0},
-		{StateID: 3, StateName: "IN PROGRESS", Todo: 0, Done: 0},
-		{StateID: 4, StateName: "WAITING FOR REVIEW", Todo: 0, Done: 0},
-		{StateID: 5, StateName: "DONE", Todo: 0, Done: 0},
-		{StateID: -1, StateName: "TOTAL", Todo: 0, Done: 0},
+		{StateId: 1, StateName: "SUBMITTED", Todo: 0, Done: 0},
+		{StateId: 2, StateName: "VALIDATED", Todo: 0, Done: 0},
+		{StateId: 3, StateName: "IN PROGRESS", Todo: 0, Done: 0},
+		{StateId: 4, StateName: "WAITING FOR REVIEW", Todo: 0, Done: 0},
+		{StateId: 5, StateName: "DONE", Todo: 0, Done: 0},
+		{StateId: -1, StateName: "TOTAL", Todo: 0, Done: 0},
 	}
 
 	startDateInput := c.Query("startDate")
@@ -326,7 +460,7 @@ func getStateCount(c *gin.Context) {
 	}
 
 	for _, item := range count {
-		if idx := item.StateID - 1; idx >= 0 && idx < len(result) {
+		if idx := item.StateId - 1; idx >= 0 && idx < len(result) {
 			result[idx].Todo = item.Todo
 		}
 	}
@@ -458,7 +592,7 @@ func postNewRequest(c *gin.Context) {
 	newReq.DocxFilename = c.PostForm("docxFilename")
 	newReq.ExcelFilename = c.PostForm("excelFilename")
 
-	newReq.UserID, _ = strconv.Atoi(c.PostForm("userId"))
+	newReq.UserId, _ = strconv.Atoi(c.PostForm("userId"))
 	newReq.RequirementType, _ = strconv.Atoi(c.PostForm("requirementType"))
 	newReq.Urgent, _ = strconv.ParseBool(c.PostForm("urgent"))
 
@@ -474,7 +608,7 @@ func postNewRequest(c *gin.Context) {
 
 	query := `SELECT create_new_request($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
 	if err := db.QueryRow(query,
-		newReq.RequestTitle, newReq.UserID, newReq.RequesterName, newReq.AnalysisPurpose, newReq.RequestedFinishDate, newReq.PicRequest, newReq.Urgent, newReq.RequirementType, newReq.Answers, newReq.Remark,
+		newReq.RequestTitle, newReq.UserId, newReq.RequesterName, newReq.AnalysisPurpose, newReq.RequestedFinishDate, newReq.PicRequest, newReq.Urgent, newReq.RequirementType, newReq.Answers, newReq.Remark,
 	).Scan(&requestId); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get request ID after creation")
 		return
@@ -592,10 +726,8 @@ func sendReminderEmailToRole(c *gin.Context, roleIDInput string, stateNameInput 
 
 // sendReminderEmail constructs and sends a reminder email asynchronously.
 func sendReminderEmail(emails []string, state string, body ...string) string {
-	// smtpUser := os.Getenv("SMTP_USER")
-	smtpUser := "testinggomail222@gmail.com"
-	// smtpPass := os.Getenv("SMTP_PASS")
-	smtpPass := "nlef zdjv kfac shox"
+	smtpUser := os.Getenv("SMTP_USER")
+	smtpPass := os.Getenv("SMTP_PASS")
 	if smtpUser == "" || smtpPass == "" {
 		log.Println("ERROR: SMTP credentials not set, cannot send email.")
 		return ""
@@ -638,17 +770,17 @@ func putUpgradeState(c *gin.Context) {
 		return
 	}
 
-	log.Printf("INFO: Upgrading state for requestId %d by userId %d", updateData.RequestId, updateData.UserID)
+	log.Printf("INFO: Upgrading state for requestId %d by userId %d", updateData.RequestId, updateData.UserId)
 
 	if updateData.Comment == "" {
 		query := `SELECT upgrade_state($1, $2)`
-		if err := db.QueryRow(query, updateData.RequestId, updateData.UserID).Scan(&sqlNullString); err != nil {
+		if err := db.QueryRow(query, updateData.RequestId, updateData.UserId).Scan(&sqlNullString); err != nil {
 			checkErr(c, http.StatusInternalServerError, err, "Failed to upgrade state")
 			return
 		}
 	} else {
 		query := `SELECT upgrade_state($1, $2, $3)`
-		if err := db.QueryRow(query, updateData.RequestId, updateData.UserID, updateData.Comment).Scan(&sqlNullString); err != nil {
+		if err := db.QueryRow(query, updateData.RequestId, updateData.UserId, updateData.Comment).Scan(&sqlNullString); err != nil {
 			checkErr(c, http.StatusInternalServerError, err, "Failed to upgrade state")
 			return
 		}
@@ -696,7 +828,7 @@ func putDegradeState(c *gin.Context) {
 	}
 
 	query := `SELECT degrade_state($1, $2, $3)`
-	if err := db.QueryRow(query, updateData.RequestId, updateData.UserID, updateData.Comment).Scan(&sqlNullString); err != nil {
+	if err := db.QueryRow(query, updateData.RequestId, updateData.UserId, updateData.Comment).Scan(&sqlNullString); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to degrade state")
 		return
 	}
