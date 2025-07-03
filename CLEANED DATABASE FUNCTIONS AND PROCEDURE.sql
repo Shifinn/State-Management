@@ -235,36 +235,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Retrieves all questions and answers for a request as a JSON array.
-CREATE OR REPLACE FUNCTION get_request_requirement_answer(
-    request_id_input INT
-)
-RETURNS JSON AS $$
-DECLARE
-    result_json JSON;
-BEGIN
-    -- Aggregate question-answer pairs into a single JSON array.
-    SELECT json_agg(row_to_json(t))
-    INTO result_json
-    FROM (
-        SELECT
-            re.requirement_question_id AS "requirementQuestionId",
-            q.requirement_question AS "requirementQuestion",
-            re.answer
-        FROM requirement_table re
-        JOIN requirement_question_table q ON re.requirement_question_id = q.requirement_question_id
-        WHERE request_id = request_id_input
-        ORDER BY re.requirement_question_id
-    ) t;
-    
-    -- Return an empty JSON array if no results are found.
-    IF result_json IS NULL THEN
-        result_json := '[]'::json;
-    END IF;
-    RETURN result_json;
-END;
-$$ LANGUAGE plpgsql;
-
 
 -- Fetches all questions for a requirement type as a JSON array.
 CREATE OR REPLACE FUNCTION get_questions(
@@ -564,47 +534,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- Retrieves all details for a single request as a JSON object.
-CREATE OR REPLACE FUNCTION get_complete_data_of_request(
-    request_id_input INT
-)
-RETURNS JSON AS $$
-DECLARE
-    result_json JSON;
-BEGIN
-    -- Get all data for one request and cast the row to a JSON object.
-    SELECT row_to_json(t)
-    INTO result_json
-    FROM (
-        SELECT
-            r.request_id AS "requestId", 
-            r.request_title AS "requestTitle", 
-            r.requester_name AS "requesterName", 
-            r.user_id AS "userId",
-            r.analysis_purpose AS "analysisPurpose", 
-            r.requested_completed_date AS "requestedCompletedDate", 
-            r.pic_submitter AS "picSubmitter",
-            r.urgent, 
-            r.request_date AS "requestDate", 
-            r.remark, 
-            s.state_comment AS "stateComment",
-            n.state_name AS "stateName", 
-            t.data_type_name AS "dataTypeName"
-        FROM request_table r
-        JOIN state_table s ON r.request_id = s.request_id AND r.current_state = s.state_name_id
-        JOIN state_name_table n ON r.current_state = n.state_name_id
-        JOIN requirement_type_table t ON r.requirement_type_id = t.requirement_type_id
-        WHERE r.request_id = request_id_input
-    ) t;
-
-    -- Return an empty JSON object if no result is found.
-    IF result_json IS NULL THEN
-		result_json := '{}'::json;
-	END IF;
-    RETURN result_json;
-END;
-$$ LANGUAGE plpgsql;
-
 -- Retrieves all details for a single request, bundling related items into JSON arrays.
 CREATE OR REPLACE FUNCTION get_complete_data_of_request_bundle(
     request_id_input INT
@@ -754,35 +683,6 @@ BEGIN
     RETURN result_json;
 END;
 $$ LANGUAGE plpgsql;
-
-
--- Fetches attachment filenames for a specific request.
-CREATE OR REPLACE FUNCTION get_filenames(
-    request_id_input INT
-)
-RETURNS JSON AS $$
-DECLARE
-    result_json JSON;
-BEGIN
-    -- Aggregate attachment filenames into a single JSON array.
-    SELECT json_agg(row_to_json(t))
-    INTO result_json
-    FROM (
-        SELECT
-            attachment_type_id AS "attachmentTypeId",
-            attachment_filename AS "attachmentFilename"
-        FROM attachment_table
-        WHERE request_id = request_id_input
-    ) t;
-
-    -- Return an empty JSON array if no results are found.
-    IF result_json IS NULL THEN
-		result_json := '[]'::json;
-	END IF;
-    RETURN result_json;
-END;
-$$ LANGUAGE plpgsql;
-
 
 -- Counts active requests for each state within a date range.
 CREATE OR REPLACE FUNCTION get_state_count(

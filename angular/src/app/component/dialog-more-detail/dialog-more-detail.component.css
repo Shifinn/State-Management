@@ -10,6 +10,7 @@
 }
 
 .readonly-field {
+	word-break: break-all !important;
 	display: flex;
 	align-items: center;
 	padding: 0.7em;

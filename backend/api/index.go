@@ -80,7 +80,6 @@ var (
 
 // init runs once when the serverless function starts, setting up the router.
 func init() {
-
 	db = openDB() // Initialize the database connection
 	app = gin.Default()
 
@@ -122,6 +121,9 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 // // main is the entry point for local development. It is ignored by Vercel.
 // func main() {
+// if err := godotenv.Load(); err != nil {
+// 	log.Println("Error loading .env file")
+// }
 // 	port := "9090"
 // 	log.Printf("INFO: Starting local server on http://localhost:%s\n", port)
 // 	http.ListenAndServe(":"+port, http.HandlerFunc(Handler))

@@ -24,3 +24,4 @@ backup-db-scheman-only.sql
 backup-db.sql
 DATA.sql
 api/Files
+backend/api/.env
