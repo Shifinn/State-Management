@@ -15,6 +15,11 @@
 	/* gap: 0.65em; */
 }
 
+.data-label {
+	color: #333;
+	font-size: 0.9em;
+}
+
 .state-info {
 	display: flex;
 	flex-direction: column;

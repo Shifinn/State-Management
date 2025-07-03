@@ -328,6 +328,7 @@ BEGIN
             r.request_title AS "requestTitle", 
             r.current_state AS "currentState", 
             r.request_date AS "requestDate",
+			rt.data_type_name AS "dataTypeName",
             n2.state_name AS "currentStateName", 
             u.user_name AS "userName", 
             n.state_name AS "stateName",
@@ -344,7 +345,8 @@ BEGIN
         LEFT JOIN user_table u3 ON s.ended_by = u3.user_id
         LEFT JOIN state_name_table n ON s.state_name_id = n.state_name_id
         LEFT JOIN state_name_table n2 ON r.current_state = n2.state_name_id
-        WHERE r.request_date BETWEEN start_date AND end_date
+		LEFT JOIN requirement_type_table rt ON r.requirement_type_id = rt.requirement_type_id
+		WHERE r.request_date BETWEEN start_date AND end_date
           AND s.state_name_id = state_name_id_input
         ORDER BY r.current_state, r.request_id
     ) t;
@@ -374,6 +376,8 @@ BEGIN
             r.request_title AS "requestTitle", 
             r.current_state AS "currentState", 
             r.request_date AS "requestDate",
+						rt.data_type_name AS "dataTypeName",
+
             n2.state_name AS "currentStateName", 
             u.user_name AS "userName", 
             n.state_name AS "stateName",

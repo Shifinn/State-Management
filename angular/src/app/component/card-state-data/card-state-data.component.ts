@@ -35,7 +35,7 @@ export class CardStateDataComponent {
 		});
 
 		// dialogRef.afterClosed().subscribe((result) => {
-		//  this.refresh.emit();
+		// 	this.refresh.emit();
 		// });
 	}
 }

@@ -25,6 +25,7 @@ export type StateInfoData = {
 	requestId: number;
 	requestTitle: string;
 	requestDate: Date;
+	dataTypeName: string;
 	currentState: number;
 	currentStateName: string;
 	stateNameId: number;
