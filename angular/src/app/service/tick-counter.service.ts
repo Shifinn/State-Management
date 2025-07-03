@@ -17,12 +17,10 @@ export class TickCounterService {
 		this.timerId = setInterval(() => {
 			this._currentTime.set(new Date());
 		}, 1000);
-		console.log("TimeUpdaterService started.");
 	}
 
 	ngOnDestroy(): void {
 		// Clean up the interval when the service is destroyed
 		clearInterval(this.timerId);
-		console.log("TimeUpdaterService stopped.");
 	}
 }

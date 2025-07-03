@@ -4,6 +4,7 @@ import { Router } from "@angular/router";
 import type { User } from "../model/format.type";
 import { DataProcessingService } from "./data-processing.service";
 import { Observable } from "rxjs";
+import { TodoPageService } from "./todo-page.service";
 @Injectable({
 	providedIn: "root",
 })
@@ -11,6 +12,7 @@ export class LoginService {
 	http = inject(HttpClient); //enables the use of HTTP client calls for the application
 	router = inject(Router); // enables navigation using the Router
 	dataService = inject(DataProcessingService);
+	todoService = inject(TodoPageService);
 	host = "https://state-management-api.vercel.app/api";
 	// host = "http://localhost:9090/api";
 
@@ -25,7 +27,9 @@ export class LoginService {
 						this.dataService.storeUserInfo(response);
 
 						if (Number(response.roleId) > 1) {
-							this.router.navigate(["/home", { outlets: { home: "todo" } }]);
+							this.todoService.refreshTodoData().subscribe(() => {
+								this.router.navigate(["/home", { outlets: { home: "todo" } }]);
+							});
 						} else {
 							this.router.navigate(["/home"]);
 						}

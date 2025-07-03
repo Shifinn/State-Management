@@ -176,15 +176,14 @@ export class PopUpPeriodPickerComponent {
 		if (!oldest) return; // Do nothing if there's no oldest period.
 
 		const startYear = oldest.startDate.getFullYear();
-		console.log(
-			`oldest label: ${oldest.fullLabel}oldest start date: ${oldest.startDate} and start year is: ${startYear}`,
-		);
+		// console.log(
+		// 	`oldest label: ${oldest.fullLabel}oldest start date: ${oldest.startDate} and start year is: ${startYear}`,
+		// );
 		const currentYear = new Date().getFullYear();
 		const years: number[] = [];
 
 		// Loop from the start year to the current year and populate the array.
 		for (let year = startYear; year <= currentYear; year++) {
-			console.log(`inserted year is: ${year}  type of:${this.periodType}`);
 			years.push(year);
 		}
 

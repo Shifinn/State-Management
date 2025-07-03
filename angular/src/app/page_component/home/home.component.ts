@@ -11,6 +11,7 @@ import { DataProcessingService } from "../../service/data-processing.service";
 })
 export class HomeComponent {
 	dataService = inject(DataProcessingService);
+
 	router = inject(Router);
 
 	ngOnInit() {

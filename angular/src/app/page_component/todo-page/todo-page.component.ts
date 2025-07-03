@@ -35,7 +35,6 @@ export class TodoPageComponent {
 		this.innerWidth.set(window.innerWidth);
 	}
 
-	// ngOnInit is now much simpler. The service handles its own data loading.
 	ngOnInit() {
 		this.setVisibleBasedOnFilter();
 	}
@@ -71,7 +70,6 @@ export class TodoPageComponent {
 			// After the data is refreshed in the service, update the local view.
 			this.setVisibleBasedOnFilter();
 		});
-		console.log("refresh display");
 	}
 
 	// The sorting logic remains in the component as it's a view concern.

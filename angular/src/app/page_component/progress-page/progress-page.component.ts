@@ -51,7 +51,6 @@ export class ProgressPageComponent {
 	 * Calls the service to update the period and fetch new data.
 	 */
 	periodUpdate(newPeriod: TimePeriod) {
-		console.log("periodUpdate trigger");
 		this.progressService.updatePeriodAndFetchData(newPeriod).subscribe(() => {
 			if (this.isShrunk()) {
 				const cache = this.currentViewStatus();

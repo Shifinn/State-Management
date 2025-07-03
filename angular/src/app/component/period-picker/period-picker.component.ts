@@ -56,7 +56,6 @@ export class PeriodPickerComponent {
 	clickNewPeriod(newPeriod: TimePeriod) {
 		const message = this.periodPickerService.updateCurrentPeriod(newPeriod);
 		if (message === "updated") {
-			console.log("updating period");
 			this.newPeriod.emit(newPeriod);
 		}
 	}

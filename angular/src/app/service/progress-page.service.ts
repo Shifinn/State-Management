@@ -39,7 +39,6 @@ export class ProgressPageService {
 			.pipe(
 				tap((result) => {
 					this.progressInfo.set(result);
-					console.log("new state count");
 				}),
 			);
 	}
