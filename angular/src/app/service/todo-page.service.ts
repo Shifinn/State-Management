@@ -50,7 +50,7 @@ export class TodoPageService {
 			return input.filter((x) => x.stateNameId === 1 || x.stateNameId === 4);
 		}
 		if (userRole === "2") {
-			return input.filter((x) => x.stateNameId === 2);
+			return input.filter((x) => x.stateNameId === 2 || x.stateNameId === 3);
 		}
 		return [];
 	}
@@ -58,7 +58,7 @@ export class TodoPageService {
 	private separateInProgress(input: SimpleData[]): SimpleData[] {
 		const userRole = this.dataService.getUserRole();
 		if (userRole === "2") {
-			return input.filter((x) => x.stateNameId === 3 || x.stateNameId === 4);
+			return input.filter((x) => x.stateNameId === 4);
 		}
 		if (userRole === "3") {
 			return input.filter((x) => x.stateNameId === 2 || x.stateNameId === 3);

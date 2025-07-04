@@ -30,8 +30,7 @@ export class PeriodPickerComponent {
 	currentPeriodMenu = signal<CachedPeriodPickerMemory | undefined>(undefined);
 
 	ngOnInit() {
-		delay(30);
-
+		this.periodPickerService.initializeAllPeriods();
 		this.clickPeriodType("WEEK");
 	}
 

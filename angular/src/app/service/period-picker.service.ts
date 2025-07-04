@@ -27,7 +27,7 @@ export class PeriodPickerService {
 		this.initializeAllPeriods();
 	}
 
-	private initializeAllPeriods() {
+	initializeAllPeriods() {
 		const allPeriodTypes: PeriodGranularity[] = [
 			"YEAR",
 			"QUARTER",
