@@ -36,11 +36,14 @@ export class PeriodPickerService {
 		];
 
 		for (const type of allPeriodTypes) {
-			this.getAvailablePeriods(type).subscribe((result) => {
-				if (result.length > 0) {
-					this.availablePeriod().set(type, result);
-				}
-			});
+			const periods = this.availablePeriod().get(type);
+			if (!periods || periods.length === 0) {
+				this.getAvailablePeriods(type).subscribe((result) => {
+					if (result.length > 0) {
+						this.availablePeriod().set(type, result);
+					}
+				});
+			}
 		}
 	}
 
@@ -259,14 +262,6 @@ export class PeriodPickerService {
 	}
 
 	resetService() {
-		this.availablePeriod.set(
-			new Map<PeriodGranularity, Array<TimePeriod>>([
-				["YEAR", []],
-				["QUARTER", []],
-				["MONTH", []],
-				["WEEK", []],
-			]),
-		);
 		this.currentPeriod.set(null);
 		this.currentPeriodTooltip.set("");
 		// Clear the cached observable to force a new API call for the next user.
