@@ -39,13 +39,6 @@ export class PeriodPickerComponent {
 
 	periodPickerVisible = signal<PeriodGranularity>("NAN");
 	currentPeriodMenu = signal<CachedPeriodPickerMemory | undefined>(undefined);
-	set: Signal<string> = computed(() => {
-		const now = this.periodPickerService.currentPeriod();
-		if (now !== null) {
-			this.newPeriod.emit(now);
-		}
-		return "";
-	});
 
 	ngOnInit(): void {
 		effect(
