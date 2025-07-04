@@ -16,7 +16,7 @@ import type {
 	StateThreshold,
 	Duration,
 } from "../model/format.type";
-import { map, type Observable, of } from "rxjs";
+import { map, type Observable, of, shareReplay } from "rxjs";
 
 @Injectable({
 	providedIn: "root",
@@ -228,27 +228,5 @@ export class DataProcessingService {
 	getOldestRequestTime() {
 		const url = `${this.host}/getOldestRequestTime`;
 		return this.http.get<Date>(url);
-	}
-
-	getOldestPeriodTimeFromMemory(): Observable<Date> {
-		console.log("get oldest time");
-		const oldestTimeStr = localStorage.getItem("oldestTime");
-		const oldestTimeSavedAtStr = localStorage.getItem("oldestTimeSavedAt");
-		if (oldestTimeStr && oldestTimeSavedAtStr) {
-			const savedAt = new Date(oldestTimeSavedAtStr).getTime();
-			const now = Date.now();
-			const oneHourMs = 10 * 60 * 1000;
-			if (now - savedAt < oneHourMs) {
-				return of(new Date(oldestTimeStr));
-			}
-		}
-		return this.getOldestRequestTime().pipe(
-			map((result) => {
-				const resultDate = new Date(result);
-				localStorage.setItem("oldestTime", resultDate.toISOString());
-				localStorage.setItem("oldestTimeSavedAt", new Date().toISOString());
-				return resultDate;
-			}),
-		);
 	}
 }

@@ -5,6 +5,8 @@ import type { User } from "../model/format.type";
 import { DataProcessingService } from "./data-processing.service";
 import { Observable } from "rxjs";
 import { TodoPageService } from "./todo-page.service";
+import { PeriodPickerService } from "./period-picker.service";
+import { ProgressPageService } from "./progress-page.service";
 @Injectable({
 	providedIn: "root",
 })
@@ -13,13 +15,19 @@ export class LoginService {
 	router = inject(Router); // enables navigation using the Router
 	dataService = inject(DataProcessingService);
 	todoService = inject(TodoPageService);
-	host = "https://state-management-api.vercel.app/api";
-	// host = "http://localhost:9090/api";
+	progressService = inject(ProgressPageService);
+	periodPickerService = inject(PeriodPickerService);
+	// host = "https://state-management-api.vercel.app/api";
+	host = "http://localhost:9090/api";
 
 	login(username: string, password: string): Observable<boolean> {
-		const url = `${this.host}/login?userName=${username.toLowerCase().replace(/(\S)\s+/g, "$1")}&password=${password}`;
+		const url = `${this.host}/login`;
+		const body = {
+			userName: username.toLowerCase().replace(/(\S)\s+/g, "$1"),
+			password: password,
+		};
 		return new Observable<boolean>((observer) => {
-			this.http.get<User>(url).subscribe({
+			this.http.post<User>(url, body).subscribe({
 				next: (response: User) => {
 					let success = false;
 					if (Number(response.userId) > 0) {
@@ -27,9 +35,8 @@ export class LoginService {
 						this.dataService.storeUserInfo(response);
 
 						if (Number(response.roleId) > 1) {
-							this.todoService.refreshTodoData().subscribe(() => {
-								this.router.navigate(["/home", { outlets: { home: "todo" } }]);
-							});
+							// this.todoService.refreshTodoData().subscribe(() => {});
+							this.router.navigate(["/home", { outlets: { home: "todo" } }]);
 						} else {
 							this.router.navigate(["/home"]);
 						}
@@ -50,6 +57,9 @@ export class LoginService {
 		localStorage.setItem("userName", "");
 		localStorage.setItem("userEmail", "");
 		localStorage.setItem("userRole", "");
+		this.periodPickerService.resetService();
+		this.todoService.resetService();
+		this.progressService.resetService();
 		this.router.navigate([""]);
 	}
 }

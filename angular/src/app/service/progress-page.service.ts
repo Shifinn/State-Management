@@ -15,16 +15,14 @@ export class ProgressPageService {
 	private dataService = inject(DataProcessingService);
 	private currentPeriod!: TimePeriod;
 
-	public readonly progressInfo = signal<Array<StatusInfo>>([]);
-	public readonly stateData = new Map<StateStatus, Array<StateInfoData>>([
+	readonly progressInfo = signal<Array<StatusInfo>>([]);
+	readonly stateData = new Map<StateStatus, Array<StateInfoData>>([
 		["TOTAL", []],
 		["TODO", []],
 		["DONE", []],
 	]);
 
-	public updatePeriodAndFetchData(
-		newPeriod: TimePeriod,
-	): Observable<StatusInfo[]> {
+	updatePeriodAndFetchData(newPeriod: TimePeriod): Observable<StatusInfo[]> {
 		this.currentPeriod = newPeriod;
 		this.clearStateData();
 		return this.getNewStateCount(newPeriod.startDate, newPeriod.endDate);
@@ -43,7 +41,7 @@ export class ProgressPageService {
 			);
 	}
 
-	public getStateSpecificData(stateId: number): Observable<StateInfoData[]> {
+	getStateSpecificData(stateId: number): Observable<StateInfoData[]> {
 		this.clearStateData();
 		return this.dataService
 			.getStateSpecificData(
@@ -58,7 +56,7 @@ export class ProgressPageService {
 			);
 	}
 
-	public getSeparatedData(completionType: StateStatus): Array<StateInfoData> {
+	getSeparatedData(completionType: StateStatus): Array<StateInfoData> {
 		const cachedData = this.stateData.get(completionType);
 		if (cachedData?.length) {
 			return cachedData;
@@ -73,9 +71,15 @@ export class ProgressPageService {
 		return separatedData;
 	}
 
-	public clearStateData(): void {
+	clearStateData() {
 		this.stateData.set("TOTAL", []);
 		this.stateData.set("TODO", []);
 		this.stateData.set("DONE", []);
+	}
+
+	resetService() {
+		this.progressInfo.set([]);
+		this.clearStateData();
+		this.currentPeriod = undefined as unknown as TimePeriod;
 	}
 }

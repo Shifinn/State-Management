@@ -69,4 +69,11 @@ export class TodoPageService {
 	private separateDone(input: SimpleData[]): SimpleData[] {
 		return input.filter((x) => x.stateNameId === 5);
 	}
+
+	resetService() {
+		this.todoMap().set("TODO", []);
+		this.todoMap().set("IN PROGRESS", []);
+		this.todoMap().set("DONE", []);
+		this.todoStateThreshold.set([]);
+	}
 }

@@ -1,6 +1,6 @@
-package handler
+// package handler
 
-// package main
+package main
 
 import (
 	"database/sql"
@@ -17,6 +17,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/joho/godotenv"
 	vercel_blob "github.com/rpdg/vercel_blob"
 	"gopkg.in/gomail.v2"
 )
@@ -95,23 +96,31 @@ func init() {
 
 // registerRoutes defines all the API endpoints for the application.
 func registerRoutes(router *gin.RouterGroup) {
+	// Authentication
+	router.POST("/login", checkUserCredentials)
+
+	// Request data
 	router.GET("/stateSpecificData", getStateSpecificData)
 	router.GET("/userRequestsData", getUserCurrentRequests)
 	router.GET("/todoData", getTodoData)
-	router.GET("/completeRequestData", getCompleteRequestData)
 	router.GET("/completeRequestDataBundle", getCompleteRequestDataBundle)
+
+	// Analytics and other data
 	router.GET("/stateCountData", getStateCount)
-	router.GET("/fullStateHistoryData", getFullStateHistoryData)
-	router.GET("/questionData", getQuestionData)
-	router.GET("/login", checkUserCredentials)
 	router.GET("/getOldestRequestTime", getOldestRequest)
 	router.GET("/getAttachmentFile", getAttachmentFile)
 	router.GET("/getStateThreshold", getStateThreshold)
+	router.GET("/questionData", getQuestionData)
+	// router.GET("/fullStateHistoryData", getFullStateHistoryData)
+
+	// Request management
 	router.POST("/newRequest", postNewRequest)
-	router.POST("/postReminderEmail", postReminderEmail)
-	router.POST("/postReminderEmailToRole", postReminderEmailToRole)
 	router.PUT("/upgradeState", putUpgradeState)
 	router.PUT("/degradeState", putDegradeState)
+
+	// Email sending
+	router.POST("/postReminderEmail", postReminderEmail)
+	router.POST("/postReminderEmailToRole", postReminderEmailToRole)
 }
 
 // Handler is the entry point for Vercel Serverless Functions.
@@ -120,14 +129,14 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // // main is the entry point for local development. It is ignored by Vercel.
-// func main() {
-// if err := godotenv.Load(); err != nil {
-// 	log.Println("Error loading .env file")
-// }
-// 	port := "9090"
-// 	log.Printf("INFO: Starting local server on http://localhost:%s\n", port)
-// 	http.ListenAndServe(":"+port, http.HandlerFunc(Handler))
-// }
+func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Println("Error loading .env file")
+	}
+	port := "9090"
+	log.Printf("INFO: Starting local server on http://localhost:%s\n", port)
+	http.ListenAndServe(":"+port, http.HandlerFunc(Handler))
+}
 
 // openDB initializes and returns a new PostgreSQL database connection pool.
 func openDB() *sql.DB {
@@ -147,12 +156,6 @@ func openDB() *sql.DB {
 	log.Println("INFO: Database connection successful.")
 	return db
 }
-
-// func initRebase() *resend.Client {
-// 	apiKey := os.Getenv("REBASE_API_KEY")
-
-// 	return resend.NewClient(apiKey)
-// }
 
 // checkErr logs an error and sends an appropriate HTTP response.
 func checkErr(c *gin.Context, errType int, err error, errMsg string) {
@@ -179,9 +182,10 @@ func checkEmpty(c *gin.Context, str string) {
 func checkUserCredentials(c *gin.Context) {
 	var newUser User
 	var data string
-
-	newUser.UserName = c.Query("userName")
-	newUser.Password = c.Query("password")
+	if err := c.BindJSON(&newUser); err != nil {
+		checkErr(c, http.StatusBadRequest, err, "Invalid input")
+		return
+	}
 	log.Printf("INFO: Login attempt for user: %s", newUser.UserName)
 
 	query := `SELECT get_user_id_by_credentials($1, $2)`
@@ -254,23 +258,23 @@ func getTodoData(c *gin.Context) {
 }
 
 // getCompleteRequestData retrieves and sends complete details for a specific request.
-func getCompleteRequestData(c *gin.Context) {
-	var data sql.NullString
-	requestIdInput := c.Query("requestId")
+// func getCompleteRequestData(c *gin.Context) {
+// 	var data sql.NullString
+// 	requestIdInput := c.Query("requestId")
 
-	checkEmpty(c, requestIdInput)
+// 	checkEmpty(c, requestIdInput)
 
-	query := `SELECT get_complete_data_of_request($1)`
-	if err := db.QueryRow(query, requestIdInput).Scan(&data); err != nil {
-		checkErr(c, http.StatusInternalServerError, err, "Failed to get complete data of request")
-		return
-	}
-	if !data.Valid {
-		c.Data(http.StatusOK, "application/json", []byte("{}"))
-		return
-	}
-	c.Data(http.StatusOK, "application/json", []byte(data.String))
-}
+// 	query := `SELECT get_complete_data_of_request($1)`
+// 	if err := db.QueryRow(query, requestIdInput).Scan(&data); err != nil {
+// 		checkErr(c, http.StatusInternalServerError, err, "Failed to get complete data of request")
+// 		return
+// 	}
+// 	if !data.Valid {
+// 		c.Data(http.StatusOK, "application/json", []byte("{}"))
+// 		return
+// 	}
+// 	c.Data(http.StatusOK, "application/json", []byte(data.String))
+// }
 
 func getCompleteRequestDataBundle(c *gin.Context) {
 	var data sql.NullString

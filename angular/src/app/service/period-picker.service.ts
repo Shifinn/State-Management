@@ -2,7 +2,7 @@ import { inject, Injectable, signal } from "@angular/core";
 import { DataProcessingService } from "./data-processing.service";
 import type { PeriodGranularity, TimePeriod } from "../model/format.type";
 import { DatePipe } from "@angular/common";
-import { delay, map, type Observable } from "rxjs";
+import { delay, map, shareReplay, type Observable } from "rxjs";
 
 @Injectable({
 	providedIn: "root",
@@ -10,6 +10,7 @@ import { delay, map, type Observable } from "rxjs";
 export class PeriodPickerService {
 	private dataService = inject(DataProcessingService);
 	private datePipe = new DatePipe("en-US");
+	private oldestTime!: Observable<Date> | undefined;
 
 	public readonly availablePeriod = signal(
 		new Map<PeriodGranularity, Array<TimePeriod>>([
@@ -85,7 +86,7 @@ export class PeriodPickerService {
 	getAvailablePeriods(
 		periodType: PeriodGranularity,
 	): Observable<Array<TimePeriod>> {
-		return this.dataService.getOldestPeriodTimeFromMemory().pipe(
+		return this.getOldestPeriodTimeFromMemory().pipe(
 			map((result) => {
 				const oldestRequest = new Date(result);
 				const oldestYear = oldestRequest.getFullYear();
@@ -237,5 +238,39 @@ export class PeriodPickerService {
 			offset = -((dayOfWeek + 6) % 7);
 		}
 		return offset;
+	}
+	getOldestPeriodTimeFromMemory(): Observable<Date> {
+		if (this.oldestTime) {
+			return this.oldestTime;
+		}
+
+		this.oldestTime = this.dataService.getOldestRequestTime().pipe(
+			map((result) => {
+				const resultDate = new Date(result);
+				// We can still save to localStorage for future page loads
+				// localStorage.setItem("oldestTime, resultDate.toISOString());
+				// localStorage.setItem("oldestTimeavedAt", new Date().toISOString());
+				return resultDate;
+			}),
+			shareReplay(1),
+		);
+
+		return this.oldestTime;
+	}
+
+	resetService() {
+		this.availablePeriod.set(
+			new Map<PeriodGranularity, Array<TimePeriod>>([
+				["YEAR", []],
+				["QUARTER", []],
+				["MONTH", []],
+				["WEEK", []],
+			]),
+		);
+		this.currentPeriod.set(null);
+		this.currentPeriodTooltip.set("");
+		// Clear the cached observable to force a new API call for the next user.
+		this.oldestTime = undefined;
+		console.log("PeriodPickerService state has been reset.");
 	}
 }
