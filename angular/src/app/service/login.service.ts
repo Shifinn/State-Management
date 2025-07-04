@@ -17,12 +17,15 @@ export class LoginService {
 	todoService = inject(TodoPageService);
 	progressService = inject(ProgressPageService);
 	periodPickerService = inject(PeriodPickerService);
-	// host = "https://state-management-api.vercel.app/api";
-	host = "http://localhost:9090/api";
+	host = "https://state-management-api.vercel.app/api";
+	// host = "http://localhost:9090/api";
 
 	login(username: string, password: string): Observable<boolean> {
 		const url = `${this.host}/login`;
-		const body = `{"userName": "${username.toLowerCase().replace(/(\S)\s+/g, "$1")}","password":"${password}"}`;
+		const body = {
+			userName: username.toLowerCase().replace(/(\S)\s+/g, "$1"),
+			password: password,
+		};
 		return new Observable<boolean>((observer) => {
 			this.http.post<User>(url, body).subscribe({
 				next: (response: User) => {
