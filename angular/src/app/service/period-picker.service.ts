@@ -29,10 +29,10 @@ export class PeriodPickerService {
 
 	initializeAllPeriods() {
 		const allPeriodTypes: PeriodGranularity[] = [
-			"YEAR",
-			"QUARTER",
-			"MONTH",
 			"WEEK",
+			"MONTH",
+			"QUARTER",
+			"YEAR",
 		];
 
 		for (const type of allPeriodTypes) {
@@ -41,6 +41,9 @@ export class PeriodPickerService {
 				this.getAvailablePeriods(type).subscribe((result) => {
 					if (result.length > 0) {
 						this.availablePeriod().set(type, result);
+						if (type === "WEEK") {
+							this.setCurrentPeriod("WEEK");
+						}
 					}
 				});
 			}
@@ -57,16 +60,16 @@ export class PeriodPickerService {
 		return "updated";
 	}
 
-	// setCurrentPeriod(periodType: PeriodGranularity) {
-	// 	const tempPeriodArray = this.availablePeriod().get(periodType);
-	// 	if (tempPeriodArray?.length) {
-	// 		const tempPeriod = tempPeriodArray[tempPeriodArray.length - 1];
-	// 		if (periodType === this.currentPeriod()?.periodType) {
-	// 			return;
-	// 		}
-	// 		// this.clickNewPeriod(tempPeriodArray[tempPeriodArray.length - 1]);
-	// 	}
-	// }
+	setCurrentPeriod(periodType: PeriodGranularity) {
+		const tempPeriodArray = this.availablePeriod().get(periodType);
+		if (tempPeriodArray?.length) {
+			const tempPeriod = tempPeriodArray[tempPeriodArray.length - 1];
+			if (periodType === this.currentPeriod()?.periodType) {
+				return;
+			}
+			this.updateCurrentPeriod(tempPeriod);
+		}
+	}
 	setCurrentPeriodTooltip() {
 		const current = this.currentPeriod();
 		if (!current) {
@@ -251,8 +254,8 @@ export class PeriodPickerService {
 			map((result) => {
 				const resultDate = new Date(result);
 				// We can still save to localStorage for future page loads
-				// localStorage.setItem("oldestTime, resultDate.toISOString());
-				// localStorage.setItem("oldestTimeavedAt", new Date().toISOString());
+				localStorage.setItem("oldestTime", resultDate.toISOString());
+				localStorage.setItem("oldestTimeavedAt", new Date().toISOString());
 				return resultDate;
 			}),
 			shareReplay(1),
@@ -266,6 +269,5 @@ export class PeriodPickerService {
 		this.currentPeriodTooltip.set("");
 		// Clear the cached observable to force a new API call for the next user.
 		this.oldestTime = undefined;
-		console.log("PeriodPickerService state has been reset.");
 	}
 }

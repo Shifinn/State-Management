@@ -1,4 +1,14 @@
-import { Component, EventEmitter, inject, Output, signal } from "@angular/core";
+import {
+	Component,
+	computed,
+	effect,
+	EventEmitter,
+	inject,
+	Injector,
+	Output,
+	type Signal,
+	signal,
+} from "@angular/core";
 import type {
 	CachedPeriodPickerMemory,
 	PeriodGranularity,
@@ -20,6 +30,7 @@ import { delay } from "rxjs";
 })
 export class PeriodPickerComponent {
 	periodPickerService = inject(PeriodPickerService);
+	injector = inject(Injector);
 
 	@Output() newPeriod = new EventEmitter<TimePeriod>();
 	@Output() changePeriodType = new EventEmitter();
@@ -28,10 +39,24 @@ export class PeriodPickerComponent {
 
 	periodPickerVisible = signal<PeriodGranularity>("NAN");
 	currentPeriodMenu = signal<CachedPeriodPickerMemory | undefined>(undefined);
+	set: Signal<string> = computed(() => {
+		const now = this.periodPickerService.currentPeriod();
+		if (now !== null) {
+			this.newPeriod.emit(now);
+		}
+		return "";
+	});
 
-	ngOnInit() {
-		this.periodPickerService.initializeAllPeriods();
-		this.clickPeriodType("WEEK");
+	ngOnInit(): void {
+		effect(
+			() => {
+				const now = this.periodPickerService.currentPeriod();
+				if (now !== null) {
+					this.newPeriod.emit(now);
+				}
+			},
+			{ injector: this.injector },
+		);
 	}
 
 	togglePeriodPickerVisibility(input: PeriodGranularity) {
@@ -58,8 +83,8 @@ export class PeriodPickerComponent {
 
 	clickNewPeriod(newPeriod: TimePeriod) {
 		const message = this.periodPickerService.updateCurrentPeriod(newPeriod);
-		if (message === "updated") {
-			this.newPeriod.emit(newPeriod);
-		}
+		// if (message === "updated") {
+		// 	this.newPeriod.emit(newPeriod);
+		// }
 	}
 }
