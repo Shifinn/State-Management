@@ -10,7 +10,6 @@
 }
 
 .readonly-field {
-	word-break: break-all !important;
 	display: flex;
 	align-items: center;
 	padding: 0.7em;
@@ -19,6 +18,14 @@
 	border-radius: 8px;
 	background-color: #f7f7f7;
 	color: #333;
+	overflow-wrap: break-word !important;
+}
+.filename-text {
+	flex: 1;
+	/* word-break: break-all; */
+	overflow-wrap: break-word;
+
+	/* margin-right: 8px; */
 }
 
 .file-field {
