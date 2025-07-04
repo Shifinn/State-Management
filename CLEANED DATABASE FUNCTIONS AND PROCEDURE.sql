@@ -165,6 +165,41 @@ END;
 $$ LANGUAGE plpgsql;
 
 
+CREATE OR REPLACE PROCEDURE drop_request(
+    request_id_input INT,
+    user_id_input    INT,
+    comment_input   TEXT DEFAULT NULL
+) AS $$
+DECLARE
+    temp_state_id INT;
+BEGIN
+
+	-- Get previous temp state id
+	SELECT current_state
+	INTO temp_state_id
+	FROM request_table
+    WHERE request_id = request_id_input;
+
+	-- set the current to 0 after getting the previous
+    UPDATE request_table
+    SET current_state = 0
+    WHERE request_id = request_id_input;
+
+    -- set the state to complete of the last state before rejection
+	UPDATE state_table
+	SET date_end = CURRENT_TIMESTAMP,
+		completed = true,
+		ended_by = user_id_input
+	WHERE request_id = request_id_input
+	  AND state_name_id = temp_state_id;
+
+	-- set the state of rejection
+    INSERT INTO state_table(state_name_id, request_id, started_by, completed, state_comment)
+    VALUES(0, request_id_input, user_id_input, true, comment_input);
+
+END;
+$$ LANGUAGE plpgsql;
+
 
 -- Creates a new request and its initial state, returning the new request ID.
 CREATE OR REPLACE FUNCTION create_new_request(
@@ -355,6 +390,7 @@ BEGIN
 		LEFT JOIN requirement_type_table rt ON r.requirement_type_id = rt.requirement_type_id
 		WHERE r.request_date BETWEEN start_date AND end_date
           AND s.state_name_id = state_name_id_input
+		  AND r.current_state != 0
         ORDER BY r.current_state, r.request_id
     ) t;
 

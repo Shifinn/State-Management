@@ -116,6 +116,7 @@ func registerRoutes(router *gin.RouterGroup) {
 	router.POST("/newRequest", postNewRequest)
 	router.PUT("/upgradeState", putUpgradeState)
 	router.PUT("/degradeState", putDegradeState)
+	router.PUT("/dropRequest", dropRequest)
 
 	// Email sending
 	router.POST("/postReminderEmail", postReminderEmail)
@@ -735,4 +736,49 @@ func putDegradeState(c *gin.Context) {
 		}
 		c.IndentedJSON(http.StatusOK, gin.H{"message": "State updated successfully, " + message})
 	}
+}
+
+func dropRequest(c *gin.Context) {
+	var updateData UpdateState
+	if err := c.BindJSON(&updateData); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to bind update data JSON")
+		return
+	}
+
+	query := `CALL drop_request($1, $2, $3)`
+	if _, err := db.Exec(query, updateData.RequestId, updateData.UserID, updateData.Comment); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to drop request")
+		return
+	}
+
+	// log.Printf("State successfully updated")
+
+	// var state StateData
+	// var targetRole string
+	// if err := json.Unmarshal([]byte(sqlNullString.String), &state); err != nil {
+	// 	checkErr(c, http.StatusInternalServerError, err, "Failed to unmarshal count data")
+	// 	return
+	// }
+	// if state.StateId == 3 {
+	// 	targetRole = "2"
+	// } else {
+	// 	targetRole = "invalid update"
+	// }
+	// var message string
+	// if targetRole == "invalid update" {
+	// 	c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "State updated successfully, but email unsuccessfully sent"})
+	// } else {
+	// 	var body = fmt.Sprintf(`Selamat pagi Bapak/Ibu,<br><br>
+	// 		Email ini dikirim secara otomatis untuk memberitahukan bahwa terdapat request yang belum mencukupi kebutuhan dan telah memasuki status %s kembali.<br><br>
+	// 		Mohon dapat dilakukan tindak lanjut terhadap request tersebut.<br><br>
+	// 		Terima kasih atas perhatian dan kerja samanya.<br><br>
+	// 		Salam,<br>StateManager`, state.StateName)
+	// 	message = sendReminderEmailToRole(c, targetRole, state.StateName, body)
+	// 	if message == "" {
+	// 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "State updated successfully, but email unsuccessfully sent"})
+	// 		return
+	// 	}
+	// 	c.IndentedJSON(http.StatusOK, gin.H{"message": "State updated successfully, " + message})
+	// }
+
 }

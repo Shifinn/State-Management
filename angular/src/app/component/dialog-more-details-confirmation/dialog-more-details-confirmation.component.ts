@@ -24,7 +24,7 @@ export class DialogMoreDetailsConfirmationComponent {
 	require = false;
 
 	ngOnInit() {
-		if (this.data_input.type === "degrade") {
+		if (this.data_input.type === "drop") {
 			this.require = true;
 		}
 	}

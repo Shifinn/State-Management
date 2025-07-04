@@ -90,8 +90,8 @@ export class DialogMoreDetailComponent {
 				this.stateUpdateData.requestId = this.inputData.requestId;
 				this.stateUpdateData.userId = Number(this.dataService.getUserId());
 
-				if (change === "degrade") {
-					this.dataService.degradeState(this.stateUpdateData).subscribe();
+				if (change === "drop") {
+					this.dataService.dropRequest(this.stateUpdateData).subscribe();
 				} else {
 					this.dataService.upgradeState(this.stateUpdateData).subscribe();
 				}

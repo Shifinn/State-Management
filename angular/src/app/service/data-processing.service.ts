@@ -207,6 +207,11 @@ export class DataProcessingService {
 		return this.http.put(url, stateUpdateData);
 	}
 
+	dropRequest(stateUpdateData: UpdateState) {
+		const url = `${this.host}/dropRequest`;
+		return this.http.put(url, stateUpdateData);
+	}
+
 	getTimeDifferenceInHour(dateRef: Date): number {
 		return Math.abs(Date.now() - new Date(dateRef).getTime()) / 3600000;
 	}
