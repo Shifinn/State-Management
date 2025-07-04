@@ -8,6 +8,7 @@ import { PopUpPeriodPickerComponent } from "../pop-up-period-picker/pop-up-perio
 import { MatTooltipModule } from "@angular/material/tooltip";
 import { CommonModule, DatePipe } from "@angular/common";
 import { PeriodPickerService } from "../../service/period-picker.service";
+import { delay } from "rxjs";
 
 @Component({
 	selector: "app-period-picker",
@@ -29,6 +30,8 @@ export class PeriodPickerComponent {
 	currentPeriodMenu = signal<CachedPeriodPickerMemory | undefined>(undefined);
 
 	ngOnInit() {
+		delay(30);
+
 		this.clickPeriodType("WEEK");
 	}
 
@@ -49,6 +52,7 @@ export class PeriodPickerComponent {
 				return;
 			}
 			this.clickNewPeriod(tempPeriodArray[tempPeriodArray.length - 1]);
+		} else {
 		}
 		this.changePeriodType.emit();
 	}

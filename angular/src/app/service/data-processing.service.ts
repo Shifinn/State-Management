@@ -231,12 +231,13 @@ export class DataProcessingService {
 	}
 
 	getOldestPeriodTimeFromMemory(): Observable<Date> {
+		console.log("get oldest time");
 		const oldestTimeStr = localStorage.getItem("oldestTime");
 		const oldestTimeSavedAtStr = localStorage.getItem("oldestTimeSavedAt");
 		if (oldestTimeStr && oldestTimeSavedAtStr) {
 			const savedAt = new Date(oldestTimeSavedAtStr).getTime();
 			const now = Date.now();
-			const oneHourMs = 60 * 60 * 1000;
+			const oneHourMs = 10 * 60 * 1000;
 			if (now - savedAt < oneHourMs) {
 				return of(new Date(oldestTimeStr));
 			}

@@ -73,7 +73,7 @@ export class ProgressPageComponent {
 	 */
 	showStateData(input: CachedProgrestCardMemory) {
 		if (!this.checkPreviousStateSelection(input)) return;
-
+		console.log("new state data");
 		this.currentViewStatus.set(input);
 
 		const currentStateId = this.visibleStateData()[0]?.stateNameId;

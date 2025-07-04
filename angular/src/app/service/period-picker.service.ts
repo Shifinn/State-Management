@@ -2,7 +2,7 @@ import { inject, Injectable, signal } from "@angular/core";
 import { DataProcessingService } from "./data-processing.service";
 import type { PeriodGranularity, TimePeriod } from "../model/format.type";
 import { DatePipe } from "@angular/common";
-import { map, type Observable } from "rxjs";
+import { delay, map, type Observable } from "rxjs";
 
 @Injectable({
 	providedIn: "root",
@@ -53,6 +53,16 @@ export class PeriodPickerService {
 		return "updated";
 	}
 
+	// setCurrentPeriod(periodType: PeriodGranularity) {
+	// 	const tempPeriodArray = this.availablePeriod().get(periodType);
+	// 	if (tempPeriodArray?.length) {
+	// 		const tempPeriod = tempPeriodArray[tempPeriodArray.length - 1];
+	// 		if (periodType === this.currentPeriod()?.periodType) {
+	// 			return;
+	// 		}
+	// 		// this.clickNewPeriod(tempPeriodArray[tempPeriodArray.length - 1]);
+	// 	}
+	// }
 	setCurrentPeriodTooltip() {
 		const current = this.currentPeriod();
 		if (!current) {

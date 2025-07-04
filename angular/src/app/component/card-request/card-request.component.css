@@ -19,7 +19,8 @@
 	height: fit-content;
 	font-size: 0.95em;
 	vertical-align: baseline;
-	margin-left: 0.1em;
+	padding-left: 0.1em;
+	padding-right: 0.1em;
 	transform: translateY(0.15em);
 }
 
@@ -47,7 +48,9 @@
 
 .reminder {
 	color: red;
-	margin-right: 0.3em;
+	/* margin-right: 0.2em; */
+	font-size: 1.25em;
+	padding: 0.2em;
 	font-weight: bolder;
 }
 
