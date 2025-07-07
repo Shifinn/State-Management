@@ -24,8 +24,8 @@
     <div class="row">
       <mat-form-field appearance="outline" class="field">
         <mat-label [class.smaller-label]="innerWidth() < 600">HARAPAN SELESAI</mat-label>
-        <input matInput name="finishDate" [matDatepicker]="picker" [(ngModel)]="data.requestedFinishDate" [min]="today"
-          required />
+        <input matInput name="finishDate" [matDatepicker]="picker" [(ngModel)]="data.requestedFinishDate"
+          [min]="today()" required />
         <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
         <mat-datepicker #picker></mat-datepicker>
         <mat-error *ngIf="requestForm.submitted && !data.requestedFinishDate">

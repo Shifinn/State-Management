@@ -19,11 +19,14 @@ import { DIALOG_DATA } from "@angular/cdk/dialog";
 	styleUrl: "./dialog-more-details-confirmation.component.css",
 })
 export class DialogMoreDetailsConfirmationComponent {
+	// information on which type of state update need confirmation
 	data_input = inject(DIALOG_DATA);
 	comment = "";
+	// base "required" of the comment input (not necessary for update)
 	require = false;
 
 	ngOnInit() {
+		// set "required" to true for dropping request
 		if (this.data_input.type === "drop") {
 			this.require = true;
 		}

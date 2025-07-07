@@ -14,36 +14,41 @@ import { Router } from "@angular/router";
 	styleUrl: "./dashboard-page.component.css",
 })
 export class DashboardPageComponent {
-	// Injecting DataProcessingService to handle API calls
+	// Injecting necessary services
 	dataService = inject(DataProcessingService);
-	// Injecting MatDialog to call dialog pop-ups
+	// Injecting MatDialog for newRequest dialog
 	dialog = inject(MatDialog);
 	// Injecting Router to handle routing
 	router = inject(Router);
-	//init signal for the data of the user's request
+	// Signal for the data of the user's existing request shown in the form of cards
 	requests = signal<Array<SimpleData>>([]);
 
+	// Width of the window.
 	innerWidth = signal<number>(window.innerWidth);
 
+	// This listens for the browser's 'resize' event on the window object and updates accordingly.
 	@HostListener("window:resize", ["$event"])
 	onResize(event: Event) {
 		this.innerWidth.set(window.innerWidth);
 	}
 
 	ngOnInit(): void {
+		//Refreshes visible requests (initializes in this case)
 		this.refreshRequests();
 	}
 
+	// Handles submission of a new request by calling the newRequest dialog
 	makeNewRequest() {
+		// Uses the MatDialog service to open the DialogNewRequestQuestionnaireComponent.
 		const dialogRef = this.dialog.open(DialogNewRequestQuestionnaireComponent, {
-			autoFocus: false,
+			autoFocus: false, // Disables auto focusing on an element
 			width: "90vw",
 			height: "90vh",
 			maxWidth: "90vw",
 			maxHeight: "fit-content",
 			panelClass: "custom-dialog-container",
 		});
-
+		// Refreshes the display of request upon successful submission (truthy result)
 		dialogRef.afterClosed().subscribe((result) => {
 			if (result) {
 				this.refreshRequests();
@@ -51,6 +56,8 @@ export class DashboardPageComponent {
 		});
 	}
 
+	// Calls a function from dataService that execute an api call to get user's existing requests data.
+	// Then updates into variable.
 	refreshRequests() {
 		this.dataService
 			.getUserRequest(this.dataService.getUserId())

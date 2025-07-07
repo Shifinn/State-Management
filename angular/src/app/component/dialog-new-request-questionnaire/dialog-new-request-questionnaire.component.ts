@@ -49,12 +49,15 @@ import { HttpEventType } from "@angular/common/http";
 	],
 })
 export class DialogNewRequestQuestionnaireComponent {
+	// Inject necessary services
 	dataService = inject(DataProcessingService);
-	questions = signal<Array<Question>>([]);
 	dialogRef = inject(MatDialogRef<DialogNewRequestQuestionnaireComponent>);
-	@ViewChild("requestForm") requestForm!: NgForm; // Get reference to the form
 
-	today = new Date();
+	// A reference to the form in the html, used to check its validity.
+	@ViewChild("requestForm") requestForm!: NgForm;
+	// A signal to hold the list of requrement questions fetched from the service.
+	questions = signal<Array<Question>>([]);
+	// Data object to submit a new request that is updated as the request form is filled
 	data: NewRequest = {
 		requestTitle: "",
 		userId: 0,
@@ -71,102 +74,131 @@ export class DialogNewRequestQuestionnaireComponent {
 		excelAttachment: null,
 		excelFilename: null,
 	};
-	innerWidth = signal<number>(window.innerWidth);
+
+	// Signals to change the UI state for the file upload when a new request is uploaded.
 	isUploading = signal(false);
 	uploadProgress = signal(0);
+	// Signals for displaying file size validation warnings.
 	docxUploadSizewarning = signal<string | null>(null);
 	excelUploadSizewarning = signal<string | null>(null);
+	// Signal for
+	today = signal<Date>(new Date());
 
+	// Width of the window.
+	innerWidth = signal<number>(window.innerWidth);
+
+	// This listens for the browser's 'resize' event on the window object and updates accordingly.
 	@HostListener("window:resize", ["$event"])
 	onResize(event: Event) {
 		this.innerWidth.set(window.innerWidth);
 	}
+
+	// Submits the new request form to the backend.
 	submitRequest() {
+		// Mark all form fields as touched to trigger the display of any validation errors.
 		this.requestForm.form.markAllAsTouched();
+		// Proceed only if the form is valid (all required fields are filled).
 		if (this.allRequirementsAnswered()) {
+			// Standardize capitalization for consistency.
 			this.data.requestTitle = this.data.requestTitle
 				.toLowerCase()
 				.replace(/\b\w/g, (char) => char.toUpperCase());
 			this.data.picRequest = this.data.picRequest.toLowerCase();
+			// Populate user-specific data from the service.
 			this.data.userId = Number(this.dataService.getUserId());
 			this.data.requesterName = this.dataService.getUserName();
+			// Collect all answers of the requirement questions.
 			this.data.answers = this.questions().map((q) => q.answer);
 
+			// Set UI state to show the upload progress indicator.
 			this.isUploading.set(true);
 			this.uploadProgress.set(0);
 			this.resizeForUploadProgress();
+
+			// Call the service to post the new request. The service returns an observable
+			// that emits progress events.
 			this.dataService.postNewRequest(this.data).subscribe({
 				next: (event) => {
-					// We check the type of event
+					// Check the type of the HTTP event.
 					if (event.type === HttpEventType.UploadProgress) {
-						// This event gives us the loaded and total bytes
+						// If it's a progress event, calculate the percentage complete.
 						if (event.total) {
 							const progress = Math.round(100 * (event.loaded / event.total));
-							this.uploadProgress.set(progress); // Update the signal
+							this.uploadProgress.set(progress); // Update the progress signal.
 						}
 					} else if (event.type === HttpEventType.Response) {
-						// This event means the upload is complete and we have a server response
-						this.dialogRef.close("1"); // Close the dialog on success
+						// If it's a response event, the upload is complete.
+						// Close the dialog on success.
+						this.dialogRef.close("1");
 					}
 				},
 				error: (err) => {
-					// Handle any upload errors
+					// If an error occurs, reset the UI state back to form.
 					console.error("Upload failed:", err);
 					this.isUploading.set(false);
 					this.uploadProgress.set(0);
 					this.resizeForUploadProgress();
 				},
 			});
-			// .subscribe((result) => {
-			// 	console.log(`the new request id from new request is:${result}`);
-			// 	this.dialogRef.close("1");
-			// });
 		}
 	}
 
+	// Adjusts the dialog size to provide a better user experience during upload.
 	resizeForUploadProgress() {
 		if (this.isUploading()) {
+			// Shrink the dialog to focus on the progress bar.
 			this.dialogRef.updateSize("");
 		} else {
+			// Restore the dialog to its original size.
 			this.dialogRef.updateSize("90vw");
 		}
 	}
 
+	// Fetches the requirement questions based on the selected requirement type.
 	getQuestion() {
+		// Only fetch questions if a requirement type has been selected.
 		if (this.data.requirementType != null) {
 			this.dataService
 				.getRequirementQuestion(this.data.requirementType)
 				.subscribe((input) => {
+					// Update the questions signal with the fetched data, causing the UI to render them.
 					this.questions.set(input);
 				});
 		}
 	}
 
+	// Checks if the main form is valid.
 	allRequirementsAnswered(): boolean {
+		// Returns true only if the form reference exists and its valid status is true.
 		if (this.requestForm.valid == null || this.requestForm.valid === false) {
 			return false;
 		}
 		return true;
 	}
 
+	// Handles the file input change event for attachments.
 	submitFile(event: Event, type: "EXCEL" | "DOCX") {
-		console.log("submit file trigger");
+		// Cast the event target to an HTMLInputElement to access its `files` property.
 		const input = event.target as HTMLInputElement;
 
+		// Proceed only if a valid file has been selected.
 		if (input.files && input.files.length > 0) {
 			const file = input.files[0];
-			if (file.size > 4.5 * 1024 * 1024) {
+			// Validate the file size to ensure it does not exceed the 2MB limit.
+			if (file.size > 2 * 1024 * 1024) {
+				// Display a warning message and clear the file data if the size is too large.
 				if (type === "EXCEL") {
-					this.excelUploadSizewarning.set("Excel file lebih dari 4.5MB");
+					this.excelUploadSizewarning.set("Excel file must be less than 2MB");
 					this.data.excelAttachment = null;
 					this.data.excelFilename = null;
 				} else {
-					this.docxUploadSizewarning.set("file lebih dari 4.5MB");
+					this.docxUploadSizewarning.set("File must be less than 2MB");
 					this.data.docxAttachment = null;
 					this.data.docxFilename = null;
 				}
-				return;
+				return; // Stop further processing.
 			}
+			// If the file is valid, clear any existing warnings and store the file data.
 			if (type === "EXCEL") {
 				this.excelUploadSizewarning.set(null);
 				this.data.excelAttachment = file;

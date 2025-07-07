@@ -42,14 +42,6 @@ export const routes: Routes = [
 					),
 				outlet: "home",
 			},
-			{
-				path: "profile",
-				loadComponent: () =>
-					import("./page_component/profile-page/profile-page.component").then(
-						(c) => c.ProfilePageComponent,
-					),
-				outlet: "home",
-			},
 		],
 	},
 ];
