@@ -164,7 +164,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
+-- Drops (mark as not worked on anymore) a request to a REJECTED state.
 CREATE OR REPLACE PROCEDURE drop_request(
     request_id_input INT,
     user_id_input    INT,

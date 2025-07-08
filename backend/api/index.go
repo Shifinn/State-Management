@@ -467,13 +467,37 @@ func postNewRequest(c *gin.Context) {
 	newReq.DocxFilename = c.PostForm("docxFilename")
 	newReq.ExcelFilename = c.PostForm("excelFilename")
 
-	newReq.UserID, _ = strconv.Atoi(c.PostForm("userId"))
-	newReq.RequirementType, _ = strconv.Atoi(c.PostForm("requirementType"))
-	newReq.Urgent, _ = strconv.ParseBool(c.PostForm("urgent"))
+	// Handle integer conversion for UserID
+	if userId, err := strconv.Atoi(c.PostForm("userId")); err != nil {
+		checkErr(c, http.StatusBadRequest, err, "Invalid format for userId")
+		return
+	} else {
+		newReq.UserID = userId
+	}
 
-	dateStr := c.PostForm("requestedFinishDate")
-	newReq.RequestedFinishDate, _ = time.Parse(time.RFC3339, dateStr)
+	// Handle integer conversion for RequirementType
+	if reqType, err := strconv.Atoi(c.PostForm("requirementType")); err != nil {
+		checkErr(c, http.StatusBadRequest, err, "Invalid format for requirementType")
+		return
+	} else {
+		newReq.RequirementType = reqType
+	}
 
+	// Handle boolean conversion for Urgent
+	if urgent, err := strconv.ParseBool(c.PostForm("urgent")); err != nil {
+		checkErr(c, http.StatusBadRequest, err, "Invalid format for urgent flag")
+		return
+	} else {
+		newReq.Urgent = urgent
+	}
+
+	// Handle date parsing for RequestedFinishDate
+	if finishDate, err := time.Parse(time.RFC3339, c.PostForm("requestedFinishDate")); err != nil {
+		checkErr(c, http.StatusBadRequest, err, "Invalid date format for requestedFinishDate, use RFC3339")
+		return
+	} else {
+		newReq.RequestedFinishDate = finishDate
+	}
 	// Answers are sent as a JSON string and must be unmarshaled.
 	if answersJSON := c.PostForm("answers"); answersJSON != "" {
 		if err := json.Unmarshal([]byte(answersJSON), &newReq.Answers); err != nil {
@@ -728,8 +752,8 @@ func sendReminderEmailToRole(c *gin.Context, roleIDInput string, stateNameInput 
 // It uses hardcoded SMTP credentials for demonstration purposes.
 func sendReminderEmail(emails []string, state string, body ...string) string {
 	// In a real application, these should be loaded securely from environment variables.
-	smtpUser := "testinggomail222@gmail.com"
-	smtpPass := "nlef zdjv kfac shox"
+	smtpUser := os.Getenv("SMTP_USER")
+	smtpPass := os.Getenv("SMTP_PASS")
 	if smtpUser == "" || smtpPass == "" {
 		log.Println("ERROR: SMTP credentials not set, cannot send email.")
 		return ""
