@@ -478,7 +478,7 @@ BEGIN
         JOIN state_name_table n ON r.current_state = n.state_name_id
         JOIN requirement_type_table rt ON r.requirement_type_id = rt.requirement_type_id
         WHERE r.user_id = user_id_input
-        ORDER BY r.request_id
+        ORDER BY n.state_name_id,r.request_id
     ) t;
 
     -- Return an empty JSON array if no results are found.
@@ -558,7 +558,7 @@ BEGIN
         WHERE s.state_name_id = ANY(viewable)
           -- Ensures we only get the current, active state.
           AND s.state_name_id = r.current_state
-        ORDER BY rt.requirement_type_id, s.state_name_id ASC, r.request_id
+        ORDER BY s.state_name_id ASC, rt.requirement_type_id, r.request_id
     ) t;
 
     -- Return an empty JSON array if no results are found.
