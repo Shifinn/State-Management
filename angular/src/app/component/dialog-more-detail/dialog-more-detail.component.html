@@ -5,12 +5,12 @@
   <div class="row">
     @if (data().requestTitle) {
     <div class="requirement-item">
-      <label class="question-text">Judul</label>
+      <label class="basic-text">Judul</label>
       <div class="readonly-field">{{ data().requestTitle }}</div>
     </div>
     } @if (data().stateName) {
     <div class="requirement-item">
-      <label class="question-text">Status</label>
+      <label class="basic-text">Status</label>
       <div class="readonly-field">{{ data().stateName }}</div>
     </div>
     }
@@ -19,12 +19,12 @@
   <div class="row">
     @if (data().requesterName) {
     <div class="requirement-item">
-      <label class="question-text">Requester Name</label>
+      <label class="basic-text">Requester Name</label>
       <div class="readonly-field">{{ data().requesterName }}</div>
     </div>
     } @if (data().picSubmitter) {
     <div class="requirement-item">
-      <label class="question-text">PIC Submitter</label>
+      <label class="basic-text">PIC Submitter</label>
       <div class="readonly-field">{{ data().picSubmitter }}</div>
     </div>
     }
@@ -33,12 +33,12 @@
   <div class="row">
     @if (data().dataTypeName) {
     <div class="requirement-item">
-      <label class="question-text">Tipe Data</label>
+      <label class="basic-text">Tipe Data</label>
       <div class="readonly-field">{{ data().dataTypeName }}</div>
     </div>
     } @if (data().urgent !== null) {
     <div class="requirement-item">
-      <label class="question-text">Urgency</label>
+      <label class="basic-text">Urgency</label>
       <div class="readonly-field">
         {{ data().urgent ? "URGENT" : "NOT URGENT" }}
       </div>
@@ -49,14 +49,14 @@
   <div class="row">
     @if (data().requestDate) {
     <div class="requirement-item">
-      <label class="question-text">Tanggal Request</label>
+      <label class="basic-text">Tanggal Request</label>
       <div class="readonly-field">
         {{ data().requestDate | date : "longDate" }}
       </div>
     </div>
     } @if (data().requestedCompletedDate) {
     <div class="requirement-item">
-      <label class="question-text">Harapan Selesai</label>
+      <label class="basic-text">Harapan Selesai</label>
       <div class="readonly-field">
         {{ data().requestedCompletedDate | date : "longDate" }}
       </div>
@@ -66,7 +66,7 @@
   @if (data().filenames.length ) {
   <div class="row">
     <div class="requirement-item">
-      <label class="question-text">Docx File</label>
+      <label class="basic-text">Docx File</label>
       <div class="readonly-field file-field">
         {{ data().filenames[0].attachmentFilename }}
         <button mat-icon-button class="download-icon-button" (click)="downloadAttachment(0)">
@@ -76,7 +76,7 @@
     </div>
 
     <div class="requirement-item">
-      <label class="question-text">Excel File</label>
+      <label class="basic-text">Excel File</label>
       <div class="readonly-field file-field">
         {{ data().filenames[1].attachmentFilename }}
         <button mat-icon-button class="download-icon-button" (click)="downloadAttachment(1)">
@@ -89,7 +89,7 @@
   <div class="row">
     @if (data().analysisPurpose) {
     <div class="requirement-item wide">
-      <label class="question-text">Analysis Purpose</label>
+      <label class="basic-text">Analysis Purpose</label>
       <div class="readonly-field">{{ data().analysisPurpose }}</div>
     </div>
     }
@@ -98,7 +98,7 @@
   @if (data().remark) {
   <div class="row">
     <div class="requirement-item wide">
-      <label class="question-text">Remark</label>
+      <label class="basic-text">Remark</label>
       <div class="readonly-field">{{ data().remark }}</div>
     </div>
   </div>
@@ -107,7 +107,7 @@
   <div class="row">
     @if (data().stateComment && data().stateName == 'REQUEST REJECTED') {
     <div class="requirement-item wide">
-      <label class="question-text">Reason for rejection</label>
+      <label class="basic-text">Reason for rejection</label>
       <div class="readonly-field">{{ data().stateComment }}</div>
     </div>
     }
@@ -117,11 +117,11 @@
     <h3 class="request-title">Pertanyaan Request</h3>
     @for (question of data().questions; track question.requirementQuestionId) {
     <div class="row">
-      <div class="question-text">
+      <div class="basic-text">
         {{ question.requirementQuestionId % 100 }}.
       </div>
       <div class="requirement-item wide">
-        <label class="question-text">{{ question.requirementQuestion }}</label>
+        <label class="basic-text">{{ question.requirementQuestion }}</label>
         <div class="readonly-field">{{ question.answer }}</div>
       </div>
     </div>

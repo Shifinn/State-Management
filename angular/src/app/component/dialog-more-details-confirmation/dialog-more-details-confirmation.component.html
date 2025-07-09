@@ -1,17 +1,12 @@
 <div class="dialog-container">
-  <h2 mat-dialog-title class="question-text">Approve to continue?</h2>
+  <h2 mat-dialog-title class="basic-text">Approve to continue?</h2>
 
   <mat-form-field appearance="outline" class="wide-field">
-    <textarea
-      matInput
-      rows="3"
-      [(ngModel)]="comment"
-      required="require"
-    ></textarea>
+    <textarea matInput rows="3" [(ngModel)]="comment" required="require"></textarea>
   </mat-form-field>
 
   <div class="row justify-end gap">
-    <button mat-stroked-button color="warn" [mat-dialog-close] = false>No</button>
-    <button mat-flat-button color="primary" [mat-dialog-close] ="comment">Yes</button>
+    <button mat-stroked-button color="warn" [mat-dialog-close]=false>No</button>
+    <button mat-flat-button color="primary" [mat-dialog-close]="comment">Yes</button>
   </div>
 </div>

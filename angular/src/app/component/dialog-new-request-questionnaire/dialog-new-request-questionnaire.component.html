@@ -115,11 +115,11 @@
     <div>
       @for (question of questions(); track question.requirementQuestionId) {
       <div class="row">
-        <div class="question-text">
+        <div class="basic-text">
           {{ question.requirementQuestionId % 100 }}.
         </div>
         <div class="requirement-item">
-          <label class="question-text">{{
+          <label class="basic-text">{{
             question.requirementQuestion
             }}</label>
           <mat-form-field appearance="outline" class="wide-field">
