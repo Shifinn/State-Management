@@ -22,11 +22,22 @@ export class TodoPageService {
 	// Data of the time treshold for each state until a visual warning will be displayed
 	public readonly todoStateThreshold = signal<Array<StateThreshold>>([]);
 
+	// flag to check if this is the initialization for the service
+	private hasTodoData = false;
+
 	constructor() {
 		// Init the warning threshold for each state
 		this.getThreshold();
 	}
 
+	// set
+	setHasTodoDataTrue() {
+		this.hasTodoData = true;
+	}
+
+	getHasTodoData(): boolean {
+		return this.hasTodoData;
+	}
 	// Fetch the data of the time threshold for each state from backend
 	// using getStateThreshold() from dataService
 	getThreshold() {
@@ -89,5 +100,6 @@ export class TodoPageService {
 		this.todoMap().set("TODO", []);
 		this.todoMap().set("IN PROGRESS", []);
 		this.todoMap().set("DONE", []);
+		this.hasTodoData = false;
 	}
 }

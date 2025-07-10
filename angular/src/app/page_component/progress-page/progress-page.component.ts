@@ -46,6 +46,16 @@ export class ProgressPageComponent {
 		this.innerWidth.set(window.innerWidth);
 	}
 
+	ngOnInit() {
+		// Checks if state data have been initialized
+		if (this.progressService.getHasStateData() === false) {
+			// Update and fetch if data is not initialized
+			this.progressService.updatePeriodAndFetchData().subscribe();
+			// set flag to true
+			this.progressService.setHasStateDataTrue();
+		}
+	}
+
 	// Toggles the "shrunk" state of the state count cards
 	toggleShrink(input: number) {
 		// Sets the state based on the input (0 for false, 1 for true).
@@ -55,7 +65,7 @@ export class ProgressPageComponent {
 	// Handles the event emitted from the period picker when the user selects a new time period.
 	periodUpdate(newPeriod: TimePeriod) {
 		// Calls the service to update the period to the new period.
-		this.progressService.updatePeriodAndFetchData(newPeriod).subscribe(() => {
+		this.progressService.updatePeriodAndFetchData().subscribe(() => {
 			// If the currently state specific request cards are visible,
 			// change the current request filter accordingly
 			if (this.isShrunk()) {

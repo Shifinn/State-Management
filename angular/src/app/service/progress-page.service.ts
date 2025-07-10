@@ -6,7 +6,8 @@ import type {
 	StatusInfo,
 	TimePeriod,
 } from "../model/format.type";
-import { type Observable, tap } from "rxjs";
+import { type Observable, of, tap } from "rxjs";
+import { PeriodPickerService } from "./period-picker.service";
 
 @Injectable({
 	providedIn: "root",
@@ -14,10 +15,12 @@ import { type Observable, tap } from "rxjs";
 export class ProgressPageService {
 	// Inject necessary services
 	private dataService = inject(DataProcessingService);
+	private periodPickerService = inject(PeriodPickerService);
 
 	// Stores the currently selected time period, which provides context for the current UI display.
 	private currentPeriod!: TimePeriod;
-
+	// A flag to ensure data has been fetched from api
+	private hasStateData = false;
 	// A signal that holds the counts for each state (e.g., "SUBMITTED: 5 todo, 10 Done").
 	// Used to display the state count
 	readonly progressInfo = signal<Array<StatusInfo>>([]);
@@ -31,10 +34,24 @@ export class ProgressPageService {
 		["DONE", []],
 	]);
 
+	// Get data state (present or not)
+	getHasStateData(): boolean {
+		return this.hasStateData;
+	}
+	// Set data state to present
+	setHasStateDataTrue() {
+		this.hasStateData = true;
+	}
 	// Handles the process of selecting a new period.
 	// Used when the user selects a new period on the periodPicker component.
-	updatePeriodAndFetchData(newPeriod: TimePeriod): Observable<StatusInfo[]> {
+	updatePeriodAndFetchData(): Observable<StatusInfo[]> {
 		// Update the service's current period context.
+		const newPeriod = this.periodPickerService.currentPeriod();
+
+		// if null return empty set
+		if (newPeriod === null) {
+			return of([]);
+		}
 		this.currentPeriod = newPeriod;
 		// Clear all previously cached data to prevent showing stale information.
 		this.clearStateData();
@@ -115,6 +132,7 @@ export class ProgressPageService {
 		this.progressInfo.set([]);
 		this.clearStateData();
 		this.currentPeriod = undefined as unknown as TimePeriod;
+		this.hasStateData = false;
 	}
 
 	// Filter a list of requests based on their `completed` status.

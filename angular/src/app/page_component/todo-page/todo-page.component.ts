@@ -56,14 +56,21 @@ export class TodoPageComponent {
 	// Updates the `visibleTodo` signal based on the current menu and filter selections.
 	setVisibleBasedOnFilter() {
 		// Retrieve the appropriate category of the curren todo menu from the service's cached map.
-		const currentCategory =
+		let currentCategory =
 			this.todoService.todoMap().get(this.currentMenu) ?? [];
 		// If the category is empty (e.g., on first load), trigger a data refresh.
-		// if (currentCategory.length === 0) {
-		// 	this.refreshData();
-		// 	// Re-attempt to get the data after the refresh.
-		// 	currentCategory = this.todoService.todoMap().get(this.currentMenu) ?? [];
-		// }
+		// check if the category is empty and if data present
+		if (
+			currentCategory.length === 0 &&
+			this.todoService.getHasTodoData() === false
+		) {
+			// If data not present, get data
+			this.refreshData();
+			// Set has todo data to true
+			this.todoService.setHasTodoDataTrue();
+			// Re-attempt to get the data after the refresh.
+			currentCategory = this.todoService.todoMap().get(this.currentMenu) ?? [];
+		}
 
 		// If the filter is set to "All" (-1), display the entire category.
 		if (this.currentFilter === -1) {

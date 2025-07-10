@@ -282,8 +282,7 @@ export class PeriodPickerService {
 			// Convert the raw result to a Date object.
 			map((result) => new Date(result)),
 			// `shareReplay(1)` caches the last emitted value and shares it with any
-			// new subscribers. This is the core of the caching mechanism, ensuring
-			// the API is only hit once per service instance.
+			// new subscribers, to make sure the API is only called once per service instance.
 			shareReplay(1),
 		);
 
