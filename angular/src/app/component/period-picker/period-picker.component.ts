@@ -62,7 +62,6 @@ export class PeriodPickerComponent {
 					this.newInit = false;
 					return;
 				}
-				console.log("continue");
 				if (now !== null) {
 					this.newPeriod.emit(now);
 				}

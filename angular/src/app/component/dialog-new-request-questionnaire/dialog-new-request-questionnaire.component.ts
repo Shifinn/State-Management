@@ -134,7 +134,6 @@ export class DialogNewRequestQuestionnaireComponent {
 				},
 				error: (err) => {
 					// If an error occurs, reset the UI state back to form.
-					console.error("Upload failed:", err);
 					this.isUploading.set(false);
 					this.uploadProgress.set(0);
 					this.resizeForUploadProgress();

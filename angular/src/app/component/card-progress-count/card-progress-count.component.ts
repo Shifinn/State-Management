@@ -65,20 +65,25 @@ export class CardProgressCountComponent {
 
 		// Use a switch statement to handle the logic for each click type.
 		// The event is only emitted if the corresponding count is greater than zero,
-		// preventing the user from trying to filter an empty set.
+		// preventing the user from trying to filter an empty set
+		// or the button is active as way to go back to count only view
 		switch (inputType) {
 			case "TOTAL":
-				if (this.progressInfo.todo > 0 || this.progressInfo.done > 0) {
+				if (
+					this.progressInfo.todo > 0 ||
+					this.progressInfo.done > 0 ||
+					this.isActive() === 3
+				) {
 					this.buttonClick.emit(output);
 				}
 				break;
 			case "TODO":
-				if (this.progressInfo.todo > 0) {
+				if (this.progressInfo.todo > 0 || this.isActive() === 1) {
 					this.buttonClick.emit(output);
 				}
 				break;
 			case "DONE":
-				if (this.progressInfo.done > 0) {
+				if (this.progressInfo.done > 0 || this.isActive() === 2) {
 					this.buttonClick.emit(output);
 				}
 				break;
