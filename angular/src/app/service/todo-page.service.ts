@@ -1,7 +1,8 @@
-import { inject, Injectable, signal } from "@angular/core";
+import { effect, inject, Injectable, Injector, signal } from "@angular/core";
 import { DataProcessingService } from "./data-processing.service";
 import type { SimpleData, StateThreshold } from "../model/format.type";
 import { type Observable, tap } from "rxjs";
+import { TickCounterService } from "./tick-counter.service";
 
 @Injectable({
 	providedIn: "root",
@@ -9,6 +10,10 @@ import { type Observable, tap } from "rxjs";
 export class TodoPageService {
 	// Injects necessary sevices
 	private dataService = inject(DataProcessingService);
+	// To reset todo data every hour
+	private counterService = inject(TickCounterService);
+	// For effect usage
+	private injector = inject(Injector);
 
 	// Cached todo request data.
 	// Used for the todo requests display.
@@ -24,10 +29,29 @@ export class TodoPageService {
 
 	// flag to check if this is the initialization for the service
 	private hasTodoData = false;
-
+	// flag to check if this is the first init
+	private newInit = true;
+	// An `effect` runs automatically whenever any signal it reads changes.
+	// Watches `counterService.currentTimeHour()` to refresh data each hour
 	constructor() {
 		// Init the warning threshold for each state
 		this.getThreshold();
+
+		effect(
+			() => {
+				// Reading the signal from service.
+				const currentHour = this.counterService.currentTimeHour();
+
+				// If this is the first initialization, do not refresh
+				if (this.newInit === true) {
+					this.newInit = false;
+					return;
+				}
+				// if the signal has changed, trigger refresh
+				this.refreshTodoData();
+			},
+			{ injector: this.injector },
+		);
 	}
 
 	// set
@@ -101,5 +125,6 @@ export class TodoPageService {
 		this.todoMap().set("IN PROGRESS", []);
 		this.todoMap().set("DONE", []);
 		this.hasTodoData = false;
+		this.newInit = true;
 	}
 }

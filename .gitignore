@@ -25,3 +25,5 @@ backup-db.sql
 DATA.sql
 api/Files
 backend/api/.env
+backup-db-data-only-v2.sql
+backup-db-scheman-only-v2.sql

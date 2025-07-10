@@ -35,7 +35,8 @@ import type { SimpleData, StateThreshold } from "../../model/format.type";
 export class CardRequestComponent {
 	// Inject necessary services
 	private dataService = inject(DataProcessingService);
-	private tickCounter = inject(TickCounterService);
+	// To reset age of req and warning every second
+	private counterService = inject(TickCounterService);
 	// Inject dialog for more details
 	private dialog = inject(MatDialog);
 
@@ -48,10 +49,10 @@ export class CardRequestComponent {
 	@Output() refresh = new EventEmitter<void>();
 
 	// This signal calculates and formats the total duration since the request was created.
-	// It reactively updates every second because it depends on `tickCounter.currentTime()`.
+	// It reactively updates every second because it depends on `counterService.currentTimeMs()`.
 	public readonly requestDurationString: Signal<string> = computed(() => {
 		// Reads the current time from the shared timer service.
-		const now = this.tickCounter.currentTime();
+		const now = this.counterService.currentTimeMs();
 		// Gets the creation date of the request from the input data.
 		const dateRef = this.request.requestDate;
 		// Calculates the difference from time of request creation till now in days and hours.
@@ -64,7 +65,7 @@ export class CardRequestComponent {
 	// It only returns a string if the duration exceeds the configured threshold, creating a warning message.
 	public readonly stateDurationString: Signal<string> = computed(() => {
 		// Reads the current time from the shared timer service.
-		const now = this.tickCounter.currentTime();
+		const now = this.counterService.currentTimeMs();
 		// Find the specific time threshold for the request's current state.
 		const threshold = this.reminderTooltip?.find(
 			(s) => s.stateNameId === this.request.stateNameId,

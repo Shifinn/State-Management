@@ -1,4 +1,4 @@
-import { inject, Injectable, signal } from "@angular/core";
+import { effect, inject, Injectable, Injector, signal } from "@angular/core";
 import { DataProcessingService } from "./data-processing.service";
 import type {
 	StateInfoData,
@@ -8,6 +8,7 @@ import type {
 } from "../model/format.type";
 import { type Observable, of, tap } from "rxjs";
 import { PeriodPickerService } from "./period-picker.service";
+import { TickCounterService } from "./tick-counter.service";
 
 @Injectable({
 	providedIn: "root",
@@ -16,15 +17,21 @@ export class ProgressPageService {
 	// Inject necessary services
 	private dataService = inject(DataProcessingService);
 	private periodPickerService = inject(PeriodPickerService);
+	// For data reset every hour
+	private counterService = inject(TickCounterService);
+	// For the usage of effect
+	private injector = inject(Injector);
 
 	// Stores the currently selected time period, which provides context for the current UI display.
 	private currentPeriod!: TimePeriod;
 	// A flag to ensure data has been fetched from api
 	private hasStateData = false;
+	// A flag to check if this is a new init
+	private newInit = true;
+
 	// A signal that holds the counts for each state (e.g., "SUBMITTED: 5 todo, 10 Done").
 	// Used to display the state count
 	readonly progressInfo = signal<Array<StatusInfo>>([]);
-
 	// A Map used as a client-side cache for detailed request data.
 	// It stores the full list of requests for a state under the "TOTAL" key,
 	// and filtered lists under "TODO" and "DONE".
@@ -33,7 +40,28 @@ export class ProgressPageService {
 		["TODO", []],
 		["DONE", []],
 	]);
+	constructor() {
+		// An `effect` runs automatically whenever any signal it reads changes.
+		// Watches `counterService.currentTimeHour()` to refresh data each hour
+		effect(
+			() => {
+				// Reading the signal from service.
+				const currentHour = this.counterService.currentTimeHour();
 
+				// If this is the first initialization, do not refresh
+				if (this.newInit === true) {
+					this.newInit = false;
+					return;
+				}
+				// if the signal has changed, trigger refresh
+				this.getNewStateCount(
+					this.currentPeriod.startDate,
+					this.currentPeriod.endDate,
+				);
+			},
+			{ injector: this.injector },
+		);
+	}
 	// Get data state (present or not)
 	getHasStateData(): boolean {
 		return this.hasStateData;

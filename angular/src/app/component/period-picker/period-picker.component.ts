@@ -31,7 +31,7 @@ import { delay } from "rxjs";
 export class PeriodPickerComponent {
 	// Injects necessary services.
 	periodPickerService = inject(PeriodPickerService);
-	// The injector is required to create an `effect` outside of a constructor context.
+	// For the usage of effect
 	injector = inject(Injector);
 
 	// EventEmitters notify parent components of user actions or state changes.
@@ -56,17 +56,18 @@ export class PeriodPickerComponent {
 			() => {
 				// Get the current period from the service.
 				const now = this.periodPickerService.currentPeriod();
-				// When the service's current period is updated, this component emits the
-				// new period value to its parent component.
+				// If this is the first initialization, do not emit
 				if (this.newInit === true) {
 					this.newInit = false;
 					return;
 				}
+
+				// if the new period is not null, emit to signal period has changed
 				if (now !== null) {
 					this.newPeriod.emit(now);
 				}
 			},
-			{ injector: this.injector }, // Binds the effect's lifecycle to this component.
+			{ injector: this.injector },
 		);
 	}
 
