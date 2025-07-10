@@ -377,8 +377,10 @@ func getOldestRequest(c *gin.Context) {
 
 	query := `SELECT get_oldest_request()`
 	if err := db.QueryRow(query).Scan(&data); err != nil {
-		checkErr(c, http.StatusInternalServerError, err, "Failed to get oldest request")
-		return
+		log.Printf("Failed to get oldest request, err: %v", err)
+		data = time.Now()
+		// checkErr(c, http.StatusInternalServerError, err, "Failed to get oldest request")
+		// return
 	}
 	c.JSON(http.StatusOK, data)
 }

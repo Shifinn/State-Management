@@ -47,6 +47,7 @@ export class PeriodPickerComponent {
 	periodPickerVisible = signal<PeriodGranularity>("NAN");
 	// A signal to cache information about the currently open popUp menu.
 	currentPeriodMenu = signal<CachedPeriodPickerMemory | undefined>(undefined);
+	newInit = true;
 
 	ngOnInit(): void {
 		// An `effect` runs automatically whenever any signal it reads changes.
@@ -57,6 +58,11 @@ export class PeriodPickerComponent {
 				const now = this.periodPickerService.currentPeriod();
 				// When the service's current period is updated, this component emits the
 				// new period value to its parent component.
+				if (this.newInit === true) {
+					this.newInit = false;
+					return;
+				}
+				console.log("continue");
 				if (now !== null) {
 					this.newPeriod.emit(now);
 				}
