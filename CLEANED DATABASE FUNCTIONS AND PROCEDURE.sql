@@ -801,10 +801,8 @@ $$ LANGUAGE plpgsql;
 SELECT get_user_id_by_credentials('Alto', '1234')
 
 -- CLEAR DATA WITHIN TABLE
-TRUNCATE TABLE user_table;
-TRUNCATE TABLE request_table;
-TRUNCATE TABLE state_table;
-TRUNCATE TABLE requirement_table;
+TRUNCATE TABLE state_table, requirement_table, attachment_table, request_table;
+
 -- TRUNCATE TABLE requirement_type_table;
 -- TRUNCATE TABLE requirement_question_table;
 
@@ -995,6 +993,10 @@ FROM   request_table;
 
 SELECT setval(pg_get_serial_sequence('state_table', 'state_id'), COALESCE(max(state_id) + 1, 1), false)
 FROM   state_table;
+
+SELECT setval(pg_get_serial_sequence('attachment_table', 'attachment_id'), COALESCE(max(attachment_id) + 1, 1), false)
+FROM   attachment_table;
+
 
 SELECT 
   docx_attachment, 

@@ -27,3 +27,13 @@ api/Files
 backend/api/.env
 backup-db-data-only-v2.sql
 backup-db-scheman-only-v2.sql
+backend/api/index.go
+backup-db-data-only-v3.sql
+backup-db-scheman-only-v3.sql
+backup-db.zip
+CLEANED DATABASE FUNCTIONS AND PROCEDURE.sql
+data-only.sql
+new-db-backup.zip
+schemas-only.sql
+backend/api.zip
+backend/api/golang.zip
