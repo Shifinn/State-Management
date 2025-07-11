@@ -1,6 +1,6 @@
 -- Verifies user credentials and returns user details as a JSON object.
 -- Returns user data on success or a default object on failure.
-CREATE OR REPLACE FUNCTION get_user_id_by_credentials(
+CREATE OR REPLACE FUNCTION state_manager.get_user_id_by_credentials(
     username_input VARCHAR,
     password_input VARCHAR
 )
@@ -21,9 +21,9 @@ BEGIN
             u.email,
             ur.role_id AS "roleId"
         FROM
-            user_table u
+            state_manager.user_table u
         JOIN
-            user_role_table ur ON u.user_id = ur.user_id
+            state_manager.user_role_table ur ON u.user_id = ur.user_id
         WHERE
             LOWER(u.user_name) = LOWER(username_input) AND u.user_password = password_input
         LIMIT 1
@@ -43,9 +43,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
+SELECT state_manager.get_user_id_by_credentials("alice", "1234")
 -- Advances a request to the next state.
-CREATE OR REPLACE FUNCTION upgrade_state(
+CREATE OR REPLACE FUNCTION state_manager.upgrade_state(
     request_id_input INT,
     user_id_input    INT,
     comment_input    TEXT DEFAULT NULL
@@ -61,7 +61,7 @@ BEGIN
     -- Get the request's current state ID.
     SELECT current_state
     INTO temp_state_id
-    FROM request_table
+    FROM state_manager.request_table
     WHERE request_id = request_id_input;
 
     -- Prevent advancing beyond the final state.
@@ -69,7 +69,7 @@ BEGIN
         RAISE EXCEPTION 'Upgrade failed: the limit has been reached';
     ELSE
         -- Increment the state and capture the new state ID.
-        UPDATE request_table
+        UPDATE state_manager.request_table
         SET current_state = current_state + 1
         WHERE request_id = request_id_input
         RETURNING current_state INTO temp_state_id;
@@ -81,7 +81,7 @@ BEGIN
     END IF;
 
     -- Update the previous state's record to mark it as ended.
-    UPDATE state_table
+    UPDATE state_manager.state_table
     SET date_end = CURRENT_TIMESTAMP,
         completed = true,
         state_comment = comment_input,
@@ -90,13 +90,13 @@ BEGIN
       AND state_name_id = temp_state_id - 1;
 
     -- Insert a new record for the current state.
-    INSERT INTO state_table(state_name_id, request_id, started_by, completed)
+    INSERT INTO state_manager.state_table(state_name_id, request_id, started_by, completed)
     VALUES(temp_state_id, request_id_input, user_id_input, is_complete);
 
     -- Retrieve the name of the new state for the response.
     SELECT state_name
     INTO new_state_name
-    FROM state_name_table
+    FROM state_manager.state_name_table
     WHERE state_name_id = temp_state_id;
 
     RETURN json_build_object('stateName', new_state_name, 'stateId', temp_state_id);
@@ -105,7 +105,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Downgrades a request to a previous state.
-CREATE OR REPLACE FUNCTION degrade_state(
+CREATE OR REPLACE FUNCTION state_manager.degrade_state(
     request_id_input INT,
     user_id_input    INT,
     comment_input   TEXT DEFAULT NULL
@@ -115,7 +115,7 @@ DECLARE
 	new_state_name VARCHAR;
 BEGIN
     -- Decrement the state only if it's in a reversible stage.
-    UPDATE request_table
+    UPDATE state_manager.request_table
     SET current_state = current_state - 1
     WHERE request_id = request_id_input
       AND current_state = ANY(ARRAY[1,4])
@@ -123,7 +123,7 @@ BEGIN
 
     -- Handle rejection from the initial state.
     IF temp_state_id = 0 THEN
-        UPDATE state_table
+        UPDATE state_manager.state_table
         SET state_name_id = 0,
             state_comment = 'REJECTED: ' || comment_input,
             date_end = CURRENT_TIMESTAMP,
@@ -134,7 +134,7 @@ BEGIN
     -- Handle revision request from a later state.
     ELSIF temp_state_id = 3 THEN
         -- Reopen the previous state (state 3).
-        UPDATE state_table
+        UPDATE state_manager.state_table
         SET date_end = NULL,
             completed = FALSE,
             state_comment = 'REJECTED: ' || comment_input,
@@ -143,7 +143,7 @@ BEGIN
           AND state_name_id = temp_state_id;
 
         -- Create a "rejected" record for the state that was just left (state 4).
-        UPDATE state_table
+        UPDATE state_manager.state_table
         SET state_name_id = (temp_state_id + 1) * 10 + 1, -- e.g., 4 becomes 41
             state_comment = 'REJECTED: ' || comment_input,
             date_end = CURRENT_TIMESTAMP,
@@ -157,7 +157,7 @@ BEGIN
 	-- Get the new state name for the JSON response.
 	SELECT state_name
     INTO new_state_name
-    FROM state_name_table
+    FROM state_manager.state_name_table
     WHERE state_name_id = temp_state_id;
 
 	RETURN json_build_object('stateName', new_state_name, 'stateId', temp_state_id);
@@ -165,7 +165,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Drops (mark as not worked on anymore) a request to a REJECTED state.
-CREATE OR REPLACE PROCEDURE drop_request(
+CREATE OR REPLACE PROCEDURE state_manager.drop_request(
     request_id_input INT,
     user_id_input    INT,
     comment_input   TEXT DEFAULT NULL
@@ -177,16 +177,16 @@ BEGIN
 	-- Get previous temp state id
 	SELECT current_state
 	INTO temp_state_id
-	FROM request_table
+	FROM state_manager.request_table
     WHERE request_id = request_id_input;
 
 	-- set the current to 0 after getting the previous
-    UPDATE request_table
+    UPDATE state_manager.request_table
     SET current_state = 0
     WHERE request_id = request_id_input;
 
     -- set the state to complete of the last state before rejection
-	UPDATE state_table
+	UPDATE state_manager.state_table
 	SET date_end = CURRENT_TIMESTAMP,
 		completed = true,
 		ended_by = user_id_input
@@ -194,7 +194,7 @@ BEGIN
 	  AND state_name_id = temp_state_id;
 
 	-- set the state of rejection
-    INSERT INTO state_table(state_name_id, request_id, started_by, completed, state_comment)
+    INSERT INTO state_manager.state_table(state_name_id, request_id, started_by, completed, state_comment)
     VALUES(0, request_id_input, user_id_input, true, comment_input);
 
 END;
@@ -202,7 +202,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Creates a new request and its initial state, returning the new request ID.
-CREATE OR REPLACE FUNCTION create_new_request(
+CREATE OR REPLACE FUNCTION state_manager.create_new_request(
     request_title_input          VARCHAR,
     user_id_input                INTEGER,
     requester_name_input         VARCHAR,
@@ -219,7 +219,7 @@ DECLARE
     temp_request_id INTEGER;
 BEGIN
     -- Insert the main request details and get the generated ID.
-    INSERT INTO request_table (
+    INSERT INTO state_manager.request_table (
         request_title, user_id, requester_name, analysis_purpose,
         requested_completed_date, pic_submitter, urgent,
         requirement_type_id, remark
@@ -232,11 +232,11 @@ BEGIN
     RETURNING request_id INTO temp_request_id;
 
     -- Set the request's initial state.
-    INSERT INTO state_table(state_name_id, request_id, started_by)
+    INSERT INTO state_manager.state_table(state_name_id, request_id, started_by)
     VALUES (1, temp_request_id, user_id_input);
 
     -- Store the associated answers using a separate procedure.
-    CALL store_answers(temp_request_id, requirement_type_input, answers_input);
+    CALL state_manager.store_answers(temp_request_id, requirement_type_input, answers_input);
 
     RETURN temp_request_id;
 END;
@@ -244,9 +244,9 @@ $$ LANGUAGE plpgsql;
 
 
 -- Stores an array of answers for a given request.
-CREATE OR REPLACE PROCEDURE store_answers(
+CREATE OR REPLACE PROCEDURE state_manager.store_answers(
     request_id_input          INT,
-    requirement_type_id_input  INT,
+    requirement_type_id_input INT,
     answer                    VARCHAR[]
 )
 AS $$
@@ -257,13 +257,13 @@ BEGIN
     -- Determine how many questions need answers for this requirement type.
     SELECT COUNT(*)
     INTO question_num
-    FROM requirement_question_table
+    FROM state_manager.requirement_question_table
     WHERE requirement_type_id = requirement_type_id_input;
 
     -- Loop through the answers array and insert each one.
     -- Assumes the array index corresponds to the question number.
     FOR i IN 1..question_num LOOP
-        INSERT INTO requirement_table(request_id, requirement_question_id, answer)
+        INSERT INTO state_manager.requirement_table(request_id, requirement_question_id, answer)
         VALUES (request_id_input, (requirement_type_id_input * 100 + i), answer[i]);
     END LOOP;
 END;
@@ -272,7 +272,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Fetches all questions for a requirement type as a JSON array.
-CREATE OR REPLACE FUNCTION get_questions(
+CREATE OR REPLACE FUNCTION state_manager.get_questions(
     requirement_type_id_input INT
 )
 RETURNS JSON AS $$
@@ -286,7 +286,7 @@ BEGIN
         SELECT
             requirement_question_id AS "requirementQuestionId",
             requirement_question AS "requirementQuestion"
-        FROM requirement_question_table
+        FROM state_manager.requirement_question_table
         -- Filter questions based on a naming convention (e.g., type 1 has IDs 101-199).
         WHERE requirement_question_id BETWEEN (requirement_type_id_input * 100 + 1) AND (requirement_type_id_input * 100 + 99)
         ORDER BY requirement_question_id
@@ -302,7 +302,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Inserts file paths for request attachments.
-CREATE OR REPLACE PROCEDURE store_attachments(
+CREATE OR REPLACE PROCEDURE state_manager.store_attachments(
     request_id_input     INT,
     docx_filepath        VARCHAR,
     docx_filename_input  VARCHAR,
@@ -312,13 +312,13 @@ CREATE OR REPLACE PROCEDURE store_attachments(
 BEGIN
     -- Insert DOCX attachment if provided.
     IF docx_filepath IS NOT NULL AND docx_filename_input IS NOT NULL THEN
-        INSERT INTO attachment_table(request_id, attachment_type_id, attachment_filename, attachment_path)
+        INSERT INTO state_manager.attachment_table(request_id, attachment_type_id, attachment_filename, attachment_path)
         VALUES (request_id_input, 1, docx_filename_input, docx_filepath);
     END IF;
 
     -- Insert Excel attachment if provided.
     IF excel_filepath IS NOT NULL AND excel_filename_input IS NOT NULL THEN
-        INSERT INTO attachment_table(request_id, attachment_type_id, attachment_filename, attachment_path)
+        INSERT INTO state_manager.attachment_table(request_id, attachment_type_id, attachment_filename, attachment_path)
         VALUES (request_id_input, 2, excel_filename_input, excel_filepath);
     END IF;
 END;
@@ -326,7 +326,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Retrieves the file path for a specific attachment.
-CREATE OR REPLACE FUNCTION get_attachment_filepath(
+CREATE OR REPLACE FUNCTION state_manager.get_attachment_filepath(
     request_id_input      INT,
     attachment_type_input INT
 )
@@ -336,7 +336,7 @@ DECLARE
 BEGIN
     SELECT attachment_path
     INTO result_filepath
-    FROM attachment_table
+    FROM state_manager.attachment_table
     WHERE request_id = request_id_input
       AND attachment_type_id = attachment_type_input;
     RETURN result_filepath;
@@ -345,7 +345,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Fetches detailed data for requests in a specific state and date range.
-CREATE OR REPLACE FUNCTION get_state_specific_data(
+CREATE OR REPLACE FUNCTION state_manager.get_state_specific_data(
     state_name_id_input INT,
     start_date          TIMESTAMP,
     end_date            TIMESTAMP
@@ -356,7 +356,7 @@ DECLARE
 BEGIN
     -- A negative input fetches all active requests instead of a specific state.
     IF state_name_id_input < 0 THEN
-        SELECT get_state_data_for_total(start_date, end_date)
+        SELECT state_manager.get_state_data_for_total(start_date, end_date)
         INTO result_json;
         RETURN result_json;
     END IF;
@@ -380,14 +380,14 @@ BEGIN
             u2.user_name AS "startedBy",
             u3.user_name AS "endedBy", 
             s.completed
-        FROM request_table r
-        JOIN state_table s ON r.request_id = s.request_id
-        JOIN user_table u ON r.user_id = u.user_id
-        LEFT JOIN user_table u2 ON s.started_by = u2.user_id
-        LEFT JOIN user_table u3 ON s.ended_by = u3.user_id
-        LEFT JOIN state_name_table n ON s.state_name_id = n.state_name_id
-        LEFT JOIN state_name_table n2 ON r.current_state = n2.state_name_id
-		LEFT JOIN requirement_type_table rt ON r.requirement_type_id = rt.requirement_type_id
+        FROM state_manager.request_table r
+        JOIN state_manager.state_table s ON r.request_id = s.request_id
+        JOIN state_manager.user_table u ON r.user_id = u.user_id
+        LEFT JOIN state_manager.user_table u2 ON s.started_by = u2.user_id
+        LEFT JOIN state_manager.user_table u3 ON s.ended_by = u3.user_id
+        LEFT JOIN state_manager.state_name_table n ON s.state_name_id = n.state_name_id
+        LEFT JOIN state_manager.state_name_table n2 ON r.current_state = n2.state_name_id
+		LEFT JOIN state_manager.requirement_type_table rt ON r.requirement_type_id = rt.requirement_type_id
 		WHERE r.request_date BETWEEN start_date AND end_date
           AND s.state_name_id = state_name_id_input
 		  AND r.current_state != 0
@@ -404,7 +404,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Retrieves data for all active requests in a date range.
-CREATE OR REPLACE FUNCTION get_state_data_for_total(
+CREATE OR REPLACE FUNCTION state_manager.get_state_data_for_total(
     start_date TIMESTAMP,
     end_date   TIMESTAMP
 )
@@ -431,14 +431,14 @@ BEGIN
             u2.user_name AS "startedBy",
             u3.user_name AS "endedBy", 
             s.completed
-        FROM request_table r
-        JOIN state_table s ON r.request_id = s.request_id
-        JOIN user_table u ON r.user_id = u.user_id
-        LEFT JOIN user_table u2 ON s.started_by = u2.user_id
-        LEFT JOIN user_table u3 ON s.ended_by = u3.user_id
-        LEFT JOIN state_name_table n ON s.state_name_id = n.state_name_id
-        LEFT JOIN state_name_table n2 ON r.current_state = n2.state_name_id
-        LEFT JOIN requirement_type_table rt ON r.requirement_type_id = rt.requirement_type_id
+        FROM state_manager.request_table r
+        JOIN state_manager.state_table s ON r.request_id = s.request_id
+        JOIN state_manager.user_table u ON r.user_id = u.user_id
+        LEFT JOIN state_manager.user_table u2 ON s.started_by = u2.user_id
+        LEFT JOIN state_manager.user_table u3 ON s.ended_by = u3.user_id
+        LEFT JOIN state_manager.state_name_table n ON s.state_name_id = n.state_name_id
+        LEFT JOIN state_manager.state_name_table n2 ON r.current_state = n2.state_name_id
+        LEFT JOIN state_manager.requirement_type_table rt ON r.requirement_type_id = rt.requirement_type_id
 		WHERE r.request_date BETWEEN start_date AND end_date
           -- This condition ensures we only get the current, active state for each request.
           AND s.state_name_id = r.current_state
@@ -456,7 +456,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Fetches a summary of all requests for a specific user.
-CREATE OR REPLACE FUNCTION get_user_request_data(
+CREATE OR REPLACE FUNCTION state_manager.get_user_request_data(
     user_id_input INT
 )
 RETURNS JSON AS $$
@@ -474,9 +474,9 @@ BEGIN
             rt.data_type_name AS "dataTypeName", 
             n.state_name AS "stateName", 
             n.state_name_id AS "stateNameId"
-        FROM request_table r
-        JOIN state_name_table n ON r.current_state = n.state_name_id
-        JOIN requirement_type_table rt ON r.requirement_type_id = rt.requirement_type_id
+        FROM state_manager.request_table r
+        JOIN state_manager.state_name_table n ON r.current_state = n.state_name_id
+        JOIN state_manager.requirement_type_table rt ON r.requirement_type_id = rt.requirement_type_id
         WHERE r.user_id = user_id_input
         ORDER BY n.state_name_id,r.request_id
     ) t;
@@ -491,7 +491,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Retrieves the complete state transition history for a request.
-CREATE OR REPLACE FUNCTION get_full_state_history(
+CREATE OR REPLACE FUNCTION state_manager.get_full_state_history(
     request_id_input INT
 )
 RETURNS JSON AS $$
@@ -506,8 +506,8 @@ BEGIN
             n.state_name AS "stateName", 
             s.date_start AS "dateStart", 
             s.date_end AS "dateEnd"
-        FROM state_table s
-        JOIN state_name_table n ON s.state_name_id = n.state_name_id
+        FROM state_manager.state_table s
+        JOIN state_manager.state_name_table n ON s.state_name_id = n.state_name_id
         WHERE s.request_id = request_id_input
         ORDER BY s.state_id
     ) t;
@@ -522,7 +522,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Fetches a "to-do" list of requests based on user role.
-CREATE OR REPLACE FUNCTION get_todo_data(
+CREATE OR REPLACE FUNCTION state_manager.get_todo_data(
     user_role_input INT
 )
 RETURNS JSON AS $$
@@ -550,11 +550,11 @@ BEGIN
             n.state_name AS "stateName",
             s.date_start AS "dateStart", 
             s.state_comment AS "stateComment"
-        FROM request_table r
-        JOIN user_table u ON r.user_id = u.user_id
-        JOIN state_table s ON r.request_id = s.request_id
-        JOIN state_name_table n ON r.current_state = n.state_name_id
-        JOIN requirement_type_table rt ON r.requirement_type_id = rt.requirement_type_id
+        FROM state_manager.request_table r
+        JOIN state_manager.user_table u ON r.user_id = u.user_id
+        JOIN state_manager.state_table s ON r.request_id = s.request_id
+        JOIN state_manager.state_name_table n ON r.current_state = n.state_name_id
+        JOIN state_manager.requirement_type_table rt ON r.requirement_type_id = rt.requirement_type_id
         WHERE s.state_name_id = ANY(viewable)
           -- Ensures we only get the current, active state.
           AND s.state_name_id = r.current_state
@@ -571,7 +571,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Retrieves all details for a single request, bundling related items into JSON arrays.
-CREATE OR REPLACE FUNCTION get_complete_data_of_request_bundle(
+CREATE OR REPLACE FUNCTION state_manager.get_complete_data_of_request_bundle(
     request_id_input INT
 )
 RETURNS JSON AS $$
@@ -604,8 +604,8 @@ BEGIN
                         re.requirement_question_id AS "requirementQuestionId",
                         q.requirement_question AS "requirementQuestion",
                         re.answer
-                    FROM requirement_table re
-                    JOIN requirement_question_table q ON re.requirement_question_id = q.requirement_question_id
+                    FROM state_manager.requirement_table re
+                    JOIN state_manager.requirement_question_table q ON re.requirement_question_id = q.requirement_question_id
                     WHERE re.request_id = r.request_id
                     ORDER BY re.requirement_question_id
                 ) AS reqs
@@ -618,15 +618,15 @@ BEGIN
                     SELECT
                         att.attachment_type_id AS "attachmentTypeId",
                         att.attachment_filename AS "attachmentFilename"
-                    FROM attachment_table att
+                    FROM state_manager.attachment_table att
                     WHERE att.request_id = r.request_id
                 ) AS files
             ) AS "filenames"
 
-        FROM request_table r
-        JOIN state_table s ON r.request_id = s.request_id AND r.current_state = s.state_name_id
-        JOIN state_name_table n ON r.current_state = n.state_name_id
-        JOIN requirement_type_table t ON r.requirement_type_id = t.requirement_type_id
+        FROM state_manager.request_table r
+        JOIN state_manager.state_table s ON r.request_id = s.request_id AND r.current_state = s.state_name_id
+        JOIN state_manager.state_name_table n ON r.current_state = n.state_name_id
+        JOIN state_manager.requirement_type_table t ON r.requirement_type_id = t.requirement_type_id
         WHERE r.request_id = request_id_input
     ) t;
 
@@ -640,7 +640,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Fetches usernames and emails for all users in a specific role.
-CREATE OR REPLACE FUNCTION get_role_emails(
+CREATE OR REPLACE FUNCTION state_manager.get_role_emails(
     role_id_input INT
 )
 RETURNS JSON AS $$
@@ -654,8 +654,8 @@ BEGIN
         SELECT
             u.user_name AS "userName", 
             u.email
-        FROM user_role_table ur
-        JOIN user_table u ON ur.user_id = u.user_id
+        FROM state_manager.user_role_table ur
+        JOIN state_manager.user_table u ON ur.user_id = u.user_id
         WHERE ur.role_id = role_id_input
     ) t;
 
@@ -669,7 +669,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Retrieves username and email for a specific user.
-CREATE OR REPLACE FUNCTION get_user_email(
+CREATE OR REPLACE FUNCTION state_manager.get_user_email(
     user_id_input INT
 )
 RETURNS JSON AS $$
@@ -683,7 +683,7 @@ BEGIN
         SELECT
             user_name AS "userName", 
             email
-        FROM user_table
+        FROM state_manager.user_table
         WHERE user_id = user_id_input
     ) t;
 
@@ -697,7 +697,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Retrieves the time threshold in hours for each state.
-CREATE OR REPLACE FUNCTION get_state_threshold()
+CREATE OR REPLACE FUNCTION state_manager.get_state_threshold()
 RETURNS JSON AS $$
 DECLARE
     result_json JSON;
@@ -709,7 +709,7 @@ BEGIN
         SELECT 
             state_name_id AS "stateNameId",
             state_threshold_hour AS "stateThresholdHour"
-        FROM state_threshold_table
+        FROM state_manager.state_threshold_table
     ) t;
     
     -- Return an empty JSON array if no results are found.
@@ -721,7 +721,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Counts active requests for each state within a date range.
-CREATE OR REPLACE FUNCTION get_state_count(
+CREATE OR REPLACE FUNCTION state_manager.get_state_count(
     start_date TIMESTAMP,
     end_date   TIMESTAMP
 )
@@ -737,8 +737,8 @@ BEGIN
           r.current_state AS "stateId",
           n.state_name AS "stateName",
           COUNT(*) AS "todo"
-        FROM request_table r
-        JOIN state_name_table n ON r.current_state = n.state_name_id
+        FROM state_manager.request_table r
+        JOIN state_manager.state_name_table n ON r.current_state = n.state_name_id
         WHERE n.state_name_id = ANY(ARRAY[1,2,3,4,5])
           AND r.request_date BETWEEN start_date AND end_date
         -- Group by state to get the count for each one.
@@ -756,7 +756,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Finds and returns the timestamp of the oldest request.
-CREATE OR REPLACE FUNCTION get_oldest_request()
+CREATE OR REPLACE FUNCTION state_manager.get_oldest_request()
 RETURNS TIMESTAMP AS $$
 DECLARE
     oldest_time TIMESTAMP;
@@ -764,7 +764,7 @@ BEGIN
     -- Find the earliest request_date in the table.
     SELECT request_date
     INTO oldest_time
-    FROM request_table
+    FROM state_manager.request_table
     ORDER BY request_date ASC
     LIMIT 1;
     RETURN oldest_time;
@@ -773,7 +773,7 @@ $$ LANGUAGE plpgsql;
 
 
 -- Retrieves the names of all requirement types.
-CREATE OR REPLACE FUNCTION get_requirement_names()
+CREATE OR REPLACE FUNCTION state_manager.get_requirement_names()
 RETURNS JSON AS $$
 DECLARE
     result_json JSON;
@@ -785,7 +785,7 @@ BEGIN
         SELECT
             requirement_type_id AS "requirementTypeId",
             data_type_name AS "dataTypeName"
-        FROM requirement_type_table
+        FROM state_manager.requirement_type_table
     ) t;
 
     -- Return an empty JSON array if no results are found.
@@ -801,7 +801,9 @@ $$ LANGUAGE plpgsql;
 SELECT get_user_id_by_credentials('Alto', '1234')
 
 -- CLEAR DATA WITHIN TABLE
-TRUNCATE TABLE state_table, requirement_table, attachment_table, request_table;
+TRUNCATE TABLE state_table, requirement_table, attachment_table, request_table, user_role_table, user_table RESTART IDENTITY;
+
+TRUNCATE TABLE user_table;
 
 -- TRUNCATE TABLE requirement_type_table;
 -- TRUNCATE TABLE requirement_question_table;
@@ -839,17 +841,18 @@ INSERT INTO user_role_table (user_id, role_id) VALUES
 (11, 3);
 
 -- INSERT DUMMY USER
-INSERT INTO user_table (user_name, user_password, user_role, email, nik, position, department) VALUES
-('alice',   '1234', 1, 'alice@example.com',   1001, 'Manager',      'HR'),
-('bob',     '1234', 2, 'bob@example.com',     1002, 'Staff',        'Finance'),
-('carol',   '1234', 3, 'carol@example.com',   1003, 'Supervisor',   'IT'),
-('dave',    '1234', 1, 'dave@example.com',    1004, 'Manager',      'IT'),
-('eve',     '1234', 2, 'eve@example.com',     1005, 'Staff',        'HR'),
-('frank',   '1234', 3, 'frank@example.com',   1006, 'Supervisor',   'Finance'),
-('grace',   '1234', 1, 'grace@example.com',   1007, 'Manager',      'Marketing'),
-('heidi',   '1234', 2, 'heidi@example.com',   1008, 'Staff',        'Marketing'),
-('ivan',    '1234', 3, 'ivan@example.com',    1009, 'Supervisor',   'IT'),
-('judy',    '1234', 1, 'judy@example.com',    1010, 'Manager',      'Finance');
+INSERT INTO state_manager.user_table (user_id, user_name, user_password, email, nik, position, department) VALUES
+-- ('1', 'alice',   '1234', 'alice@example.com',   1001, 'Manager',      'HR'),
+('2', 'ivan',    '1234', 'ivan@example.com',    1009, 'Supervisor',   'IT'),
+('3', 'grace',   '1234', 'grace@example.com',   1007, 'Manager',      'Marketing');
+,
+-- ('heidi',   '1234', 2, 'heidi@example.com',   1008, 'Staff',        'Marketing'),
+-- ('judy',    '1234', 1, 'judy@example.com',    1010, 'Manager',      'Finance')
+-- ('bob',     '1234', 2, 'bob@example.com',     1002, 'Staff',        'Finance'),
+-- ('carol',   '1234', 3, 'carol@example.com',   1003, 'Supervisor',   'IT'),
+-- ('dave',    '1234', 1, 'dave@example.com',    1004, 'Manager',      'IT'),
+-- ('eve',     '1234', 2, 'eve@example.com',     1005, 'Staff',        'HR'),
+-- ('frank',   '1234', 3, 'frank@example.com',   1006, 'Supervisor',   'Finance'),;
 
 INSERT INTO user_table (user_name, user_password, user_role, email, nik, position, department) VALUES
 ('barta',    '1234', 1, 'barta@example.com',    1011, 'Manager',      'Finance');
@@ -1032,3 +1035,9 @@ ORDER BY state_id ASC
 select get_request_details_bundle(30)
 
 $$ LANGUAGE plpgsql;
+
+SELECT VERSION()
+SELECT * FROM state_manager.user_table
+
+ALTER DATABASE your_database SET search_path TO state_manager, public;
+

@@ -1,4 +1,11 @@
-import { Component, HostListener, inject, signal } from "@angular/core";
+import {
+	Component,
+	effect,
+	HostListener,
+	inject,
+	Injector,
+	signal,
+} from "@angular/core";
 import { DataProcessingService } from "../../service/data-processing.service";
 import type { SimpleData } from "../../model/format.type";
 import { CardRequestComponent } from "../../component/card-request/card-request.component";
@@ -6,6 +13,7 @@ import { CustomSquareButtonComponent } from "../../component/custom-square-butto
 import { MatDialog } from "@angular/material/dialog";
 import { DialogNewRequestQuestionnaireComponent } from "../../component/dialog-new-request-questionnaire/dialog-new-request-questionnaire.component";
 import { Router } from "@angular/router";
+import { TickCounterService } from "../../service/tick-counter.service";
 
 @Component({
 	selector: "app-dashboard-page",
@@ -16,6 +24,9 @@ import { Router } from "@angular/router";
 export class DashboardPageComponent {
 	// Injecting necessary services
 	dataService = inject(DataProcessingService);
+	// Injecting to refresh data each hour
+	counterService = inject(TickCounterService);
+	injector = inject(Injector);
 	// Injecting MatDialog for newRequest dialog
 	dialog = inject(MatDialog);
 	// Injecting Router to handle routing
@@ -25,6 +36,9 @@ export class DashboardPageComponent {
 
 	// Width of the window.
 	innerWidth = signal<number>(window.innerWidth);
+	// A flag to check if this is the first init
+
+	newInit = true;
 
 	// This listens for the browser's 'resize' event on the window object and updates accordingly.
 	@HostListener("window:resize", ["$event"])
@@ -35,6 +49,23 @@ export class DashboardPageComponent {
 	ngOnInit(): void {
 		//Refreshes visible requests (initializes in this case)
 		this.refreshRequests();
+		// An `effect` runs automatically whenever any signal it reads changes.
+		// Watches `counterService.currentTimeHour()` to refresh data each hour
+		effect(
+			() => {
+				// Reading the signal from service.
+				const currentHour = this.counterService.currentTimeHour();
+
+				// If this is the first initialization, do not refresh
+				if (this.newInit === true) {
+					this.newInit = false;
+					return;
+				}
+				// if the signal has changed, trigger refresh
+				this.refreshRequests();
+			},
+			{ injector: this.injector },
+		);
 	}
 
 	// Handles submission of a new request by calling the newRequest dialog

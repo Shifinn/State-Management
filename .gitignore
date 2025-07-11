@@ -37,3 +37,6 @@ new-db-backup.zip
 schemas-only.sql
 backend/api.zip
 backend/api/golang.zip
+schema-data-only.sql
+backup-schema-data-only.sql
+DB FUNCTIONS AND PROCEDURES.sql

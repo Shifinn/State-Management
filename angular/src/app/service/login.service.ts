@@ -18,8 +18,8 @@ export class LoginService {
 	todoService = inject(TodoPageService);
 	progressService = inject(ProgressPageService);
 	periodPickerService = inject(PeriodPickerService);
-	host = "https://state-management-api.vercel.app/api";
-	// host = "http://localhost:9090/api";
+	// host = "https://state-management-api.vercel.app/api";
+	host = "http://localhost:9090/api";
 
 	// Handles the process of user login
 	login(username: string, password: string): Observable<boolean> {

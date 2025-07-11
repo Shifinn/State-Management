@@ -83,6 +83,9 @@ var (
 // For a Vercel serverless function, this serves as the cold-start entry point.
 func init() {
 	// Establish the database connection pool.
+	if err := godotenv.Load(); err != nil {
+		log.Println("Error loading .env file")
+	}
 	db = openDB()
 	// Create a new Gin router with default middleware.
 	app = gin.Default()
@@ -136,9 +139,6 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 
 // main is the entry point for local development. It is ignored by Vercel.
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Println("Error loading .env file")
-	}
 	port := "9090"
 	log.Printf("INFO: Starting local server on http://localhost:%s\n", port)
 	http.ListenAndServe(":"+port, http.HandlerFunc(Handler))
@@ -208,7 +208,7 @@ func checkUserCredentials(c *gin.Context) {
 	log.Printf("INFO: Login attempt for user: %s", newUser.UserName)
 
 	// Call the corresponding database function to authenticate the user.
-	query := `SELECT get_user_id_by_credentials($1, $2)`
+	query := `SELECT state_manager.get_user_id_by_credentials($1, $2)`
 	if err := db.QueryRow(query, newUser.UserName, newUser.Password).Scan(&data); err != nil {
 		checkErr(c, http.StatusBadRequest, err, "Failed to get user ID")
 		return
@@ -232,7 +232,7 @@ func getStateSpecificData(c *gin.Context) {
 	checkEmpty(c, endDateInput)
 
 	// Execute the database function to fetch the data.
-	query := `SELECT get_state_specific_data($1, $2, $3)`
+	query := `SELECT state_manager.get_state_specific_data($1, $2, $3)`
 	if err := db.QueryRow(query, stateIdInput, startDateInput, endDateInput).Scan(&data); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get state data")
 		return
@@ -253,7 +253,7 @@ func getUserCurrentRequests(c *gin.Context) {
 	userIdInput := c.Query("userId")
 	checkEmpty(c, userIdInput)
 
-	query := `SELECT get_user_request_data($1)`
+	query := `SELECT state_manager.get_user_request_data($1)`
 	if err := db.QueryRow(query, userIdInput).Scan(&data); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get user requests")
 		return
@@ -272,7 +272,7 @@ func getTodoData(c *gin.Context) {
 	userRoleInput := c.Query("roleId")
 	checkEmpty(c, userRoleInput)
 
-	query := `SELECT get_todo_data($1)`
+	query := `SELECT state_manager.get_todo_data($1)`
 	if err := db.QueryRow(query, userRoleInput).Scan(&data); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get todo data")
 		return
@@ -291,7 +291,7 @@ func getCompleteRequestDataBundle(c *gin.Context) {
 	requestIdInput := c.Query("requestId")
 	checkEmpty(c, requestIdInput)
 
-	query := `SELECT get_complete_data_of_request_bundle($1)`
+	query := `SELECT state_manager.get_complete_data_of_request_bundle($1)`
 	if err := db.QueryRow(query, requestIdInput).Scan(&data); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get complete data of request")
 		return
@@ -328,7 +328,7 @@ func getStateCount(c *gin.Context) {
 	checkEmpty(c, endDateInput)
 
 	// Fetch the raw counts of "To-do" items per state.
-	query := `SELECT get_state_count($1, $2)`
+	query := `SELECT state_manager.get_state_count($1, $2)`
 	if err := db.QueryRow(query, startDateInput, endDateInput).Scan(&sqlNullString); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get state count")
 		return
@@ -376,7 +376,7 @@ func getStateCount(c *gin.Context) {
 func getOldestRequest(c *gin.Context) {
 	var data time.Time
 
-	query := `SELECT get_oldest_request()`
+	query := `SELECT state_manager.get_oldest_request()`
 	if err := db.QueryRow(query).Scan(&data); err != nil {
 		log.Printf("Failed to get oldest request, err: %v", err)
 		data = time.Now()
@@ -402,7 +402,7 @@ func getAttachmentFile(c *gin.Context) {
 	}
 
 	var fileURL string
-	query := `SELECT get_attachment_filepath($1, $2)`
+	query := `SELECT state_manager.get_attachment_filepath($1, $2)`
 	// Scan the result directly into the fileURL string.
 	if err := db.QueryRow(query, requestIdInput, attachmentType).Scan(&fileURL); err != nil {
 		if err == sql.ErrNoRows {
@@ -422,7 +422,7 @@ func getAttachmentFile(c *gin.Context) {
 // It fetches configured time thresholds for each workflow state.
 func getStateThreshold(c *gin.Context) {
 	var data sql.NullString
-	if err := db.QueryRow(`SELECT get_state_threshold()`).Scan(&data); err != nil {
+	if err := db.QueryRow(`SELECT state_manager.get_state_threshold()`).Scan(&data); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get state threshold")
 		return
 	}
@@ -440,7 +440,7 @@ func getQuestionData(c *gin.Context) {
 	requirementTypeInput := c.Query("requirementType")
 	checkEmpty(c, requirementTypeInput)
 
-	query := `SELECT get_questions($1)`
+	query := `SELECT state_manager.get_questions($1)`
 	if err := db.QueryRow(query, requirementTypeInput).Scan(&data); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get questions")
 		return
@@ -510,7 +510,7 @@ func postNewRequest(c *gin.Context) {
 	}
 
 	// Call the database function to create the request and return its new ID.
-	query := `SELECT create_new_request($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
+	query := `SELECT state_manager.create_new_request($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
 	if err := db.QueryRow(query,
 		newReq.RequestTitle, newReq.UserID, newReq.RequesterName, newReq.AnalysisPurpose, newReq.RequestedFinishDate, newReq.PicRequest, newReq.Urgent, newReq.RequirementType, newReq.Answers, newReq.Remark,
 	).Scan(&requestId); err != nil {
@@ -529,7 +529,7 @@ func postNewRequest(c *gin.Context) {
 	}
 
 	// Call the database procedure to store the URLs of the uploaded attachments.
-	queryAttachment := `CALL store_attachments($1, $2, $3, $4, $5);`
+	queryAttachment := `CALL state_manager.store_attachments($1, $2, $3, $4, $5);`
 	if _, err = db.Exec(queryAttachment, requestIdInt, docxFilePath, newReq.DocxFilename, excelFilePath, newReq.ExcelFilename); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Unable to store attachments filepath to db")
 		return
@@ -589,13 +589,13 @@ func putUpgradeState(c *gin.Context) {
 
 	// Call the appropriate database function based on whether a comment was provided.
 	if updateData.Comment == "" {
-		query := `SELECT upgrade_state($1, $2)`
+		query := `SELECT state_manager.upgrade_state($1, $2)`
 		if err := db.QueryRow(query, updateData.RequestId, updateData.UserID).Scan(&sqlNullString); err != nil {
 			checkErr(c, http.StatusInternalServerError, err, "Failed to upgrade state")
 			return
 		}
 	} else {
-		query := `SELECT upgrade_state($1, $2, $3)`
+		query := `SELECT state_manager.upgrade_state($1, $2, $3)`
 		if err := db.QueryRow(query, updateData.RequestId, updateData.UserID, updateData.Comment).Scan(&sqlNullString); err != nil {
 			checkErr(c, http.StatusInternalServerError, err, "Failed to upgrade state")
 			return
@@ -647,7 +647,7 @@ func putDegradeState(c *gin.Context) {
 		return
 	}
 
-	query := `SELECT degrade_state($1, $2, $3)`
+	query := `SELECT state_manager.degrade_state($1, $2, $3)`
 	if err := db.QueryRow(query, updateData.RequestId, updateData.UserID, updateData.Comment).Scan(&sqlNullString); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to degrade state")
 		return
@@ -697,7 +697,7 @@ func dropRequest(c *gin.Context) {
 	}
 
 	// Call the database procedure to drop the request.
-	query := `CALL drop_request($1, $2, $3)`
+	query := `CALL state_manager.drop_request($1, $2, $3)`
 	if _, err := db.Exec(query, updateData.RequestId, updateData.UserID, updateData.Comment); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to drop request")
 		return
@@ -720,7 +720,7 @@ func postReminderEmail(c *gin.Context) {
 func sendReminderEmailToRole(c *gin.Context, roleIDInput string, stateNameInput string, body ...string) string {
 	var recipientsJSON sql.NullString
 	// Fetch the list of recipients from the database.
-	query := `SELECT get_role_emails($1)`
+	query := `SELECT state_manager.get_role_emails($1)`
 	if err := db.QueryRow(query, roleIDInput).Scan(&recipientsJSON); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get role emails")
 		return ""
