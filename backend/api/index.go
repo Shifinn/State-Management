@@ -456,6 +456,8 @@ func getQuestionData(c *gin.Context) {
 // It parses multipart form data, creates a new request in the database,
 // uploads any attached files, and stores their URLs.
 func postNewRequest(c *gin.Context) {
+	c.JSON(http.StatusBadRequest, gin.H{"error": "failed"})
+	return
 	var newReq NewRequest
 	var requestId string
 	var docxFilePath string

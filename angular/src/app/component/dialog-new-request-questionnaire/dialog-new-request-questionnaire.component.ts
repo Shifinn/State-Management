@@ -15,7 +15,11 @@ import {
 	NativeDateAdapter,
 } from "@angular/material/core";
 import { MatDatepickerModule } from "@angular/material/datepicker";
-import { MatDialogClose, MatDialogRef } from "@angular/material/dialog";
+import {
+	MatDialog,
+	MatDialogClose,
+	MatDialogRef,
+} from "@angular/material/dialog";
 import { MatSelectModule } from "@angular/material/select";
 import { MatError, MatInputModule } from "@angular/material/input";
 import { MatFormFieldModule } from "@angular/material/form-field";
@@ -25,6 +29,7 @@ import { DataProcessingService } from "../../service/data-processing.service";
 import { NgIf } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
 import { HttpEventType } from "@angular/common/http";
+import { DialogActionReportComponent } from "../dialog-action-report/dialog-action-report.component";
 
 @Component({
 	selector: "app-dialog-new-request-questionnaire",
@@ -52,7 +57,7 @@ export class DialogNewRequestQuestionnaireComponent {
 	// Inject necessary services
 	dataService = inject(DataProcessingService);
 	dialogRef = inject(MatDialogRef<DialogNewRequestQuestionnaireComponent>);
-
+	dialog = inject(MatDialog);
 	// A reference to the form in the html, used to check its validity.
 	@ViewChild("requestForm") requestForm!: NgForm;
 	// A signal to hold the list of requrement questions fetched from the service.
@@ -128,15 +133,34 @@ export class DialogNewRequestQuestionnaireComponent {
 						}
 					} else if (event.type === HttpEventType.Response) {
 						// If it's a response event, the upload is complete.
-						// Close the dialog on success.
-						this.dialogRef.close("1");
+						// Open a dialog that inform the success with success messsage
+						// Store the refrence to the dialog opened
+						const dialogRefReport = this.openReportDialog(
+							"New request form successfully uploaded.",
+							"success",
+						);
+						// Subscribe to report dialog close
+						dialogRefReport.afterClosed().subscribe(() => {
+							// Close the new request dialog along with the report dialog						const dialogRefReport = this.openReportDialog(
+							this.dialogRef.close("1");
+						});
 					}
 				},
 				error: (err) => {
-					// If an error occurs, reset the UI state back to form.
-					this.isUploading.set(false);
-					this.uploadProgress.set(0);
-					this.resizeForUploadProgress();
+					// If an error occurs, open a dialog to inform failure.
+					// Along with the error message
+					// Store the refrence to the dialog opened
+					const dialogRefReport = this.openReportDialog(
+						"Failed to upload new request form. Please check your connection and try again.",
+						"fail",
+					);
+					// Subscribe to report dialog close
+					dialogRefReport.afterClosed().subscribe(() => {
+						// Reset the upload and revert thenew request form
+						this.isUploading.set(false);
+						this.uploadProgress.set(0);
+						this.resizeForUploadProgress();
+					});
 				},
 			});
 		}
@@ -146,10 +170,10 @@ export class DialogNewRequestQuestionnaireComponent {
 	resizeForUploadProgress() {
 		if (this.isUploading()) {
 			// Shrink the dialog to focus on the progress bar.
-			this.dialogRef.updateSize("");
+			this.dialogRef.updateSize("40vw");
 		} else {
 			// Restore the dialog to its original size.
-			this.dialogRef.updateSize("90vw");
+			this.dialogRef.updateSize("90vw", "100%");
 		}
 	}
 
@@ -166,6 +190,25 @@ export class DialogNewRequestQuestionnaireComponent {
 		}
 	}
 
+	// Handles opening a dialog to report success or failure and return the refrence to the dialog.
+	openReportDialog(
+		reportMessage: string,
+		type: "fail" | "success",
+	): MatDialogRef<DialogActionReportComponent> {
+		// Uses the MatDialog service to open the DialogActionReportComponent.
+		const dialogRefReport = this.dialog.open(DialogActionReportComponent, {
+			autoFocus: false,
+			width: "60vw",
+			height: "90vh",
+			maxWidth: "90vw",
+			maxHeight: "fit-content",
+			panelClass: "custom-dialog-container",
+			data: { reportMessage, type }, // Passes the request ID to the dialog.
+		});
+
+		// Returns the refrence to the dialog opened
+		return dialogRefReport;
+	}
 	// Checks if the main form is valid.
 	allRequirementsAnswered(): boolean {
 		// Returns true only if the form reference exists and its valid status is true.
@@ -183,15 +226,15 @@ export class DialogNewRequestQuestionnaireComponent {
 		// Proceed only if a valid file has been selected.
 		if (input.files && input.files.length > 0) {
 			const file = input.files[0];
-			// Validate the file size to ensure it does not exceed the 2MB limit.
-			if (file.size > 2 * 1024 * 1024) {
+			// Validate the file size to ensure it does not exceed the 15MB limit.
+			if (file.size > 15 * 1024 * 1024) {
 				// Display a warning message and clear the file data if the size is too large.
 				if (type === "EXCEL") {
-					this.excelUploadSizewarning.set("Excel file must be less than 2MB");
+					this.excelUploadSizewarning.set("Excel file must be less than 15MB");
 					this.data.excelAttachment = null;
 					this.data.excelFilename = null;
 				} else {
-					this.docxUploadSizewarning.set("File must be less than 2MB");
+					this.docxUploadSizewarning.set("File must be less than 15MB");
 					this.data.docxAttachment = null;
 					this.data.docxFilename = null;
 				}

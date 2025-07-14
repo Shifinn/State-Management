@@ -144,8 +144,8 @@
 </form>
 } @if (isUploading()) {
 <div class="upload-box">
-  <div>Uploading File...</div>
-  <div>{{ uploadProgress() }}%</div>
+  <div class="upload-text">Uploading File...</div>
+  <div class="upload-number">{{ uploadProgress() }}%</div>
   <div class="progress-bar">
     <div class="progress-fill" [style.width.%]="uploadProgress()"></div>
   </div>

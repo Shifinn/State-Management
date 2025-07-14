@@ -1,63 +1,27 @@
+/* Row toset items aligned right */
 .justify-end {
 	display: flex;
 	justify-content: flex-end;
 	gap: 12px;
 }
 
+/* mat-label transition on resize */
 mat-label {
 	transition: all 01s ease;
 }
+/* smaller label size for window adjustment */
 .smaller-label {
 	font-size: 0.75em !important;
 }
 
-.file-name {
-	margin-left: 1em; /* or whatever margin you require */
-}
-
+/* Field for displaying the file input */
 .file-field {
 	display: flex;
-	/* flex-direction: row; */
 	flex: 1;
 	width: 100%;
-	/* display: inline-flex;
-	align-items: center;
-	box-sizing: border-box;
-
-	height: 3.5em;
-	width: 180px;
-	justify-content: flex-start;
-	border: 1px solid #777;
-	border-radius: 4px;
-	width: 100%; */
-}
-.file-container {
-	flex: 1;
-}
-.no-disabled-style[disabled] {
-	color: inherit !important;
-	-webkit-text-fill-color: inherit !important;
-	opacity: 1 !important;
-	background-color: inherit !important;
 }
 
-.row-flex {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	width: 100%;
-}
-
-.flex-input {
-	flex: 1;
-}
-
-.inline-button {
-	height: 56px;
-	min-width: 56px;
-	padding: 0;
-}
-
+/* Upload box (container of the upload bar) */
 .upload-box {
 	display: flex;
 	flex-direction: column;
@@ -69,20 +33,21 @@ mat-label {
 	background-color: #ffffff;
 	width: 300px;
 }
-
-/* Styling the text divs directly without classes */
-.upload-box div:first-of-type {
+/* Text of the ipload label */
+.upload-text {
 	font-size: 1.125rem;
 	font-weight: 600;
 	color: #1f2937;
 }
-.upload-box div:nth-of-type(2) {
+
+/* The display number of the percentage */
+.upload-number {
 	font-size: 1rem;
 	font-weight: 500;
 	color: #3b82f6;
 }
 
-/* 3. The background of the progress bar */
+/* Progress bar */
 .progress-bar {
 	width: 100%;
 	height: 8px;
@@ -92,6 +57,7 @@ mat-label {
 	margin-top: 0.5rem;
 }
 
+/* Filling style for the progress bar */
 .progress-fill {
 	height: 100%;
 	background-color: #3b82f6;

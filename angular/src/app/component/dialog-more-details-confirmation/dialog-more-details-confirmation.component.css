@@ -1,12 +1,10 @@
+/* Base style of the dialog container */
 .dialog-container {
 	padding: 24px;
 	max-width: 500px;
 }
 
-h2 {
-	margin: 0;
-}
-
+/* Basic text style specific to this component */
 .basic-text {
 	font-size: 1.25rem;
 	font-weight: 600;
@@ -14,11 +12,13 @@ h2 {
 	color: #333;
 }
 
+/* A wide field for the input field*/
 .wide-field {
 	width: 100%;
 	margin-top: 8px;
 }
 
+/* A row for the button that aligns items right */
 .justify-end {
 	display: flex;
 	justify-content: flex-end;

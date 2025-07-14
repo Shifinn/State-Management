@@ -1,3 +1,4 @@
+/* The container for the whole pop up */
 .pop-up-container {
 	position: absolute;
 	right: 0.5em; /* Anchors the popup's right edge */
@@ -13,6 +14,7 @@
 	transition: all 0.2s ease;
 }
 
+/* Header text of the pop up */
 .popup-header h2 {
 	margin-bottom: 0.8rem;
 	font-size: 1.25rem;
@@ -20,6 +22,7 @@
 	padding-bottom: 0.5rem;
 }
 
+/* Container for the text label and value*/
 .user-info {
 	display: grid;
 	grid-template-columns: 2em 1fr; /* Two columns: label and value */
@@ -28,19 +31,23 @@
 	margin: 0.5rem 0;
 }
 
+/* User info label */
 .user-info label {
 	font-weight: 600;
 	text-align: right; /* Align labels to the right */
 }
 
+/* user info value label  */
 .user-info span {
 	white-space: nowrap;
 }
+/* footer for the logout button */
 .popup-footer {
 	margin-top: 0.8rem;
 	text-align: right;
 }
 
+/* Logout button */
 .logout-button {
 	background-color: #f03939;
 	color: white;
@@ -50,6 +57,7 @@
 	cursor: pointer;
 }
 
+/* Logout button when hover*/
 .logout-button:hover {
 	background-color: #fd5454;
 }

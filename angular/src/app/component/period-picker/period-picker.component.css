@@ -1,14 +1,4 @@
-.period-type-container {
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	overflow: hidden;
-	/* border: 1px solid #444; */
-	border-bottom: 1px solid #c2d6ff;
-	width: fit-content;
-	margin-inline: auto;
-}
-
+/* Container for the whole Period picker   (outermost)*/
 .period-picker-container {
 	display: flex;
 	flex-direction: column;
@@ -21,9 +11,21 @@
 	border: 1px solid #444;
 	width: fit-content;
 	margin-inline: auto;
-	margin-bottom: 1.5em; /* background-color: #f0f4ff; */
+	margin-bottom: 1.5em;
+}
+/* Container for the picker part (without current period label display) */
+.period-type-container {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	overflow: hidden;
+	/* border: 1px solid #444; */
+	border-bottom: 1px solid #c2d6ff;
+	width: fit-content;
+	margin-inline: auto;
 }
 
+/* The style for each of the period picker boxes (e.g. YEAR) */
 .period-type-picker {
 	display: flex;
 	align-items: center;
@@ -35,47 +37,51 @@
 	transition: background-color 0.2s ease, color 0.2s ease;
 }
 
+/* The current period label display */
 .current-period-full-label {
 	font-weight: 500;
 	font-size: 0.96em;
 	color: #333;
 	padding: 0.1em 0em 0.1em 0em;
 }
+
+/* Border right for every box except the last */
 .period-type-picker:not(:last-child) {
 	border-right: 1px solid #c2d6ff;
 }
 
+/* Exra padding for the end of picker (last box, WEEK)*/
 .period-type-picker:last-child {
 	padding-right: 0.5em;
 }
 
+/* Extra padding for the start of the picker (first box, YEAR) */
 .period-type-picker:first-child {
 	padding-left: 1em;
 }
+
+/* Style for pciker box when hover */
 .period-type-picker:hover {
 	background-color: #e6f5ff;
 	color: #1c52b5;
 }
 
+/* Style for pciker box when active */
 .period-type-picker.active {
 	background-color: #e6f5ff;
 	color: #1c52b5;
-	/* background-color: #d0e0ff; */
-	/* background-color: yellow; */
 }
-/* .period-head {
-	display: flex;
-	flex-direction: column;
-} */
+
+/* Arrow for period picker pop up */
 .arrow {
 	font-size: 0.85em;
-	/* color: #2e6edc; */
 	padding: 0.2em 0.4em;
 	border-radius: 50%;
 	transition: background-color 0.2s ease;
 	cursor: pointer;
 }
 
+/* Arrow for period picker pop up when hover */
 .arrow:hover {
 	background-color: #d6e4ff;
 	color: #1a47aa;

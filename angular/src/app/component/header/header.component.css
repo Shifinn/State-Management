@@ -1,58 +1,66 @@
+/* Nav bar container */
 .nav-bar {
 	background-color: #143580;
 	color: #ffffff;
 	padding: 0.2em 2.2em;
 	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-	height: 60px; /* Set a fixed height for consistent alignment */
+	height: 60px;
 	display: flex;
 	justify-content: space-between;
-	align-items: center; /* Vertically center all child elements */
+	align-items: center;
 }
 
+/* Nav bar for smaller window */
 .nav-bar.smaller {
 	font-size: 0.75em;
 	padding: 0.2em 1em;
 }
+/* Title of the app name */
 .app-title {
 	font-size: 1.8em;
 	font-weight: bold;
 	cursor: pointer;
-	display: flex; /* Ensure proper alignment */
+	display: flex;
 }
 
+/* Icon for the user profile */
 .profile-icon {
 	font-size: 2.5em;
 	cursor: pointer;
-	display: flex; /* Ensure proper alignment */
-	align-items: center; /* Vertically center the icon */
-	height: 100%; /* Match the height of the nav-bar */
+	display: flex;
+	align-items: center;
+	height: 100%;
 	width: fit-content;
 }
 
+/* Navigation container */
 .navigation {
-	display: flex; /* Ensure proper alignment */
-	align-items: center; /* Vertically center navigation items */
+	display: flex;
+	align-items: center;
 }
 
+/* list item container */
 .navigation ul {
 	display: flex;
 	gap: 1.5em;
 	margin: 0;
 	padding: 0;
 	list-style: none;
-	align-items: center; /* Vertically center list items */
+	align-items: center;
 }
 
+/* List items of the navigation */
 .navigation li {
 	cursor: pointer;
 	color: #ffffff;
 	font-weight: 600;
 	font-size: 1.2em;
-	align-items: center; /* Vertically center list items */
+	align-items: center;
 	border-radius: 4px;
 	transition: background-color 0.2s, color 0.2s;
 }
 
+/* List item when hovered or active */
 .navigation li:hover,
 .navigation li.active {
 	color: lightblue;

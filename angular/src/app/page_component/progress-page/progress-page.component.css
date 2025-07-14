@@ -1,13 +1,10 @@
+/* Title for the page */
 .page-title {
 	justify-content: center;
 	margin-bottom: 0.5em;
 }
 
-.row {
-	justify-content: center;
-	margin-bottom: 2em;
-}
-
+/* style for request card (count) container when centered and shrinked */
 .requests.center.shrink {
 	gap: 0.5em !important;
 	margin-left: 0em;
@@ -16,15 +13,18 @@
 	padding-right: 0.1em;
 }
 
+/* style for request card (count) container when centered and window is smaller */
+
 .requests.center.small-window {
 	gap: 0.8em;
 }
 
+/* Request card container below the count cards, the state filtered requests*/
 .requests.state-card-container {
 	justify-content: center;
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(16em, 1fr));
-	gap: 2.5em; /* consistent but adaptive due to 1fr scaling */
+	gap: 2.5em;
 	padding: 0 2em 1em 2em;
 	margin: 1.5em 1em 0 1em;
 }

@@ -1,24 +1,27 @@
+/* Container for title of the page and new request button*/
 .page-title {
 	display: flex;
 	justify-content: center;
 	align-items: center;
 	vertical-align: middle;
-	/* justify-content: space-between; */
 }
-
+/* Center everything within*/
 .page-title.all-center {
 	flex-direction: column;
 }
+/* title text */
 .page-title h1 {
 	vertical-align: middle;
 	text-align: center;
 }
 
+/* New request button */
 .page-title app-custom-square-button {
 	position: absolute;
 	right: 2em;
 }
 
+/* Centered new request button */
 .page-title.all-center app-custom-square-button {
 	margin-top: 0.7em;
 	position: relative;

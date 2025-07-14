@@ -1,3 +1,4 @@
+/* Container for the whole popup */
 .pop-up-container {
 	position: absolute;
 	transform: translate(-10em, 0.91em);
@@ -11,6 +12,7 @@
 	transition: all 0.2s ease;
 }
 
+/* Top bar for the month or year selection */
 .top-bar {
 	display: flex;
 	justify-content: center;
@@ -18,12 +20,14 @@
 	margin-bottom: 10px;
 }
 
+/* grid view for the available period / menu selection */
 .grid-content {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(8em, 1fr));
 	gap: 10px;
 }
 
+/* Each of the period selection*/
 .custom-button {
 	background-color: #ffffff;
 	border: 1px solid #444;
@@ -34,6 +38,7 @@
 	transition: background 0.2s ease;
 }
 
+/* Each of the period selection when hover*/
 .custom-button:hover {
 	background-color: #d1f8ff;
 }

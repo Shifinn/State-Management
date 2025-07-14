@@ -1,31 +1,30 @@
+/* Title of request */
 .request-title {
 	margin: 0.1em;
 }
 
-.request-date {
-	color: #333;
-	font-size: 0.9em;
-}
-
+/* Specific style for card here */
 .card {
 	width: 17em;
 	font-size: 0.93em;
 	display: flex;
 	flex-direction: column;
-	/* gap: 0.65em; */
 }
 
+/* Misc data label */
 .data-label {
 	color: #333;
 	font-size: 0.9em;
 }
 
+/* State info style */
 .state-info {
 	display: flex;
 	flex-direction: column;
 	margin-top: 0.95em;
 }
 
+/* current state style */
 .state-current {
 	display: flex;
 	flex-direction: column;
@@ -35,6 +34,7 @@
 	margin-bottom: 0.65em;
 }
 
+/* the text of the card status */
 .card-status span {
 	padding: 0.45em 1em;
 	border-radius: 8px;
@@ -44,57 +44,58 @@
 	/* font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif, Roboto; */
 }
 
+/* The label of the state (e.g. current)*/
 .state-label {
 	font-weight: 500;
 	color: #333;
 	margin-bottom: 0.25em;
 }
 
-.state-data {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 8px;
-	font-size: 0.95em;
-	color: #555;
-}
-
+/* Date label (darker and slightly bigger than data-label) */
 .date {
 	color: #222;
 }
 
+/* the label of who moved the state */
 .by-user {
 	font-style: italic;
 	color: #666;
 }
 
+/* Bottom of the card */
 .card-footer {
 	margin-top: 0.8em;
 	margin-bottom: 0.4em;
 	display: flex;
-	/* text-align: right; */
 	align-items: center;
 	justify-content: space-between;
 }
+
+/* Submitted */
 .s1 {
 	background-color: #ffadad;
 	color: #4a0f0f;
 }
 
+/* Verified */
 .s2 {
 	background-color: #ffd6a5;
 	color: #4b4318;
 }
 
+/* In progress */
 .s3 {
 	background-color: #fdffb6;
-	color: #4b4a18;
+	color: #4a4b18;
 }
 
+/* Waiting for review */
 .s4 {
 	background-color: #9bf6ff;
 	color: #2d484a;
 }
 
+/* Done */
 .s5 {
 	background-color: #caffbf;
 	color: #1c3e1f;

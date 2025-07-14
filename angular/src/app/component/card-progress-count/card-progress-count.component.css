@@ -1,12 +1,11 @@
-/* Base card style */
+/* Specific style for card here */
 .card {
 	width: 20em;
 	font-size: 1rem;
 	padding: 1em;
 	transition: all 0.8s ease;
-	/* box-shadow: inset 0 0 0 1px #999; */
-	/* border: 1px #999; */
 }
+/* card style when it is active */
 
 .card.active-card {
 	box-shadow: 2px 2px 2px 2px rgba(44, 62, 80, 0.18), 0 3px 8px
@@ -14,18 +13,24 @@
 	border: 2px solid #999;
 }
 
-/* Shrink style: reduce font-size and width */
+/* 	Shrink style for card to reduce font-size and width
+	Used when menu is changed from only count view 
+	to count and state view*/
 .card.shrink {
 	width: 18em;
 	font-size: 0.64rem; /* controls all size below */
 	padding: 0.9em;
 }
 
+/* 	Shrink style for card when window is smaller to reduce font-size and width
+	Used when menu is changed from only count view 
+	to count and state view*/
 .card.shrink.small-window {
 	width: 16em;
 	font-size: 0.59rem; /* controls all size below */
 	padding: 0.7em;
 }
+/* Title of the request */
 .request-title {
 	font-size: 1em;
 }
@@ -41,27 +46,27 @@
 .progress-square {
 	flex: 1;
 	padding: 0.8em 0em 0.8em 0em;
-	/* background-color: #f5f7fa; */
 	border-radius: 12px;
 	text-align: center;
 	box-shadow: 0 0 0 1px #999;
-	/* border: 1px solid #999; */
 	transition: all 0.3s ease;
 }
 
+/* progress count box when active */
 .progress-square.active {
 	box-shadow: 2px 2px 2px 2px rgba(44, 62, 80, 0.18), 0 3px 8px
 		rgba(44, 62, 80, 0.1);
 	border: 2px solid #999;
-	/* background-color: #2e6edc; */
 }
 
+/* progress count box when hovered */
 .progress-square:hover {
 	box-shadow: 1px 1px 1px 1px rgba(44, 62, 80, 0.18), 0 3px 8px
 		rgba(44, 62, 80, 0.1);
 	cursor: pointer;
 }
 
+/* progress count box when hover is disabled */
 .progress-square.no-hover:hover {
 	box-shadow: none !important;
 }
@@ -79,51 +84,61 @@
 	color: #111;
 }
 
-/* Submitted - Pastel Yellow */
+/* State colors */
+/* Submitted */
 .card.s1 {
 	background-color: #ffadad;
 }
 
+/* Verified */
 .card.s2 {
 	background-color: #ffd6a5;
 }
 
+/* In progress */
 .card.s3 {
 	background-color: #fdffb6;
 }
 
+/* Waiting for review */
 .card.s4 {
 	background-color: #9bf6ff;
 }
 
+/* Done */
 .card.s5 {
 	background-color: #caffbf;
 }
 
+/* All */
 .card.s-1 {
 	background-color: #e8e8e4;
 }
 
+/* Submitted */
 .inner-card.s1 {
 	background-color: #ffc0c2;
 }
 
+/* Verified */
 .inner-card.s2 {
 	background-color: #ffe0b8;
 }
-
+/* In progress */
 .inner-card.s3 {
 	background-color: #feffdc;
 }
 
+/* Waiting for review */
 .inner-card.s4 {
 	background-color: #bbfbff;
 }
 
+/* Done */
 .inner-card.s5 {
 	background-color: #d9ffd6;
 }
-
+/* All */
 .inner-card.s-1 {
 	background-color: #ececec;
 }

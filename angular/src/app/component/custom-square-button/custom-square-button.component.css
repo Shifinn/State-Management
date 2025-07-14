@@ -1,3 +1,4 @@
+/* Base style of the button */
 .details-button {
 	background: #1976d2;
 	border: none;
@@ -9,11 +10,10 @@
 	font-size: 0.95em;
 	box-shadow: 0 2px 8px rgba(44, 62, 80, 0.08);
 	transition: background 0.2s;
-	/* font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif, Roboto; */
-
 	font-family: Roboto, sans-serif;
 }
 
+/* Style when button is hovered */
 .details-button:hover {
 	background: #1e87ff;
 }

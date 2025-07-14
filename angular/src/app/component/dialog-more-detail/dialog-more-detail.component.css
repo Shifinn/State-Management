@@ -1,14 +1,16 @@
+/* Dialog container when window is smaller */
 .dialog-container.smaller {
 	font-size: 0.85em;
 }
 
+/* Base dialog container style */
 .request-container {
-	/* padding: 24px; */
 	display: flex;
 	flex-direction: column;
 	gap: 15px;
 }
 
+/* Fieldfor the fields that hold the details value */
 .readonly-field {
 	display: flex;
 	align-items: center;
@@ -20,18 +22,20 @@
 	color: #333;
 	overflow-wrap: break-word !important;
 }
+
+/* The text for the filenames */
 .filename-text {
 	flex: 1;
-	/* word-break: break-all; */
 	overflow-wrap: break-word;
-
-	/* margin-right: 8px; */
 }
 
+/* The filed for the files */
 .file-field {
 	padding: 0.5em 0.7em !important;
 	justify-content: space-between;
 }
+
+/* Download icon button (contain the icon) */
 .download-icon-button {
 	padding: 0.1em;
 	width: 1.2em;
@@ -39,29 +43,21 @@
 	justify-content: center;
 }
 
+/* The download icon itself */
 .download-icon {
 	font-size: 0.9em;
-
 	height: fit-content;
 	width: fit-content;
 }
-/* .download-icon:hover {
-	background-color: #dddada;
-} */
 
-/* .request-title {
-  font-weight: 1000;
-  font-size: 1.3em;
-  margin-bottom: 0em;
-  color: #444;
-} */
-
+/* Row that set the content to align right */
 .justify-end {
 	display: flex;
 	justify-content: flex-end;
 	gap: 12px;
 }
 
+/* Color for drop button */
 .mat-bad {
 	color: rgb(255, 19, 19) !important;
 }
