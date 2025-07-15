@@ -15,10 +15,20 @@
 /* The icon display */
 mat-icon {
 	font-size: 5em !important;
-	color: #ec4040;
+
 	width: fit-content;
 	height: fit-content;
 	align-self: center;
+}
+
+/* Red color on icon for failure */
+.red {
+	color: #ec4040;
+}
+
+/* Green color on icon for success */
+.green {
+	color: rgb(48, 201, 48);
 }
 
 /* full width row */

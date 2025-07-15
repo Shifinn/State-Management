@@ -63,9 +63,17 @@ type UpdateState struct {
 
 // EmailRecipient holds user and state information for sending emails.
 type EmailRecipient struct {
-	UserName     string `json:"userName"`
-	Email        string `json:"email"`
-	RequestState string `json:"requestState"`
+	UserID   int    `json:"userId"`
+	UserName string `json:"userName"`
+	Email    string `json:"email"`
+	Comment  string `json:"comment"`
+}
+
+// EmailRecipient holds user and state information for sending emails to a role
+// Input for the api call for role notification
+type RoleEmailRecipient struct {
+	RoleId    int    `json:"roleId"`
+	StateName string `json:"stateName"`
 }
 
 type StateData struct {
@@ -129,7 +137,8 @@ func registerRoutes(router *gin.RouterGroup) {
 	router.PUT("/dropRequest", dropRequest)
 
 	// Email sending
-	router.POST("/postReminderEmail", postReminderEmail)
+	router.POST("/postReminderEmail", postDropReminderEmail)
+	router.POST("/postReminderEmailToRole", postReminderEmailToRole)
 }
 
 // Handler is the entry point for Vercel Serverless Functions.
@@ -456,8 +465,7 @@ func getQuestionData(c *gin.Context) {
 // It parses multipart form data, creates a new request in the database,
 // uploads any attached files, and stores their URLs.
 func postNewRequest(c *gin.Context) {
-	c.JSON(http.StatusBadRequest, gin.H{"error": "failed"})
-	return
+
 	var newReq NewRequest
 	var requestId string
 	var docxFilePath string
@@ -511,6 +519,10 @@ func postNewRequest(c *gin.Context) {
 		}
 	}
 
+	// Upload attached files to Vercel Blob storage.
+	docxFilePath = uploadFile(c, "docxAttachment", newReq.DocxFilename, requestId)
+	excelFilePath = uploadFile(c, "excelAttachment", newReq.ExcelFilename, requestId)
+
 	// Call the database function to create the request and return its new ID.
 	query := `SELECT state_manager.create_new_request($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
 	if err := db.QueryRow(query,
@@ -519,10 +531,6 @@ func postNewRequest(c *gin.Context) {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to get request ID after creation")
 		return
 	}
-
-	// Upload attached files to Vercel Blob storage.
-	docxFilePath = uploadFile(c, "docxAttachment", newReq.DocxFilename, requestId)
-	excelFilePath = uploadFile(c, "excelAttachment", newReq.ExcelFilename, requestId)
 
 	requestIdInt, err := strconv.Atoi(requestId)
 	if err != nil {
@@ -604,39 +612,7 @@ func putUpgradeState(c *gin.Context) {
 		}
 	}
 	log.Printf("State successfully updated")
-
-	var state StateData
-	var targetRole string
-	if err := json.Unmarshal([]byte(sqlNullString.String), &state); err != nil {
-		checkErr(c, http.StatusInternalServerError, err, "Failed to unmarshal state data")
-		return
-	}
-
-	// Determine the next role to notify based on the new state ID.
-	if state.StateId == 2 || state.StateId == 3 {
-		targetRole = "2" // Worker role
-	} else if state.StateId == 4 {
-		targetRole = "3" // Validator role
-	} else if state.StateId == 5 {
-		targetRole = "last state" // No one to notify
-	} else {
-		targetRole = "invalid update"
-	}
-
-	// Send the notification email.
-	var message string
-	if targetRole == "invalid update" {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "State updated successfully, but email unsuccessfully sent"})
-	} else if targetRole == "last state" {
-		c.IndentedJSON(http.StatusOK, gin.H{"message": "State updated successfully"})
-	} else {
-		message = sendReminderEmailToRole(c, targetRole, state.StateName)
-		if message == "" {
-			c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "State updated successfully, but email unsuccessfully sent"})
-			return
-		}
-		c.IndentedJSON(http.StatusOK, gin.H{"message": "State updated successfully, " + message})
-	}
+	c.IndentedJSON(http.StatusOK, gin.H{"message": "State updated successfully"})
 }
 
 // putDegradeState handles the PUT /degradeState endpoint.
@@ -657,35 +633,10 @@ func putDegradeState(c *gin.Context) {
 	log.Printf("State successfully updated")
 
 	var state StateData
-	var targetRole string
+	// var targetRole string
 	if err := json.Unmarshal([]byte(sqlNullString.String), &state); err != nil {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to unmarshal state data")
 		return
-	}
-
-	// Determine which role to notify that the request has been sent back.
-	if state.StateId == 3 {
-		targetRole = "2" // Worker role
-	} else {
-		targetRole = "invalid update"
-	}
-
-	var message string
-	if targetRole == "invalid update" {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "State updated successfully, but email unsuccessfully sent"})
-	} else {
-		// Use a custom email body for degrade actions.
-		var body = fmt.Sprintf(`Selamat pagi Bapak/Ibu,<br><br>
-            Email ini dikirim secara otomatis untuk memberitahukan bahwa terdapat request yang belum mencukupi kebutuhan dan telah memasuki status %s kembali.<br><br>
-            Mohon dapat dilakukan tindak lanjut terhadap request tersebut.<br><br>
-            Terima kasih atas perhatian dan kerja samanya.<br><br>
-            Salam,<br>StateManager`, state.StateName)
-		message = sendReminderEmailToRole(c, targetRole, state.StateName, body)
-		if message == "" {
-			c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "State updated successfully, but email unsuccessfully sent"})
-			return
-		}
-		c.IndentedJSON(http.StatusOK, gin.H{"message": "State updated successfully, " + message})
 	}
 }
 
@@ -704,22 +655,69 @@ func dropRequest(c *gin.Context) {
 		checkErr(c, http.StatusInternalServerError, err, "Failed to drop request")
 		return
 	}
+	c.IndentedJSON(http.StatusOK, gin.H{"message": "State updated successfully"})
+
 }
 
 // postReminderEmail handles the POST /postReminderEmail endpoint.
 // It sends a reminder email to a single, specified recipient.
-func postReminderEmail(c *gin.Context) {
+func postDropReminderEmail(c *gin.Context) {
 	var recipient EmailRecipient
+	// Take in input required for the email sendirg
 	if err := c.BindJSON(&recipient); err != nil {
 		checkErr(c, http.StatusBadRequest, err, "Invalid input")
 		return
 	}
-	sendReminderEmail([]string{recipient.Email}, recipient.RequestState)
+	// get the user email with the id of the user
+	var jsonData []byte
+	query := `SELECT state_manager.get_user_email($1)`
+	if err := db.QueryRow(query, recipient.UserID).Scan(&jsonData); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to get user data")
+		return
+	}
+
+	// Unmarshal the data
+	if err := json.Unmarshal(jsonData, &recipient); err != nil {
+		checkErr(c, http.StatusInternalServerError, err, "Failed to parse user data")
+		return
+	}
+
+	// Cursom email body for rejection
+	body := fmt.Sprintf(`Selamat pagi Bapak/Ibu,<br><br>
+            Email ini dikirim secara otomatis untuk memberitahukan bahwa terdapat request yang telah di REJECT.<br><br>
+            request Bapak/Ibu di reject dikarenakan: <br>
+			%s <br><br>
+			Terima kasih atas perhatian dan kerja samanya.<br><br>
+            Salam,<br>StateManager`, recipient.Comment)
+
+	// Sends email
+	sendReminderEmail([]string{recipient.Email}, "REJECTED", body)
 	c.JSON(http.StatusOK, gin.H{"message": "Reminder email dispatched."})
 }
 
+// postReminderEmail handles the POST /postReminderEmailToRole endpoint.
+// It sends a reminder email to every user in a specific role
+func postReminderEmailToRole(c *gin.Context) {
+	var recipientRole RoleEmailRecipient
+	// Takes in input used for the email sending
+	if err := c.BindJSON(&recipientRole); err != nil {
+		checkErr(c, http.StatusBadRequest, err, "Invalid input")
+		return
+	}
+	// Send the email
+	var message = sendReminderEmailToRole(c, recipientRole.RoleId, recipientRole.StateName)
+
+	// If message is "", that  menas error, send error message
+	if message == "" {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "State updated successfully, but email unsuccessfully sent"})
+		return
+	}
+	// else return OK
+	c.IndentedJSON(http.StatusOK, gin.H{"message": "State updated successfully, " + message})
+}
+
 // sendReminderEmailToRole is a helper function that fetches emails for a role and dispatches the reminder.
-func sendReminderEmailToRole(c *gin.Context, roleIDInput string, stateNameInput string, body ...string) string {
+func sendReminderEmailToRole(c *gin.Context, roleIDInput int, stateNameInput string, body ...string) string {
 	var recipientsJSON sql.NullString
 	// Fetch the list of recipients from the database.
 	query := `SELECT state_manager.get_role_emails($1)`
@@ -777,9 +775,9 @@ func sendReminderEmail(emails []string, state string, body ...string) string {
 		emailBody = body[0]
 	} else {
 		emailBody = fmt.Sprintf(`Selamat pagi Bapak/Ibu,<br><br>
-            Email ini dikirim secara otomatis untuk memberitahukan bahwa terdapat request yang telah memasuki status %s.<br><br>
-            Mohon dapat dilakukan tindak lanjut terhadap request tersebut.<br><br>
-            Terima kasih atas perhatian dan kerja samanya.<br><br>
+		Email ini dikirim secara otomatis untuk memberitahukan bahwa terdapat request yang telah memasuki status %s.<br><br>
+		Mohon dapat dilakukan tindak lanjut terhadap request tersebut.<br><br>
+		Terima kasih atas perhatian dan kerja samanya.<br><br>
             Salam,<br>StateManager`, state)
 	}
 	msg.SetBody("text/html", emailBody)

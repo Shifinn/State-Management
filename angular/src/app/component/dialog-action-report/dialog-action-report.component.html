@@ -1,8 +1,8 @@
 <div class="dialog-container">
     @if (dialogData.type === 'fail') {
-    <mat-icon>close</mat-icon>
+    <mat-icon class="red">close</mat-icon>
     } @else {
-    <mat-icon>check</mat-icon>
+    <mat-icon class="green">check</mat-icon>
     }
 
     <h2 mat-dialog-title class="basic-text">{{dialogData.reportMessage}}</h2>

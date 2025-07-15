@@ -13,6 +13,8 @@ import type {
 	StateStatus,
 	StateThreshold,
 	Duration,
+	EmailRecipient,
+	EmailRoleRecipient,
 } from "../model/format.type";
 import { map, type Observable, of } from "rxjs";
 
@@ -258,6 +260,19 @@ export class DataProcessingService {
 		return this.http.put(url, stateUpdateData);
 	}
 
+	// Sends a request to the API to send a reminder email to a specific user
+	// Used on reject request (more details dialog)
+	postReminderEmail(emailRecipient: EmailRecipient) {
+		const url = `${this.host}/postReminderEmail`;
+		return this.http.post(url, emailRecipient);
+	}
+
+	// Sends a request to the API to send a reminder email to everyone in a specific role
+	// Used on upgrade request state (more details)
+	postReminderEmailToRole(emailRoleRecipient: EmailRoleRecipient) {
+		const url = `${this.host}/postReminderEmailToRole`;
+		return this.http.post(url, emailRoleRecipient);
+	}
 	// Calculates the time difference in total hours.
 	getTimeDifferenceInHour(dateRef: Date): number {
 		return Math.abs(Date.now() - new Date(dateRef).getTime()) / 3600000;

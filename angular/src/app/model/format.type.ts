@@ -167,3 +167,17 @@ export type Duration = {
 	day: number;
 	hour: number;
 };
+
+// A type for the email notification to a specific user
+// Used on more details when rejecting a request
+export type EmailRecipient = {
+	userId: number;
+	comment: string;
+};
+
+// A type for the email notification to every user in a role
+// Used on more details when upgrading a request state
+export type EmailRoleRecipient = {
+	roleId: number;
+	stateName: string;
+};

@@ -30,6 +30,7 @@ import { NgIf } from "@angular/common";
 import { MatIconModule } from "@angular/material/icon";
 import { HttpEventType } from "@angular/common/http";
 import { DialogActionReportComponent } from "../dialog-action-report/dialog-action-report.component";
+import { ReportService } from "../../service/report.service";
 
 @Component({
 	selector: "app-dialog-new-request-questionnaire",
@@ -56,6 +57,7 @@ import { DialogActionReportComponent } from "../dialog-action-report/dialog-acti
 export class DialogNewRequestQuestionnaireComponent {
 	// Inject necessary services
 	dataService = inject(DataProcessingService);
+	reportService = inject(ReportService);
 	dialogRef = inject(MatDialogRef<DialogNewRequestQuestionnaireComponent>);
 	dialog = inject(MatDialog);
 	// A reference to the form in the html, used to check its validity.
@@ -135,13 +137,19 @@ export class DialogNewRequestQuestionnaireComponent {
 						// If it's a response event, the upload is complete.
 						// Open a dialog that inform the success with success messsage
 						// Store the refrence to the dialog opened
-						const dialogRefReport = this.openReportDialog(
+						const dialogRefReport = this.reportService.openReportDialog(
 							"New request form successfully uploaded.",
 							"success",
 						);
 						// Subscribe to report dialog close
 						dialogRefReport.afterClosed().subscribe(() => {
 							// Close the new request dialog along with the report dialog						const dialogRefReport = this.openReportDialog(
+							this.dataService
+								.postReminderEmailToRole({
+									roleId: 3,
+									stateName: "SUBMITTED",
+								})
+								.subscribe();
 							this.dialogRef.close("1");
 						});
 					}
@@ -150,7 +158,7 @@ export class DialogNewRequestQuestionnaireComponent {
 					// If an error occurs, open a dialog to inform failure.
 					// Along with the error message
 					// Store the refrence to the dialog opened
-					const dialogRefReport = this.openReportDialog(
+					const dialogRefReport = this.reportService.openReportDialog(
 						"Failed to upload new request form. Please check your connection and try again.",
 						"fail",
 					);
@@ -170,7 +178,7 @@ export class DialogNewRequestQuestionnaireComponent {
 	resizeForUploadProgress() {
 		if (this.isUploading()) {
 			// Shrink the dialog to focus on the progress bar.
-			this.dialogRef.updateSize("40vw");
+			this.dialogRef.updateSize("auto");
 		} else {
 			// Restore the dialog to its original size.
 			this.dialogRef.updateSize("90vw", "100%");
@@ -190,25 +198,6 @@ export class DialogNewRequestQuestionnaireComponent {
 		}
 	}
 
-	// Handles opening a dialog to report success or failure and return the refrence to the dialog.
-	openReportDialog(
-		reportMessage: string,
-		type: "fail" | "success",
-	): MatDialogRef<DialogActionReportComponent> {
-		// Uses the MatDialog service to open the DialogActionReportComponent.
-		const dialogRefReport = this.dialog.open(DialogActionReportComponent, {
-			autoFocus: false,
-			width: "60vw",
-			height: "90vh",
-			maxWidth: "90vw",
-			maxHeight: "fit-content",
-			panelClass: "custom-dialog-container",
-			data: { reportMessage, type }, // Passes the request ID to the dialog.
-		});
-
-		// Returns the refrence to the dialog opened
-		return dialogRefReport;
-	}
 	// Checks if the main form is valid.
 	allRequirementsAnswered(): boolean {
 		// Returns true only if the form reference exists and its valid status is true.

@@ -2,6 +2,7 @@ import { Component, HostListener, inject, signal } from "@angular/core";
 import type {
 	AttachmentFilename,
 	CompleteData,
+	EmailRoleRecipient,
 	Question,
 	UpdateState,
 } from "../../model/format.type";
@@ -19,6 +20,7 @@ import { Router } from "@angular/router";
 import { DialogMoreDetailsConfirmationComponent } from "../dialog-more-details-confirmation/dialog-more-details-confirmation.component";
 import { MatIconModule } from "@angular/material/icon";
 import { delay } from "rxjs";
+import { ReportService } from "../../service/report.service";
 
 @Component({
 	selector: "app-dialog-more-detail",
@@ -58,6 +60,7 @@ export class DialogMoreDetailComponent {
 	inputData = inject(MAT_DIALOG_DATA);
 	// Injects necessary services.
 	dataService = inject(DataProcessingService);
+	reportService = inject(ReportService);
 	// Angular's router service, used to check the current URL.
 	router = inject(Router);
 	// The main dialog service, used here to open a *nested* confirmation dialog.
@@ -110,20 +113,88 @@ export class DialogMoreDetailComponent {
 
 				// Call the appropriate service method based on the action.
 				if (change === "drop") {
-					this.dataService.dropRequest(this.stateUpdateData).subscribe();
+					this.dataService.dropRequest(this.stateUpdateData).subscribe({
+						next: () => {
+							// On success, send email notification to the user which the request belong to
+							// with the reason of rejection
+							this.dataService
+								.postReminderEmail({
+									userId: this.data().userId,
+									comment: result,
+								})
+								.subscribe();
+							// Open a dialog to notify the user that the request has been succesfully updated
+							const reportDialogRef = this.reportService.openReportDialog(
+								"Successfully updated state.",
+								"success",
+							);
+							// after dialog close, also close the more details dialog
+							reportDialogRef.afterClosed().subscribe(() => {
+								this.dialogRef.close("1");
+							});
+						},
+						error: (err) => {
+							// On failure, open a dialog to notify user that the state update  failed
+							this.reportService.openReportDialog(
+								"Error updating state. Please check your connection and try again.",
+								"fail",
+							);
+						},
+					});
 				} else {
-					this.dataService.upgradeState(this.stateUpdateData).subscribe();
+					this.dataService.upgradeState(this.stateUpdateData).subscribe({
+						next: () => {
+							// On success, first check to whom to
+							// send email notification for the new request state
+							const targetRole = this.checkEmailRoleTarget(
+								this.data().stateName,
+							);
+							// If there is a target, send reminder
+							// (would not send for done, as email is sent by team upon done)
+							if (targetRole !== null) {
+								this.dataService
+									.postReminderEmailToRole(targetRole)
+									.subscribe();
+							}
+							// Pen dialog to notify use that the update was a success
+							const reportDialogRef = this.reportService.openReportDialog(
+								"Successfully updated state.",
+								"success",
+							);
+							// Upon report dialog close, also close more details
+							reportDialogRef.afterClosed().subscribe(() => {
+								this.dialogRef.close("1");
+							});
+						},
+						error: (err) => {
+							// On fail, send a notification to  user of the failure
+							this.reportService.openReportDialog(
+								"Error updating state. Please check your connection and try again.",
+								"fail",
+							);
+						},
+					});
 				}
-				// A small delay to ensure the backend has time to process the state update before closing.
-				// The close dialog is not within the subscribe because along with the update
-				// the api request also send a reminder email that needs time,
-				// So, to make sure there is no major delay for the UI, a delay is set to ensure the updated request
-				// state will be shown and then isntantly close before email sending is completed
-				delay(10);
-				// Close this main dialog and pass back a result ('1') to signal that an action was taken.
-				this.dialogRef.close("1");
 			}
 		});
+	}
+
+	// Function to check the target of the email, would always send the
+	// email to the users responsible for the new state,
+	// Would not send for the new request of done (send null)
+	// because email is sent directly to team
+	checkEmailRoleTarget(stateName: string): EmailRoleRecipient | null {
+		console.log(`check with: ${stateName}`);
+		if (stateName === "SUBMITTED") {
+			return { roleId: 2, stateName: "VALIDATED" };
+		}
+		if (stateName === "VALIDATED") {
+			return { roleId: 2, stateName: "IN PROGRESS" };
+		}
+		if (stateName === "IN PROGRESS") {
+			return { roleId: 3, stateName: "WAITING FOR REVIEW" };
+		}
+		return null;
 	}
 
 	// Checks if the current page is the todo page.
