@@ -1,6 +1,6 @@
-// package handler
+package handler
 
-package main
+// package main
 
 import (
 	"database/sql"
@@ -146,12 +146,12 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	app.ServeHTTP(w, r)
 }
 
-// main is the entry point for local development. It is ignored by Vercel.
-func main() {
-	port := "9090"
-	log.Printf("INFO: Starting local server on http://localhost:%s\n", port)
-	http.ListenAndServe(":"+port, http.HandlerFunc(Handler))
-}
+// // main is the entry point for local development. It is ignored by Vercel.
+// func main() {
+// 	port := "9090"
+// 	log.Printf("INFO: Starting local server on http://localhost:%s\n", port)
+// 	http.ListenAndServe(":"+port, http.HandlerFunc(Handler))
+// }
 
 // openDB establishes a connection to the PostgreSQL database.
 // It uses the DATABASE_URL environment variable for establishing the connection

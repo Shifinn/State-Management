@@ -27,8 +27,8 @@ export class DataProcessingService {
 	// Inject Router to handle routing.
 	router = inject(Router);
 	// The base URL for the backend API.
-	// host = "https://state-management-api.vercel.app/api";
-	host = "http://localhost:9090/api";
+	host = "https://state-management-api.vercel.app/api";
+	// host = "http://localhost:9090/api";
 
 	// Stores user information in localStorage after a successful login.
 	storeUserInfo(u: User) {
