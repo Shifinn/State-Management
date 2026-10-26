@@ -158,7 +158,16 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 func openDB() *sql.DB {
 	databaseURL := os.Getenv("DATABASE_URL")
 	log.Printf("DEBUG: DATABASE_URL set=%v len=%d prefix=%.14q", databaseURL != "", len(databaseURL), databaseURL)
-
+	for _, e := range os.Environ() {
+		name := strings.SplitN(e, "=", 2)[0]
+		up := strings.ToUpper(name)
+		if strings.HasPrefix(up, "VERCEL") || strings.Contains(up, "DATA") || strings.Contains(up, "URL") {
+			log.Printf("ENV name=%q valueLen=%d", name, len(e)-len(name)-1)
+		}
+	}
+	log.Printf("VERCEL_ENV=%s commit=%s", os.Getenv("VERCEL_ENV"), os.Getenv("VERCEL_GIT_COMMIT_SHA"))
+	_, found := os.LookupEnv("DATABASE_URL")
+	log.Printf("DATABASE_URL present=%v", found)
 	if databaseURL == "" {
 		// Fallback for local development if the environment variable is not set.
 		databaseURL = "postgres://postgres:12345678@localhost:5432/gudang_garam?sslmode=disable"
