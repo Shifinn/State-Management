@@ -157,6 +157,8 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 // It uses the DATABASE_URL environment variable for establishing the connection
 func openDB() *sql.DB {
 	databaseURL := os.Getenv("DATABASE_URL")
+	log.Printf("DEBUG: DATABASE_URL set=%v len=%d prefix=%.14q", databaseURL != "", len(databaseURL), databaseURL)
+
 	if databaseURL == "" {
 		// Fallback for local development if the environment variable is not set.
 		databaseURL = "postgres://postgres:12345678@localhost:5432/gudang_garam?sslmode=disable"
